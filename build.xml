@@ -1,0 +1,90 @@
+<project name="Giraffa" default="compile" basedir=".">
+	<description>
+        The build file for the Giraffa file system.
+    </description>
+	<!-- set global properties for this build -->
+	<property name="src" location="src/java" />
+	<property name="test" location="src/test" />
+	<property name="conf" location="conf" />
+	<property name="build" location="build" />
+	<property name="lib" location="lib" />
+	<property name="dist" location="dist" />
+	<property name="test.reports" location="${build}/test_reports" />
+
+	<path id="classpath">
+    <pathelement location="${build}/classes" />
+    <pathelement location="${build}/test-classes" />
+	  <fileset dir="${lib}">
+			<include name="*.jar" />
+			<exclude name="**/excluded/" />
+		</fileset>
+	</path>
+
+	<target name="init">
+		<!-- Create the time stamp -->
+		<tstamp />
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${build}" />
+    <mkdir dir="${build}/classes" />
+    <mkdir dir="${build}/test-classes" />
+	</target>
+
+	<target name="compile" depends="init" description="compile the source">
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac srcdir="${src}" destdir="${build}/classes" debug="on">
+			<classpath refid="classpath" />
+		</javac>
+		<javac srcdir="${test}" destdir="${build}/test-classes" debug="on">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile" description="generate the distribution">
+		<!-- Create the distribution directory -->
+		<mkdir dir="${dist}/lib" />
+
+		<!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
+		<jar jarfile="${dist}/lib/grfa.jar" basedir="${build}/classes" />
+	</target>
+	
+	<target name="test" depends="dist" description="test the distribution">
+		<mkdir dir="${test.reports}" />
+		
+		<!-- Create classpath -->
+		<path id="test.classpath">
+	    <pathelement location="${build}/classes" />
+	    <pathelement location="${build}/test-classes" />
+			<fileset dir="${lib}">
+		  	  	<include name="**/*.jar"/>
+		  	</fileset>
+		  	<fileset dir="${dist}">
+				<include name="**/*.jar"/>
+		  	</fileset>
+		    <pathelement location="${conf}"/>
+		 </path>
+	
+		<!-- Create the junit test -->
+		<junit fork="yes" printsummary="yes"  haltonfailure="yes">
+		    <formatter type="xml" />
+			<classpath refid="test.classpath" />
+			<batchtest fork="yes" todir="${test.reports}">
+				<fileset dir="${test}">
+				  <include name="**/Test*.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+		
+		<junitreport todir="${test.reports}">
+		    <fileset dir="${test.reports}">
+		      <include name="TEST-*.xml" />
+		    </fileset>
+		    <report todir="${test.reports}" />
+		</junitreport>
+	</target>
+
+	<target name="clean" description="clean up">
+		<!-- Delete the ${build} and ${dist} directory trees -->
+		<delete dir="${build}" />
+		<delete dir="${dist}" />
+	</target>
+</project>

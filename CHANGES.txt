@@ -1,0 +1,13 @@
+Giraffa Change Log
+
+Release 0.0.1 - Unreleased
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES

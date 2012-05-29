@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Do not modify this file directly.  Instead, copy entries that you -->
+<!-- wish to modify from this file into hdfs-site.xml and change them -->
+<!-- there.  If giraffa-site.xml does not already exist, create it.      -->
+
+<configuration>
+
+	<property>
+		<name>fs.defaultFS</name>
+		<value>grfa:///</value>
+		<description>The name of the default file system. A URI whose
+			scheme and authority determine the FileSystem implementation. The
+			uri's scheme determines the config property (fs.SCHEME.impl) naming
+			the FileSystem implementation class. The uri's authority is used to
+			determine the host, port, etc. for a filesystem.
+    </description>
+	</property>
+
+  <!-- GiraffaFS client properties -->
+  <property>
+    <name>fs.grfa.impl</name>
+    <value>org.apache.giraffa.GiraffaFileSystem</value>
+    <description>The FileSystem implementation for grfa: URI.</description>
+  </property>
+
+	<property>
+		<name>grfa.table.name</name>
+		<value>Namespace</value>
+		<description>
+			The name of the HBase table that stores the GiraffaFS namespace.
+		</description>
+	</property>
+
+	<property>
+		<name>grfa.rowkey.class</name>
+		<value>org.apache.giraffa.FullPathRowKey</value>
+		<description>
+			Class that implements RowKey for the namespace table.
+  </description>
+	</property>
+
+	<property>
+		<name>grfa.rowkey.caching</name>
+		<value>true</value>
+		<description>
+			True if row key caching is enabled.
+  </description>
+	</property>
+
+	<property>
+		<name>grfa.coprocessor.class</name>
+		<value>org.apache.hadoop.hdfs.BlockManagementAgent</value>
+		<description>
+			Class that implements coprocessor for namespace table resposible for
+			managing block requests.
+  </description>
+	</property>
+
+  <property>
+    <name>grfa.jar.file</name>
+    <value>file://dist/lib/grfa.jar</value>
+    <description>The location of the Giraffa jar file HBase to use to find the Coprocessor class.</description>
+  </property>
+
+</configuration>
