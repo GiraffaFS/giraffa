@@ -20,7 +20,7 @@
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <!-- Do not modify this file directly.  Instead, copy entries that you -->
-<!-- wish to modify from this file into hdfs-site.xml and change them -->
+<!-- wish to modify from this file into giraffa-site.xml and change them -->
 <!-- there.  If giraffa-site.xml does not already exist, create it.      -->
 
 <configuration>

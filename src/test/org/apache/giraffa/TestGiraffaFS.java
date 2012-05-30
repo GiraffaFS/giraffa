@@ -37,8 +37,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * THIS TEST ASSUMES PROPER USE CASES.
- * NO TRICKS HERE, EVERYTHING MEANT TO BE SIMPLE.
+ * Test common file system use cases.
  */
 public class TestGiraffaFS {
   private static final String BASE_TEST_DIRECTORY = "build/test-data";
