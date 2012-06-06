@@ -1,90 +1,166 @@
-<project name="Giraffa" default="compile" basedir=".">
-	<description>
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project name="giraffa" default="compile" basedir=".">
+  <description>
         The build file for the Giraffa file system.
     </description>
-	<!-- set global properties for this build -->
-	<property name="src" location="src/java" />
-	<property name="test" location="src/test" />
-	<property name="conf" location="conf" />
-	<property name="build" location="build" />
-	<property name="lib" location="lib" />
-	<property name="dist" location="dist" />
-	<property name="test.reports" location="${build}/test_reports" />
+  <!-- set global properties for this build -->
+  <property name="src" location="src/java"/>
+  <property name="test" location="src/test"/>
+  <property name="conf" location="conf"/>
+  <property name="build" location="build"/>
+  <property name="lib" location="lib"/>
+  <property name="dist" location="dist"/>
+  <property name="test.reports" location="${build}/test_reports"/>
 
-	<path id="classpath">
-    <pathelement location="${build}/classes" />
-    <pathelement location="${build}/test-classes" />
-	  <fileset dir="${lib}">
-			<include name="*.jar" />
-			<exclude name="**/excluded/" />
-		</fileset>
-	</path>
+  <path id="classpath">
+    <pathelement location="${build}/classes"/>
+    <pathelement location="${build}/test-classes"/>
+    <fileset dir="${lib}">
+      <include name="*.jar"/>
+      <exclude name="**/excluded/"/>
+    </fileset>
+  </path>
 
-	<target name="init">
-		<!-- Create the time stamp -->
-		<tstamp />
-		<!-- Create the build directory structure used by compile -->
-		<mkdir dir="${build}" />
-    <mkdir dir="${build}/classes" />
-    <mkdir dir="${build}/test-classes" />
-	</target>
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp />
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+    <mkdir dir="${build}/classes"/>
+    <mkdir dir="${build}/test-classes"/>
+  </target>
 
-	<target name="compile" depends="init" description="compile the source">
-		<!-- Compile the java code from ${src} into ${build} -->
-		<javac srcdir="${src}" destdir="${build}/classes" debug="on">
-			<classpath refid="classpath" />
-		</javac>
-		<javac srcdir="${test}" destdir="${build}/test-classes" debug="on">
-			<classpath refid="classpath" />
-		</javac>
-	</target>
+  <target name="compile" depends="init" description="Compile the source.">
+    <!-- Compile the java code from ${src} into ${build} -->
+    <javac srcdir="${src}" destdir="${build}/classes" debug="on">
+      <classpath refid="classpath"/>
+    </javac>
+    <javac srcdir="${test}" destdir="${build}/test-classes" debug="on">
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
 
-	<target name="dist" depends="compile" description="generate the distribution">
-		<!-- Create the distribution directory -->
-		<mkdir dir="${dist}/lib" />
+  <target name="dist" depends="compile" description="Generate the distribution jar.">
+    <!-- Create the distribution directory -->
+    <mkdir dir="${dist}/lib"/>
 
-		<!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-		<jar jarfile="${dist}/lib/grfa.jar" basedir="${build}/classes" />
-	</target>
-	
-	<target name="test" depends="dist" description="test the distribution">
-		<mkdir dir="${test.reports}" />
-		
-		<!-- Create classpath -->
-		<path id="test.classpath">
-	    <pathelement location="${build}/classes" />
-	    <pathelement location="${build}/test-classes" />
-			<fileset dir="${lib}">
-		  	  	<include name="**/*.jar"/>
-		  	</fileset>
-		  	<fileset dir="${dist}">
-				<include name="**/*.jar"/>
-		  	</fileset>
-		    <pathelement location="${conf}"/>
-		 </path>
-	
-		<!-- Create the junit test -->
-		<junit fork="yes" printsummary="yes"  haltonfailure="yes">
-		    <formatter type="xml" />
-			<classpath refid="test.classpath" />
-			<batchtest fork="yes" todir="${test.reports}">
-				<fileset dir="${test}">
-				  <include name="**/Test*.java"/>
-				</fileset>
-			</batchtest>
-		</junit>
-		
-		<junitreport todir="${test.reports}">
-		    <fileset dir="${test.reports}">
-		      <include name="TEST-*.xml" />
-		    </fileset>
-		    <report todir="${test.reports}" />
-		</junitreport>
-	</target>
+    <!-- Put everything in ${build} into the grfa.jar file -->
+    <jar jarfile="${dist}/lib/grfa.jar" basedir="${build}/classes"/>
+  </target>
+  
+  <target name="test" depends="dist" description="test the distribution">
+    <mkdir dir="${test.reports}"/>
+    
+    <!-- Create classpath -->
+    <path id="test.classpath">
+      <pathelement location="${build}/classes"/>
+      <pathelement location="${build}/test-classes"/>
+      <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${dist}">
+        <include name="**/*.jar"/>
+        </fileset>
+        <pathelement location="${conf}"/>
+     </path>
+  
+    <!-- Create the junit test -->
+    <junit fork="yes" printsummary="yes"  haltonfailure="yes">
+        <formatter type="xml"/>
+      <classpath refid="test.classpath"/>
+      <batchtest fork="yes" todir="${test.reports}">
+        <fileset dir="${test}">
+          <include name="**/Test*.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    
+    <junitreport todir="${test.reports}">
+        <fileset dir="${test.reports}">
+          <include name="TEST-*.xml"/>
+        </fileset>
+        <report todir="${test.reports}"/>
+    </junitreport>
+  </target>
 
-	<target name="clean" description="clean up">
-		<!-- Delete the ${build} and ${dist} directory trees -->
-		<delete dir="${build}" />
-		<delete dir="${dist}" />
-	</target>
+  <target name="clean" description="clean up">
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${build}"/>
+    <delete dir="${dist}"/>
+  </target>
+  
+  <!-- Check if ant-eclipse.jar exists -->
+  <condition property="ant-eclipse.jar.exists">
+      <available file="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
+  </condition>
+
+  <!-- Download ant-eclipse.jar if does not exist -->
+  <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists"
+         description="Downloads the ant-eclipse binary.">
+    <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
+           dest="${lib}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false"/>
+
+    <!-- Untar into lib directory and delete tar file -->
+    <untar src="${lib}/ant-eclipse-1.0.bin.tar.bz2"
+           dest="." compression="bzip2">
+      <patternset>
+        <include name="lib/ant-eclipse-1.0-jvm1.2.jar"/>
+      </patternset>
+    </untar>
+    <delete file="${lib}/ant-eclipse-1.0.bin.tar.bz2"/>
+  </target>
+
+  <!-- Generate Eclipse project files -->
+  <path id="libs">
+    <fileset dir="${lib}">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+  
+  <target name="eclipse" 
+          depends="init,ant-eclipse-download"
+          description="Create eclipse project files.">
+    <taskdef name="eclipse"
+             classname="prantl.ant.eclipse.EclipseTask"
+             classpath="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
+    <eclipse updatealways="true">
+      <project name="giraffa"/>
+      <classpath>
+        <source path="${src}" output="build/classes"/>
+        <source path="${test}" output="build/test-classes"/>
+        <output path="${build}"/>
+        <library pathref="libs" exported="false"/>
+        <library path="${conf}"/>
+      </classpath>
+    </eclipse>
+  </target>
+
+  <!-- Clean up (remove) Eclipse project files -->
+  <target name="clean-eclipse" depends="clean"
+          description="Clean eclipse files">
+    <delete file="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
+    <delete file=".classpath"/>
+    <delete file=".eclipse"/>
+    <delete file=".project"/>
+    <delete dir=".settings"/>
+  </target>
+
 </project>
