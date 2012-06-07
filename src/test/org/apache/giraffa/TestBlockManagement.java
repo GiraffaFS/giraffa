@@ -59,7 +59,7 @@ public class TestBlockManagement {
 
   @After
   public void after() throws IOException {
-    grfs.close();
+    if(grfs != null) grfs.close();
   }
 
   @AfterClass

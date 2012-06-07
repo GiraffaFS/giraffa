@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.Serializable;
-
 import org.apache.hadoop.fs.Path;
 
 /**

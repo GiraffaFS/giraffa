@@ -63,7 +63,7 @@ public class TestGiraffaFS {
 
   @After
   public void after() throws Exception {
-    grfs.close();
+    if(grfs != null) grfs.close();
   }
 
   @AfterClass

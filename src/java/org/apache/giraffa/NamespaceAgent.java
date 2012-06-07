@@ -65,6 +65,7 @@ import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
 import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
+import org.apache.hadoop.hdfs.server.common.Util;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
@@ -473,7 +474,7 @@ public class NamespaceAgent implements ClientProtocol {
         GiraffaConfiguration.GRFA_JAR_FILE_DEFAULT);
     String coprocClass = conf.get(GiraffaConfiguration.GRFA_COPROCESSOR_KEY, 
         GiraffaConfiguration.GRFA_COPROCESSOR_DEFAULT);
-    Path jarPath = new Path(jarFile);
+    Path jarPath = new Path(Util.stringAsURI(jarFile));
     FileSystem jarFs = jarPath.getFileSystem(conf);
     if(!jarFs.exists(jarPath)) {
       LOG.fatal("grfa.jar file is missing!");
