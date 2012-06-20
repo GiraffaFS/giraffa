@@ -8,6 +8,10 @@ Release 0.0.1 - Unreleased
 
   IMPROVEMENTS
 
+    Issue 6: Add eclipse build target. (Plamen via shv)
+
   OPTIMIZATIONS
 
   BUG FIXES
+
+    Issue 7: Fix conversion to URI of the default jrfa.jar path. (shv)
