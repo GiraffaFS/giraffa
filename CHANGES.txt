@@ -9,6 +9,7 @@ Release 0.0.1 - Unreleased
   IMPROVEMENTS
 
     Issue 6: Add eclipse build target. (Plamen via shv)
+    Issue 9: Move BlockManagementAgent under giraffa package. (shv)
 
   OPTIMIZATIONS
 

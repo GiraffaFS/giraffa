@@ -69,7 +69,7 @@
 
 	<property>
 		<name>grfa.coprocessor.class</name>
-		<value>org.apache.hadoop.hdfs.BlockManagementAgent</value>
+		<value>org.apache.giraffa.BlockManagementAgent</value>
 		<description>
 			Class that implements coprocessor for namespace table resposible for
 			managing block requests.
