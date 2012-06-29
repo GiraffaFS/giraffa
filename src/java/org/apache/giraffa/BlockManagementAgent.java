@@ -73,10 +73,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   private DistributedFileSystem hdfs;
   private volatile long temporaryFileId;
-
-  String getClientName() {
-    return hdfs.getClient().getClientName();
-  }
+  private String clientName;
 
   @Override // BaseRegionObserver
   public void start(CoprocessorEnvironment e) throws IOException {
@@ -98,6 +95,12 @@ public class BlockManagementAgent extends BaseRegionObserver {
       throw new IOException(msg);
     }
     temporaryFileId = now();
+    clientName = getClientName();
+  }
+
+  private String getClientName() {
+    String toParse = hdfs.getClient().toString();
+    return toParse.substring((toParse.indexOf('='))+1, toParse.lastIndexOf(','));
   }
 
   @Override // BaseRegionObserver
@@ -253,7 +256,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     // add block and close previous
     LocatedBlock block = null;
     block = hdfs.getClient().getNamenode().addBlock(
-        tmpFile.toString(), getClientName(), previous, null);
+        tmpFile.toString(), clientName, previous, null);
     // Update block offset
     long offset = getFileSize(blocks);
     block = new LocatedBlock(block.getBlock(), block.getLocations(), offset);
@@ -269,7 +272,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     while(!isClosed) {
       isClosed = hdfs.getClient().getNamenode().complete(
           getGiraffaBlockPathName(block),
-          getClientName(), block);
+          clientName, block);
     }
   }
 
