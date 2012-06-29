@@ -12,6 +12,7 @@ Release 0.0.1 - Unreleased
     Issue 9: Move BlockManagementAgent under giraffa package. (shv)
 
   OPTIMIZATIONS
+    Issue 2: Optimize NamespaceAgent to access HBase once per operation. (Plamen)
 
   BUG FIXES
 

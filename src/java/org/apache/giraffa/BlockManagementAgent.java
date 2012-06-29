@@ -30,7 +30,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.Path;
@@ -119,21 +119,22 @@ public class BlockManagementAgent extends BaseRegionObserver {
   public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put,
       WALEdit edit, boolean writeToWAL) throws IOException {
     List<KeyValue> kvs = put.getFamilyMap().get(FileField.getFileAttributes());
-    if(kvs.size() == 1) {
+    BlockAction blockAction = getBlockAction(kvs);
+    if(blockAction == null) {
+      return;
+    } else if(blockAction.equals(BlockAction.ALLOCATE)) {
       allocateBlock(kvs);
-    } else {
-      FileState fileState = getFileState(kvs);
-      if(fileState == null || fileState.equals(FileState.UNDER_CONSTRUCTION))
-        return;
-      else if(fileState.equals(FileState.CLOSED)) {
-        completeBlocks(kvs);
-      } else if(fileState.equals(FileState.DELETED)) {
-        deleteBlocks(kvs);
-      }
+    } else if(blockAction.equals(BlockAction.CLOSE)) {
+      completeBlocks(kvs);
+    } else if(blockAction.equals(BlockAction.DELETE)) {
+      deleteBlocks(kvs);
     }
   }
 
   private void deleteBlocks(List<KeyValue> kvs) {
+    // remove the blockAction
+    removeBlockAction(kvs);
+
     ArrayList<LocatedBlock> al = getFileBlocks(kvs);
     for(LocatedBlock block : al) {
       try {
@@ -146,6 +147,11 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
   }
 
+private void removeBlockAction(List<KeyValue> kvs) {
+    KeyValue kv = findField(kvs, FileField.ACTION);
+    kvs.remove(kv);
+}
+
   static KeyValue findField(List<KeyValue> kvs, FileField field) {
     for(KeyValue kv : kvs) {
       if(kv.matchingColumn(FileField.getFileAttributes(), field.getBytes())) {
@@ -155,10 +161,10 @@ public class BlockManagementAgent extends BaseRegionObserver {
     return null;
   }
 
-  static FileState getFileState(List<KeyValue> kvs) {
-    KeyValue kv = findField(kvs, FileField.STATE);
-    return kv == null ? null :
-      FileState.valueOf(Bytes.toString(kv.getValue()));
+  static BlockAction getBlockAction(List<KeyValue> kvs) {
+    KeyValue kv = findField(kvs, FileField.ACTION);
+    return kv == null ? null : 
+      BlockAction.valueOf(Bytes.toString(kv.getValue()));
   }
 
   static ArrayList<LocatedBlock> getFileBlocks(List<KeyValue> kvs) {
@@ -168,6 +174,9 @@ public class BlockManagementAgent extends BaseRegionObserver {
   }
 
   private void completeBlocks(List<KeyValue> kvs) throws IOException {
+    // remove the blockAction
+    removeBlockAction(kvs);
+
     ArrayList<LocatedBlock> al = getFileBlocks(kvs);
     // get the last block
     LocatedBlock block = al.get(al.size()-1);
@@ -200,9 +209,12 @@ public class BlockManagementAgent extends BaseRegionObserver {
    * @throws IOException
    */
   private void allocateBlock(List<KeyValue> kvs) throws IOException {
-    KeyValue kv = kvs.get(0);
-    // if we are modifying the block column
-    if(kv.matchingColumn(FileField.getFileAttributes(), FileField.getBlock())) {
+    // remove the blockAction
+    removeBlockAction(kvs);
+
+    KeyValue kv = findField(kvs, FileField.BLOCK);
+    if(kv != null) {
+      // modifying the block column
       LOG.info("Altering put edits...");
       // create arrayList from this current KeyValue
       ArrayList<LocatedBlock> al = byteArrayToBlockList(kv.getValue());
@@ -221,7 +233,6 @@ public class BlockManagementAgent extends BaseRegionObserver {
       // replace this KeyValue with new KeyValue
       kvs.remove(kv);
       kvs.add(nkv);
-      return;
     }
   }
 
@@ -232,7 +243,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
    * obtains its blockId, and renames the temporary file to the name
    * composed of the blockId.
    * 
-   * @param blocks 
+   * @param blocks
    * @return LocatedBlock
    * @throws IOException
    */

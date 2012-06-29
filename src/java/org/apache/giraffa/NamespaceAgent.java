@@ -28,6 +28,7 @@ import java.util.HashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
@@ -144,9 +145,11 @@ public class NamespaceAgent implements ClientProtocol {
 
     // add a Block and modify times
     // (if there was a previous block this call with add it in as well)
-    iNode.addBlock(nsTable);
+    iNode.setBlocks();
+    iNode.setBlockAction(BlockAction.ALLOCATE);
     long time = now();
-    iNode.updateTimes(nsTable, time, time);
+    iNode.setTimes(time, time);
+    iNode.updateINode(nsTable);
 
     // grab blocks back from HBase and return the latest one added
     nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
@@ -184,11 +187,13 @@ public class NamespaceAgent implements ClientProtocol {
     Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
     // set the state and replace the block, then put the iNode
     iNode.setState(FileState.CLOSED);
+    iNode.setBlockAction(BlockAction.CLOSE);
     iNode.getBlocks(nodeInfo);
     iNode.replaceBlock(last);
-    iNode.putINode(nsTable);
+    iNode.setBlocks();
     long time = now();
-    iNode.updateTimes(nsTable, time, time);
+    iNode.setTimes(time, time);
+    iNode.updateINode(nsTable);
     LOG.info("Completed file: "+src+" | BlockID: "+last.getBlockId());
     return true;
   }
@@ -256,14 +261,15 @@ public class NamespaceAgent implements ClientProtocol {
     }
 
     // add file to HBase (update if already exists)
-    iFile.putINode(nsTable);
-    
+    iFile.updateINode(nsTable);
+
     if(updateParent) {
       // get parent result and update parent dirTable.
       Result nodeInfo = nsTable.get(new Get(iParent.getRowKey().getKey()));
       iParent.getDirectoryTable(nodeInfo).addEntry(iFile.getRowKey());
+      iParent.setDirectoryTable();
       // commit dirTable to HBase
-      iParent.updateDirectory(nsTable);
+      iParent.updateINode(nsTable);
     }
   }
 
@@ -352,7 +358,8 @@ public class NamespaceAgent implements ClientProtocol {
       } else {
         node.getBlocks(nodeInfo);
         node.setState(FileState.DELETED);
-        node.putINode(nsTable);
+        node.setBlockAction(BlockAction.DELETE);
+        node.updateINode(nsTable);
       }
       // delete the child key atomically first
       Delete delete = new Delete(node.getRowKey().getKey());
@@ -362,7 +369,8 @@ public class NamespaceAgent implements ClientProtocol {
       Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
       parent.getDirectoryTable(parentNodeInfo)
             .removeEntry(node.getRowKey().getPath().getName());
-      parent.updateDirectory(nsTable);
+      parent.setDirectoryTable();
+      parent.updateINode(nsTable);
 
       // delete all of the children, and the children's children...
       // only if the node WAS a directory
@@ -383,7 +391,8 @@ public class NamespaceAgent implements ClientProtocol {
       Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
       parent.getDirectoryTable(parentNodeInfo)
             .removeEntry(node.getRowKey().getPath().getName());
-      parent.updateDirectory(nsTable);
+      parent.setDirectoryTable();
+      parent.updateINode(nsTable);
     }
 
     // delete time penalty (resolves timestamp milliseconds issue)
@@ -414,7 +423,7 @@ public class NamespaceAgent implements ClientProtocol {
       } else {
         node.getBlocks(info);
         node.setState(FileState.DELETED);
-        node.putINode(nsTable);
+        node.updateINode(nsTable);
       }
 
       // delete this key after we have deleted all its children
@@ -549,7 +558,7 @@ public class NamespaceAgent implements ClientProtocol {
     INode node = getINode(path);
     if(node == null)
       throw new FileNotFoundException();
-    return node;
+    return node.getFileStatus();
   }
 
   @Override // ClientProtocol
@@ -650,7 +659,7 @@ public class NamespaceAgent implements ClientProtocol {
         root = new INode(0, true, (short) 0, 0, System.currentTimeMillis(), System.currentTimeMillis(),
             masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
             key, 0, 0);
-        root.putINode(nsTable);
+        root.updateINode(nsTable);
         return true;
       } else
         throw new IOException("Root has no parent.");
@@ -674,7 +683,8 @@ public class NamespaceAgent implements ClientProtocol {
     }
     
     RowKey key = createRowKey(path);
-    iDir = new INode(0, true, (short) 0, 0, System.currentTimeMillis(), System.currentTimeMillis(),
+    long time = now();
+    iDir = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
         key, 0, 0);
     // should be generated now, grab it again
@@ -683,13 +693,14 @@ public class NamespaceAgent implements ClientProtocol {
     }
 
     // add directory to HBase
-    iDir.putINode(nsTable);
-    
+    iDir.updateINode(nsTable);
+
     // grab parent result and update parent dirTable.
     Result nodeInfo = nsTable.get(new Get(iParent.getRowKey().getKey()));
     iParent.getDirectoryTable(nodeInfo).addEntry(iDir.getRowKey());
+    iParent.setDirectoryTable();
     // commit dirTable to HBase
-    iParent.updateDirectory(nsTable);
+    iParent.updateINode(nsTable);
     return true;
   }
 
@@ -755,7 +766,8 @@ public class NamespaceAgent implements ClientProtocol {
     if(node == null)
       throw new FileNotFoundException();
 
-    node.updateOwner(nsTable, username, groupname);
+    node.setOwner(username, groupname);
+    node.updateINode(nsTable);
   }
 
   @Override // ClientProtocol
@@ -768,7 +780,8 @@ public class NamespaceAgent implements ClientProtocol {
     if(node == null)
       throw new FileNotFoundException();
 
-    node.updatePermissions(nsTable, permission);
+    node.setPermissions(permission);
+    node.updateINode(nsTable);
   }
 
   @Override // ClientProtocol
@@ -784,7 +797,8 @@ public class NamespaceAgent implements ClientProtocol {
     if(!node.isDir())
       return;
 
-    node.updateQuotas(nsTable, namespaceQuota, diskspaceQuota);
+    node.setQuotas(namespaceQuota, diskspaceQuota);
+    node.updateINode(nsTable);
   }
 
   @Override // ClientProtocol
@@ -799,7 +813,8 @@ public class NamespaceAgent implements ClientProtocol {
     if(node.isDir())
       return false;
 
-    node.updateReplication(nsTable, replication);
+    node.setReplication(replication);
+    node.updateINode(nsTable);
     return true;
   }
 
@@ -819,7 +834,8 @@ public class NamespaceAgent implements ClientProtocol {
     if(node.isDir())
       return;
 
-    node.updateTimes(nsTable, mtime, atime);
+    node.setTimes(mtime, atime);
+    node.updateINode(nsTable);
   }
 
   @Override // ClientProtocol

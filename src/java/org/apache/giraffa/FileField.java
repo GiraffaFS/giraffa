@@ -34,6 +34,7 @@ public enum FileField {
   PERMISSIONS ("permissions".getBytes()),
   NAME ("src".getBytes()),
   STATE ("state".getBytes()),
+  ACTION ("action".getBytes()),
   SYMLINK ("symlink".getBytes()),
   DIRECTORY ("directory".getBytes()),
   BLOCK_SIZE ("blockSize".getBytes()),
@@ -88,6 +89,9 @@ public enum FileField {
   }
   public static byte[] getState() {
     return STATE.bytes;
+  }
+  public static byte[] getAction() {
+    return ACTION.bytes;
   }
   public static byte[] getLength() {
     return LENGTH.bytes;

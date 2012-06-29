@@ -35,36 +35,108 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.GiraffaConstants.FileState;
 
-class INode extends HdfsFileStatus {
+import static org.apache.hadoop.hdfs.server.common.Util.now;
+
+class INode {
+  //HdfsFileStatus specific fields
+  private long length;
+  private boolean isdir;
+  private short block_replication;
+  private long blocksize;
+  private long modification_time;
+  private long access_time;
+  private FsPermission permission;
+  private String owner;
+  private String group;
+  private byte[] path;
+  private byte[] symlink;
+  private long dsQouta;
+  private long nsQouta;
+
+  //INode specific fields
   private final RowKey key;
-  private final long dsQouta;
-  private final long nsQouta;
   private DirectoryTable dirTable;
   private ArrayList<LocatedBlock> blocks;
   private FileState fileState;
+  private BlockAction blockAction;
 
   private Date expirationTime;
+
+  private Put put;
 
   private static final Log LOG = LogFactory.getLog(INode.class.getName());
 
   /**
    * Use for creating a new INode (must be put separately).
+   * @throws IOException 
    */
   INode(long length, boolean directory, short replication, long blockSize,
       long mtime, long atime, FsPermission perms, String owner, String group,
-      byte[] path, byte[] symlink, RowKey key, long dsQouta, long nsQouta) {
-    super(length, directory, replication, blockSize, mtime, atime, perms,
-        owner, group, path, symlink);
+      byte[] path, byte[] symlink, RowKey key, long dsQouta, long nsQouta) throws IOException {
+    this.length = length;
+    this.isdir = directory;
+    this.block_replication = replication;
+    this.blocksize = blockSize;
+    this.modification_time = mtime;
+    this.access_time = atime;
+    this.permission = perms;
+    this.owner = owner;
+    this.group = group;
+    this.path = path;
+    this.symlink = symlink;
     this.key = key;
     this.nsQouta = nsQouta;
     this.dsQouta = dsQouta;
     this.fileState = FileState.UNDER_CONSTRUCTION;
-    if(directory)
+    if(isDir())
       this.dirTable = new DirectoryTable();
     else
       this.blocks = new ArrayList<LocatedBlock>();
+
+    long ts = now();
+    this.put = new Put(key.getKey(), ts);
+    put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
+            key.getPath().getName().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
+            key.getPath().toString().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
+            owner.getBytes())
+        .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
+            group.getBytes())
+        .add(FileField.getFileAttributes(), FileField.getLength(), ts,
+            Bytes.toBytes(length))
+        .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
+            Bytes.toBytes(permission.toShort()))
+        .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
+            Bytes.toBytes(modification_time))
+        .add(FileField.getFileAttributes(), FileField.getATime(), ts,
+            Bytes.toBytes(access_time))
+        .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
+            Bytes.toBytes(dsQouta))
+        .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
+            Bytes.toBytes(nsQouta))
+        .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
+            Bytes.toBytes(block_replication))
+        .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
+            Bytes.toBytes(blocksize))
+        .add(FileField.getFileAttributes(), FileField.getState(), ts,
+            Bytes.toBytes(fileState.toString()));
+
+    if(isDir())
+      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
+             getDirectoryTableBytes());
+    else
+      put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
+             getBlocksBytes());
+  }
+
+  HdfsFileStatus getFileStatus() {
+    return new HdfsFileStatus(length, isdir, block_replication,
+           blocksize, modification_time, access_time, permission,
+           owner, group, symlink, path);
   }
 
   /**
@@ -73,60 +145,38 @@ class INode extends HdfsFileStatus {
    * 
    * @param key
    * @param res
+   * @throws IOException 
    */
-  INode(RowKey key, Result res) {
-    super(FileField.getLength(res),
-        FileField.getDirectory(res),
-        FileField.getReplication(res),
-        FileField.getBlockSize(res),
-        FileField.getMTime(res),
-        FileField.getATime(res),
-        FileField.getPermissions(res),
-        FileField.getUserName(res),
-        FileField.getGroupName(res),
-        FileField.getSymlink(res),
-        key.getPath().toString().getBytes());
+  INode(RowKey key, Result res) throws IOException {
+    this.length = FileField.getLength(res);
+    this.isdir = FileField.getDirectory(res);
+    this.block_replication = FileField.getReplication(res);
+    this.blocksize = FileField.getBlockSize(res);
+    this.modification_time = FileField.getMTime(res);
+    this.access_time = FileField.getATime(res);
+    this.permission = FileField.getPermissions(res);
+    this.owner = FileField.getUserName(res);
+    this.group = FileField.getGroupName(res);
+    this.path = key.getPath().toString().getBytes();
+    this.symlink = FileField.getSymlink(res);
     this.key = key;
     this.fileState = FileField.getState(res);
     this.nsQouta = FileField.getNsQuota(res);
     this.dsQouta = FileField.getDsQuota(res);
+
+    long ts = now();
+    this.put = new Put(key.getKey(), ts);
+
+    if(isDir()) {
+      this.dirTable = getDirectoryTable(res);
+    } else
+      this.blocks = getBlocks(res);
   }
 
-  void putINode(HTable nsTable) throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getFileName(),
-            key.getPath().getName().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getSymlink(),
-            key.getPath().toString().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getUserName(),
-            getOwner().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getGroupName(),
-            getGroup().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getLength(),
-            Bytes.toBytes(getLen()))
-        .add(FileField.getFileAttributes(), FileField.getPermissions(),
-            Bytes.toBytes(getPermission().toShort()))
-        .add(FileField.getFileAttributes(), FileField.getMTime(),
-            Bytes.toBytes(getModificationTime()))
-        .add(FileField.getFileAttributes(), FileField.getATime(),
-            Bytes.toBytes(getAccessTime()))
-        .add(FileField.getFileAttributes(), FileField.getDsQuota(),
-            Bytes.toBytes(dsQouta))
-        .add(FileField.getFileAttributes(), FileField.getNsQuota(),
-            Bytes.toBytes(nsQouta))
-        .add(FileField.getFileAttributes(), FileField.getReplication(),
-            Bytes.toBytes(getReplication()))
-        .add(FileField.getFileAttributes(), FileField.getBlockSize(),
-            Bytes.toBytes(getBlockSize()))
-        .add(FileField.getFileAttributes(), FileField.getState(),
-            Bytes.toBytes(fileState.toString()));
-
-    if(isDir())
-      put.add(FileField.getFileAttributes(), FileField.getDirectory(), getDirectoryTableBytes());
-    else {
-      put.add(FileField.getFileAttributes(), FileField.getBlock(), getBlocksBytes());
+  void updateINode(HTable nsTable) throws IOException {
+    if(put.size() == 0) {
+      return;
     }
-
     nsTable.put(put);
   }
 
@@ -134,7 +184,6 @@ class INode extends HdfsFileStatus {
    * Should never be called without calling getBlocks() first.
    * This will get the blocks member as a byte array.
    * @return Byte array representation of the member blocks.
-   * @throws IOException
    */
   private byte[] getBlocksBytes() {
     if(isDir())
@@ -173,6 +222,14 @@ class INode extends HdfsFileStatus {
 
   long getNs_qouta() {
     return nsQouta;
+  }
+
+  boolean isDir() {
+    return isdir;
+  }
+
+  long getBlockSize() {
+    return blocksize;
   }
 
   /**
@@ -233,65 +290,67 @@ class INode extends HdfsFileStatus {
     return dirTable.toBytes();
   }
 
-  void updateDirectory(HTable nsTable) throws IOException {
-    if(!isDir())
-      return;
-
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getDirectory(), getDirectoryTableBytes());
-    nsTable.put(put);
+  void setDirectoryTable() throws IOException {
+    if(isDir()) {
+      long ts = now();
+      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
+             getDirectoryTableBytes());
+    }
   }
 
-  void updatePermissions(HTable nsTable, FsPermission newPermission)
-  throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getPermissions(),
-        Bytes.toBytes(newPermission.toShort()));
-    nsTable.put(put);
+  void setPermissions(FsPermission newPermission) {
+    this.permission = newPermission;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
+           Bytes.toBytes(permission.toShort()));
   }
 
-  void updateQuotas(HTable nsTable, long namespaceQuota, long diskspaceQuota)
-  throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getNsQuota(), Bytes.toBytes(namespaceQuota))
-    .add(FileField.getFileAttributes(), FileField.getDsQuota(), Bytes.toBytes(diskspaceQuota));
-    nsTable.put(put);
+  void setQuotas(long namespaceQuota, long diskspaceQuota) {
+    this.nsQouta = namespaceQuota;
+    this.dsQouta = diskspaceQuota;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
+           Bytes.toBytes(nsQouta))
+       .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
+            Bytes.toBytes(dsQouta));
   }
 
-  void updateReplication(HTable nsTable, short replication)
-  throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getReplication(), Bytes.toBytes(replication));
-    nsTable.put(put);
+  void setReplication(short replication) {
+    this.block_replication = replication;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getReplication(), ts,
+           Bytes.toBytes(block_replication));
   }
 
-  void setState(FileState fileState) {
-    this.fileState = fileState;
+  void setState(FileState newFileState) {
+    this.fileState = newFileState;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getState(), ts,
+           Bytes.toBytes(fileState.toString()));
   }
 
   FileState getFileState() {
     return fileState;
   }
 
-  void updateTimes(HTable nsTable, long mtime, long atime) throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getMTime(), Bytes.toBytes(mtime))
-    .add(FileField.getFileAttributes(), FileField.getATime(), Bytes.toBytes(atime));
-    nsTable.put(put);
+  void setTimes(long mtime, long atime) {
+    this.modification_time = mtime;
+    this.access_time = atime;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getMTime(), ts,
+           Bytes.toBytes(modification_time))
+       .add(FileField.getFileAttributes(), FileField.getATime(), ts,
+            Bytes.toBytes(access_time));
   }
 
-  void updateOwner(HTable nsTable, String username, String groupname)
-  throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getUserName(), username.getBytes())
-    .add(FileField.getFileAttributes(), FileField.getGroupName(), groupname.getBytes());
-    nsTable.put(put);
-  }
-
-  void addBlock(HTable nsTable) throws IOException {
-    Put put = new Put(key.getKey());
-    put.add(FileField.getFileAttributes(), FileField.getBlock(), getBlocksBytes());
-    nsTable.put(put);
+  void setOwner(String username, String groupname) {
+    this.owner = username;
+    this.group = groupname;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getUserName(), ts,
+           Bytes.toBytes(owner))
+       .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
+            Bytes.toBytes(group));
   }
 
   void replaceBlock(Block last) {
@@ -301,5 +360,18 @@ class INode extends HdfsFileStatus {
         return;
       }
     }
+  }
+
+  void setBlocks() {
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
+           getBlocksBytes());
+  }
+
+  void setBlockAction(BlockAction newBlockAction) {
+    this.blockAction = newBlockAction;
+    long ts = now();
+    put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
+            Bytes.toBytes(blockAction.toString()));
   }
 }
