@@ -7,11 +7,12 @@ Release 0.0.1 - Unreleased
   NEW FEATURES
 
   IMPROVEMENTS
-
+    Issue 3: Automatic download of lib jars. (Plamen)
     Issue 6: Add eclipse build target. (Plamen via shv)
     Issue 9: Move BlockManagementAgent under giraffa package. (shv)
 
   OPTIMIZATIONS
+
     Issue 2: Optimize NamespaceAgent to access HBase once per operation. (Plamen)
 
   BUG FIXES
