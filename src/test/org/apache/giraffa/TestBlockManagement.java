@@ -70,11 +70,11 @@ public class TestBlockManagement {
   @Test
   public void testWriteAndDelete() throws IOException {
     Path file = new Path("writingA.txt");
-    FSDataOutputStream fs = grfs.create(file, true, 5000, (short) 3, 512);
+    FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);
     for(int i = 0; i < 2000; i++) {
-      fs.write('A');
+      out.write('A');
     }
-    fs.close();
+    out.close();
 
     FSDataInputStream in = grfs.open(file, 5000);
     for(int i = 0; i < 2000; i++) {
@@ -88,11 +88,11 @@ public class TestBlockManagement {
   @Test
   public void testWriteRead() throws IOException {
     Path file = new Path("giraffa.txt");
-    FSDataOutputStream fs = grfs.create(file);
+    FSDataOutputStream out = grfs.create(file);
     for(int i = 0; i < 6000000; i++) {
-      fs.writeBytes("GIRAFFA");
+      out.writeBytes("GIRAFFA");
     }
-    fs.close();
+    out.close();
 
     FSDataInputStream in = grfs.open(file);
     for(int i = 0; i < 6000000; i++) {

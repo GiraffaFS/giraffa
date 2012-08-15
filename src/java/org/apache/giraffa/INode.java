@@ -28,7 +28,7 @@ import java.util.Date;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -173,7 +173,7 @@ class INode {
       this.blocks = getBlocks(res);
   }
 
-  void updateINode(HTable nsTable) throws IOException {
+  void updateINode(HTableInterface nsTable) throws IOException {
     if(put.size() == 0) {
       return;
     }

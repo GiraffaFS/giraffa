@@ -20,7 +20,7 @@ package org.apache.hadoop.hdfs;
 import java.io.IOException;
 
 import org.apache.giraffa.GiraffaConfiguration;
-import org.apache.giraffa.NamespaceAgent;
+import org.apache.giraffa.NamespaceService;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 
 /**
@@ -36,21 +36,23 @@ import org.apache.hadoop.fs.FileSystem.Statistics;
 public class GiraffaClient extends DFSClient {
 
   public GiraffaClient(GiraffaConfiguration conf, Statistics stats)
-  throws IOException, ClassNotFoundException {
-    super(null, new NamespaceAgent(conf), conf, stats);
+  throws IOException {
+    super(null, conf.newNamespaceService(), conf, stats);
+    getNamespaceService().initialize(conf);
   }
 
-  NamespaceAgent getNamespaceAgent() {
-    return (NamespaceAgent) this.namenode;
+  NamespaceService getNamespaceService() {
+    return (NamespaceService) this.namenode;
   }
 
   public static void format(GiraffaConfiguration conf) throws IOException {
-    NamespaceAgent.format(conf);
+    NamespaceService namespace = conf.newNamespaceService();
+    namespace.format(conf);
   }
 
   @Override // DFSClient
   public void close() throws IOException {
+    getNamespaceService().close();
     super.close();
-    getNamespaceAgent().close();
   }
 }

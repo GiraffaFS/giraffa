@@ -49,6 +49,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.Block;
@@ -82,25 +83,26 @@ import org.apache.hadoop.util.ReflectionUtils;
   * NamespaceAgent implements ClientProtocol and is a replacement of the 
   * NameNode RPC proxy.
   */
-public class NamespaceAgent implements ClientProtocol {
+public class NamespaceAgent implements NamespaceService {
 
-  private final Class<? extends RowKey> rowKeyClass;
-  private final boolean caching;
+  private Class<? extends RowKey> rowKeyClass;
+  private boolean caching;
 
   private HBaseAdmin hbAdmin;
-  private HTable nsTable;
+  private HTableInterface nsTable;
 
   private HashMap<String, RowKey> cache = new HashMap<String, RowKey>();
 
   private static final Log LOG =
     LogFactory.getLog(NamespaceAgent.class.getName());
 
-  @SuppressWarnings("unchecked")
-  public NamespaceAgent(GiraffaConfiguration conf) throws IOException,
-    ClassNotFoundException {
-    rowKeyClass = (Class<? extends RowKey>) Class.forName(
-        conf.get(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
-                 GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT));
+  public NamespaceAgent() {}
+
+  @Override // NamespaceService
+  public void initialize(GiraffaConfiguration conf) throws IOException {
+    rowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
+                                GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT,
+                                RowKey.class);
     caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
                               GiraffaConfiguration.GRFA_CACHING_DEFAULT);
     LOG.info("Caching is set to: " + caching);
@@ -339,12 +341,12 @@ public class NamespaceAgent implements ClientProtocol {
       throw new FileNotFoundException();
     }
     //check parent path first
-    Path parent_path = path.getParent();
-    if(parent_path == null) {
+    Path parentPath = path.getParent();
+    if(parentPath == null) {
       throw new FileNotFoundException("Parent does not exist.");
     }
     // then check parent inode
-    INode parent = getINode(parent_path);
+    INode parent = getINode(parentPath);
     if(parent == null)
       throw new FileNotFoundException("Parent does not exist.");
     if(!parent.isDir())
@@ -449,7 +451,8 @@ public class NamespaceAgent implements ClientProtocol {
    * 
    * @throws IOException
    */
-  public static void format(GiraffaConfiguration conf) throws IOException {
+  @Override // NamespaceService
+  public void format(GiraffaConfiguration conf) throws IOException {
     LOG.info("Format started...");
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
                                 GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
@@ -493,7 +496,7 @@ public class NamespaceAgent implements ClientProtocol {
     HTableDescriptor htd = new HTableDescriptor(tableName);
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
     htd.addCoprocessor(coprocClass, jarPath, Coprocessor.PRIORITY_SYSTEM, null);
-    LOG.info("Coprocessor is set to: " + coprocClass);
+    LOG.info("Block management processor is set to: " + coprocClass);
     return htd;
   }
 
@@ -850,6 +853,7 @@ public class NamespaceAgent implements ClientProtocol {
       throws IOException {
   }
 
+  @Override // NamespaceService
   public void close() throws IOException {
     nsTable.close();
     hbAdmin.close();

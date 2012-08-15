@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ReflectionUtils;
 
 public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_URI_SCHEME = "grfa";
@@ -26,13 +27,17 @@ public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_TABLE_NAME_KEY = "grfa.table.name";
   public static final String  GRFA_TABLE_NAME_DEFAULT = "Namespace";
   public static final String  GRFA_ROW_KEY_KEY = "grfa.rowkey.class";
-  public static final String  GRFA_ROW_KEY_DEFAULT =
-                              "org.apache.giraffa.FullPathRowKey";
+  public static final Class<FullPathRowKey>  GRFA_ROW_KEY_DEFAULT =
+                              FullPathRowKey.class;
   public static final String  GRFA_CACHING_KEY = "grfa.rowkey.caching";
   public static final Boolean GRFA_CACHING_DEFAULT = true;
   public static final String  GRFA_COPROCESSOR_KEY = "grfa.coprocessor.class"; 
   public static final String  GRFA_COPROCESSOR_DEFAULT =
                                   BlockManagementAgent.class.getName();
+  public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
+                                  "grfa.namespace.service.class"; 
+  public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =
+                                  NamespaceAgent.class;
   public static final String  GRFA_HDFS_ADDRESS_KEY = "grfa.hdfs.address";
   public static final String  GRFA_HDFS_ADDRESS_DEFAULT = "file:///";
   public static final String  GRFA_HBASE_ADDRESS_KEY = "grfa.hbase.address";
@@ -51,4 +56,12 @@ public class GiraffaConfiguration extends Configuration {
   public GiraffaConfiguration(Configuration conf) {
     super(conf);
   }
+
+  public NamespaceService newNamespaceService() {
+    Class<? extends NamespaceService> serviceClass =
+        getClass(GRFA_NAMESPACE_SERVICE_KEY, GRFA_NAMESPACE_SERVICE_DEFAULT,
+            NamespaceService.class);
+    return ReflectionUtils.newInstance(serviceClass, null);
+  }
+
 }

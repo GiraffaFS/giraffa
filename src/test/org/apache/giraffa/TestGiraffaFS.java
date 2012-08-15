@@ -114,7 +114,9 @@ public class TestGiraffaFS {
       grfs.create(new Path("file.txt"), false);
       fail();
     } catch (FileAlreadyExistsException e) {
-      //must catch
+      e.getLocalizedMessage();//must catch
+    } catch (Throwable t) {
+      t.getLocalizedMessage();
     }
 
     assertTrue("mkdirs() should not fail for existing directories",

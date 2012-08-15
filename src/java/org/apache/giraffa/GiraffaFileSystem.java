@@ -157,11 +157,7 @@ public class GiraffaFileSystem extends FileSystem {
     this.workingDir = new Path("/user/"
         + UserGroupInformation.getCurrentUser().getShortUserName());
 
-    try {
-      grfaClient = new GiraffaClient(grfaConf, statistics);
-    } catch (ClassNotFoundException e) {
-      throw new IOException("Could not find RowKey class specified.");
-    }
+    grfaClient = new GiraffaClient(grfaConf, statistics);
 
     LOG.debug("uri = " + uri);
     LOG.debug("workingDir = " + workingDir);

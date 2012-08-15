@@ -79,8 +79,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
   public void start(CoprocessorEnvironment e) throws IOException {
     LOG.info("Start BlockManagementAgent...");
     Configuration conf = e.getConfiguration();
-    String bmAddress =
-      e.getConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    String bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     LOG.info("BlockManagementAgent address: " + bmAddress);
     if(bmAddress != null)
       conf.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, bmAddress);

@@ -5,17 +5,20 @@ Release 0.0.1 - Unreleased
   INCOMPATIBLE CHANGES
 
   NEW FEATURES
+    Issue 12: Extract common interface to allow different
+              NamespaceService implementations. (shv)
 
   IMPROVEMENTS
-    Issue 3: Automatic download of lib jars. (Plamen)
-    Issue 6: Add eclipse build target. (Plamen via shv)
-    Issue 9: Move BlockManagementAgent under giraffa package. (shv)
+    Issue 3:  Automatic download of lib jars. (Plamen)
+    Issue 6:  Add eclipse build target. (Plamen via shv)
+    Issue 9:  Move BlockManagementAgent under giraffa package. (shv)
 
   OPTIMIZATIONS
 
-    Issue 2: Optimize NamespaceAgent to access HBase once per operation. (Plamen)
+    Issue 2:  Optimize NamespaceAgent to access HBase once per operation.
+              (Plamen)
 
   BUG FIXES
 
-    Issue 7: Fix conversion to URI of the default jrfa.jar path. (shv)
+    Issue 7:  Fix conversion to URI of the default jrfa.jar path. (shv)
     Issue 10: Need to expose clientName via GiraffaClient. (Plamen)

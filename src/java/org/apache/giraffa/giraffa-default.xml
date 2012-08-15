@@ -19,9 +19,9 @@
 
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
-<!-- Do not modify this file directly.  Instead, copy entries that you -->
+<!-- Do not modify this file directly.  Instead, copy entries that you   -->
 <!-- wish to modify from this file into giraffa-site.xml and change them -->
-<!-- there.  If giraffa-site.xml does not already exist, create it.      -->
+<!-- there. If giraffa-site.xml does not already exist, create it.       -->
 
 <configuration>
 
@@ -36,7 +36,7 @@
     </description>
 	</property>
 
-  <!-- GiraffaFS client properties -->
+  <!-- Giraffa client properties -->
   <property>
     <name>fs.grfa.impl</name>
     <value>org.apache.giraffa.GiraffaFileSystem</value>
@@ -67,11 +67,12 @@
   </description>
 	</property>
 
+  <!-- Giraffa serve-side properties -->
 	<property>
 		<name>grfa.coprocessor.class</name>
 		<value>org.apache.giraffa.BlockManagementAgent</value>
 		<description>
-			Class that implements coprocessor for namespace table resposible for
+			Class that implements coprocessor for namespace table responsible for
 			managing block requests.
   </description>
 	</property>
