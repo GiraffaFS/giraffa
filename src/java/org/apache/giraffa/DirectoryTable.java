@@ -29,7 +29,7 @@ import java.util.ArrayList;
  * Directory in Giraffa is a row, which associates file and sub-directory names
  * contained in the directory with their row keys.
  */
-class DirectoryTable implements Serializable {
+public class DirectoryTable implements Serializable {
   private static final long serialVersionUID = 987654321098765432L;
 
   private ArrayList<RowKey> childrenKeys;
@@ -52,7 +52,7 @@ class DirectoryTable implements Serializable {
     }
   }
 
-  ArrayList<RowKey> getEntries() {
+  public ArrayList<RowKey> getEntries() {
     return childrenKeys;
   }
 
@@ -60,7 +60,7 @@ class DirectoryTable implements Serializable {
     return childrenKeys.size();
   }
 
-  boolean isEmpty() {
+  public boolean isEmpty() {
     return size() == 0;
   }
 
@@ -80,11 +80,11 @@ class DirectoryTable implements Serializable {
     return null;
   }
 
-  boolean addEntry(RowKey child) {
+  public boolean addEntry(RowKey child) {
     return childrenKeys.add(child);
   }
 
-  boolean removeEntry(String fileName) {
+  public boolean removeEntry(String fileName) {
     for(RowKey child : childrenKeys) {
       if(child.getPath().getName().equals(fileName)) {
         childrenKeys.remove(child);

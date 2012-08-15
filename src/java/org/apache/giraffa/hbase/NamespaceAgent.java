@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa;
+package org.apache.giraffa.hbase;
 
 import static org.apache.hadoop.hdfs.server.common.Util.now;
 
@@ -28,6 +28,11 @@ import java.util.HashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.INode;
+import org.apache.giraffa.NamespaceService;
+import org.apache.giraffa.RowKey;
 import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.ContentSummary;

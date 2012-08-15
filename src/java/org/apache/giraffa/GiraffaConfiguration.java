@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa;
 
+import org.apache.giraffa.hbase.BlockManagementAgent;
+import org.apache.giraffa.hbase.NamespaceAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
 
