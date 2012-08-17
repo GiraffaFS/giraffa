@@ -14,6 +14,8 @@ Release 0.0.1 - Unreleased
     Issue 3:  Automatic download of lib jars. (Plamen)
     Issue 6:  Add eclipse build target. (Plamen via shv)
     Issue 9:  Move BlockManagementAgent under giraffa package. (shv)
+    Issue 17: Move HBase dependent code from INode and FileField
+              under giraffa.hbase package. (shv)
 
   OPTIMIZATIONS
 

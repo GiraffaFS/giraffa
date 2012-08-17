@@ -19,31 +19,34 @@ package org.apache.giraffa.hbase;
 
 import static org.apache.hadoop.hdfs.server.common.Util.now;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.DirectoryTable;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
-import org.apache.giraffa.GiraffaConstants.BlockAction;
-import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsServerDefaults;
+import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.UnresolvedLinkException;
-import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -55,7 +58,9 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
@@ -63,13 +68,13 @@ import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
+import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
+import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
+import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
-import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
-import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
-import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
 import org.apache.hadoop.hdfs.server.common.Util;
@@ -89,6 +94,10 @@ import org.apache.hadoop.util.ReflectionUtils;
   * NameNode RPC proxy.
   */
 public class NamespaceAgent implements NamespaceService {
+
+  public static enum BlockAction {
+    CLOSE, ALLOCATE, DELETE
+  }
 
   private Class<? extends RowKey> rowKeyClass;
   private boolean caching;
@@ -142,25 +151,20 @@ public class NamespaceAgent implements NamespaceService {
       throw new FileNotFoundException();
 
     // Calls addBlock on HDFS by putting another empty Block in HBase
-    Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
-    // we need to grab blocks from HBase and then add to it
-    iNode.getBlocks(nodeInfo);
     if(previous != null) {
       // we need to update in HBase the previous block
-      iNode.replaceBlock(previous);
+      iNode.setLastBlock(previous);
     }
 
     // add a Block and modify times
     // (if there was a previous block this call with add it in as well)
-    iNode.setBlocks();
-    iNode.setBlockAction(BlockAction.ALLOCATE);
     long time = now();
     iNode.setTimes(time, time);
-    iNode.updateINode(nsTable);
+    updateINode(iNode, BlockAction.ALLOCATE);
 
     // grab blocks back from HBase and return the latest one added
-    nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
-    ArrayList<LocatedBlock> al = iNode.getBlocks(nodeInfo);
+    Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
+    ArrayList<LocatedBlock> al = NamespaceAgent.getBlocks(nodeInfo);
     LOG.info("Added block. File: " + src + " has " + al.size() + " block(s).");
     return al.get(al.size()-1);
   }
@@ -191,16 +195,12 @@ public class NamespaceAgent implements NamespaceService {
       throw new FileNotFoundException();
     }
 
-    Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
     // set the state and replace the block, then put the iNode
     iNode.setState(FileState.CLOSED);
-    iNode.setBlockAction(BlockAction.CLOSE);
-    iNode.getBlocks(nodeInfo);
-    iNode.replaceBlock(last);
-    iNode.setBlocks();
+    iNode.setLastBlock(last);
     long time = now();
     iNode.setTimes(time, time);
-    iNode.updateINode(nsTable);
+    updateINode(iNode, BlockAction.CLOSE);
     LOG.info("Completed file: "+src+" | BlockID: "+last.getBlockId());
     return true;
   }
@@ -223,7 +223,6 @@ public class NamespaceAgent implements NamespaceService {
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
     boolean append = flag.contains(CreateFlag.APPEND);
     boolean create = flag.contains(CreateFlag.CREATE);
-    boolean updateParent = true;
 
     Path path = new Path(src);
     if(path.getParent() == null) {
@@ -236,19 +235,24 @@ public class NamespaceAgent implements NamespaceService {
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     String machineName = (ugi.getGroupNames().length == 0) ? "" : ugi.getGroupNames()[0];
 
-    if(!createParent && iParent == null) {
-      // SHV !!! make sure parent exists and is a directory
-      throw new FileNotFoundException();
-    } else if(createParent && iParent == null) {
-      // make the parent directories
+    if(!createParent && iParent == null)
+      throw new FileNotFoundException("File does not exist: " + src);
+
+    if(iParent == null) { // create parent directories
       mkdirs(path.getParent().toString(), masked, true);
+      iParent = getINode(path.getParent());
     }
 
+    if(!iParent.isDir())
+      throw new ParentNotDirectoryException(
+          "Parent path is not a directory: " + src);
+
     if(!overwrite && iFile != null) {
-      // SHV !!! make sure file does not exist
+      // SHV !!!
+      // client cannot know if file exist
+      // should come from the table itself, when inserting a new row
+      // turns into update of an existing one
       throw new FileAlreadyExistsException();
-    } else if(iFile != null && iParent != null) {
-      updateParent = false;
     }
 
     // if file did not exist, create its INode now
@@ -256,28 +260,14 @@ public class NamespaceAgent implements NamespaceService {
       RowKey key = createRowKey(path);
       iFile = new INode(0, false, replication, blockSize, System.currentTimeMillis(), System.currentTimeMillis(),
           masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-          key, 0, 0);
-    } else {
-      // if we are overwriting, make sure to get its blocks
-      Result nodeInfo = nsTable.get(new Get(iFile.getRowKey().getKey()));
-      iFile.getBlocks(nodeInfo).clear();
-    }
-    // should be generated now, grab it again
-    if(iParent == null) {
-      iParent = getINode(path.getParent());
+          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null);
     }
 
     // add file to HBase (update if already exists)
-    iFile.updateINode(nsTable);
+    updateINode(iFile);
 
-    if(updateParent) {
-      // get parent result and update parent dirTable.
-      Result nodeInfo = nsTable.get(new Get(iParent.getRowKey().getKey()));
-      iParent.getDirectoryTable(nodeInfo).addEntry(iFile.getRowKey());
-      iParent.setDirectoryTable();
-      // commit dirTable to HBase
-      iParent.updateINode(nsTable);
-    }
+    // get parent result and update parent dirTable.
+    addDirectoryEntry(iParent, iFile);
   }
 
   /**
@@ -359,25 +349,15 @@ public class NamespaceAgent implements NamespaceService {
 
     if(recursive) {
       ArrayList<RowKey> keys = null;
-      Result nodeInfo = nsTable.get(new Get(node.getRowKey().getKey()));
       if(node.isDir()) {
-        keys = node.getDirectoryTable(nodeInfo).getEntries();
+        keys = node.getDirTable().getEntries();
       } else {
-        node.getBlocks(nodeInfo);
         node.setState(FileState.DELETED);
-        node.setBlockAction(BlockAction.DELETE);
-        node.updateINode(nsTable);
+        updateINode(node, BlockAction.DELETE);
       }
-      // delete the child key atomically first
-      Delete delete = new Delete(node.getRowKey().getKey());
-      nsTable.delete(delete);
-      
+
       // update the parent directory about the deletion
-      Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
-      parent.getDirectoryTable(parentNodeInfo)
-            .removeEntry(node.getRowKey().getPath().getName());
-      parent.setDirectoryTable();
-      parent.updateINode(nsTable);
+      removeDirectoryEntry(parent, node);
 
       // delete all of the children, and the children's children...
       // only if the node WAS a directory
@@ -387,19 +367,12 @@ public class NamespaceAgent implements NamespaceService {
     } else {
       if(node.isDir()) {
         Result nodeInfo = nsTable.get(new Get(node.getRowKey().getKey()));
-        if(!node.getDirectoryTable(nodeInfo).isEmpty())
+        if(!NamespaceAgent.getDirectoryTable(nodeInfo).isEmpty())
           return false;
       }
 
-      Delete delete = new Delete(node.getRowKey().getKey());
-      nsTable.delete(delete);
-
       // update parent Node
-      Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
-      parent.getDirectoryTable(parentNodeInfo)
-            .removeEntry(node.getRowKey().getPath().getName());
-      parent.setDirectoryTable();
-      parent.updateINode(nsTable);
+      removeDirectoryEntry(parent, node);
     }
 
     // delete time penalty (resolves timestamp milliseconds issue)
@@ -421,16 +394,14 @@ public class NamespaceAgent implements NamespaceService {
    */
   private void deleteRecursive(ArrayList<RowKey> children) throws IOException {
     for(RowKey childKey : children) {
-      Result info = nsTable.get(new Get(childKey.getKey()));
-      INode node = new INode(childKey, info);
+      INode node = getINode(childKey);
 
       // if childKey is a directory, recurse thru it
       if(node.isDir()) {
-        deleteRecursive(node.getDirectoryTable(info).getEntries());
+        deleteRecursive(node.getDirTable().getEntries());
       } else {
-        node.getBlocks(info);
         node.setState(FileState.DELETED);
-        node.updateINode(nsTable);
+        updateINode(node);
       }
 
       // delete this key after we have deleted all its children
@@ -519,18 +490,17 @@ public class NamespaceAgent implements NamespaceService {
     INode iNode = getINode(path);
     if(iNode == null)
       throw new FileNotFoundException();
-    
-    Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
-    ArrayList<LocatedBlock> al = iNode.getBlocks(nodeInfo);
+
+    List<LocatedBlock> al = iNode.getBlocks();
     boolean underConstruction = 
         (iNode.getFileState().equals(FileState.CLOSED)) ? true : false;
-    
+
     LocatedBlocks lbs = new LocatedBlocks(computeFileLength(al),
         underConstruction, al, al.get(al.size()-1), underConstruction);
     return lbs;
   }
 
-  private long computeFileLength(ArrayList<LocatedBlock> al) {
+  private long computeFileLength(List<LocatedBlock> al) {
     // does not matter if underConstruction or not so far.
     long n = 0;
     for(LocatedBlock bl : al) {
@@ -576,11 +546,14 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   private INode getINode(Path path) throws IOException {
-    RowKey key = getRowKey(path);
+    return getINode(getRowKey(path));
+  }
+
+  private INode getINode(RowKey key) throws IOException {
     Result nodeInfo = nsTable.get(new Get(key.getKey()));
     if(nodeInfo.isEmpty())
       return null;
-    return new INode(key, nodeInfo);
+    return newINode(key, nodeInfo);
   }
 
   @Override // ClientProtocol
@@ -603,8 +576,7 @@ public class NamespaceAgent implements NamespaceService {
       return new DirectoryListing(new HdfsFileStatus[] { getFileInfo(src) }, 0);
     }
 
-    Result nodeInfo = nsTable.get(new Get(node.getRowKey().getKey()));
-    ArrayList<RowKey> children = node.getDirectoryTable(nodeInfo).getEntries();
+    ArrayList<RowKey> children = node.getDirTable().getEntries();
     ArrayList<HdfsFileStatus> list = new ArrayList<HdfsFileStatus>();
 
     // getListingRecursive(children, list);
@@ -666,8 +638,8 @@ public class NamespaceAgent implements NamespaceService {
         RowKey key = getRowKey(path);
         root = new INode(0, true, (short) 0, 0, System.currentTimeMillis(), System.currentTimeMillis(),
             masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-            key, 0, 0);
-        root.updateINode(nsTable);
+            key, 0, 0, null, new DirectoryTable(), null);
+        updateINode(root);
         return true;
       } else
         throw new IOException("Root has no parent.");
@@ -694,21 +666,17 @@ public class NamespaceAgent implements NamespaceService {
     long time = now();
     iDir = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-        key, 0, 0);
+        key, 0, 0, null, new DirectoryTable(), null);
     // should be generated now, grab it again
     if(iParent == null) {
       iParent = getINode(path.getParent());
     }
 
     // add directory to HBase
-    iDir.updateINode(nsTable);
+    updateINode(iDir);
 
     // grab parent result and update parent dirTable.
-    Result nodeInfo = nsTable.get(new Get(iParent.getRowKey().getKey()));
-    iParent.getDirectoryTable(nodeInfo).addEntry(iDir.getRowKey());
-    iParent.setDirectoryTable();
-    // commit dirTable to HBase
-    iParent.updateINode(nsTable);
+    addDirectoryEntry(iParent, iDir);
     return true;
   }
 
@@ -775,7 +743,7 @@ public class NamespaceAgent implements NamespaceService {
       throw new FileNotFoundException();
 
     node.setOwner(username, groupname);
-    node.updateINode(nsTable);
+    updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -788,8 +756,8 @@ public class NamespaceAgent implements NamespaceService {
     if(node == null)
       throw new FileNotFoundException();
 
-    node.setPermissions(permission);
-    node.updateINode(nsTable);
+    node.setPermission(permission);
+    updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -805,8 +773,8 @@ public class NamespaceAgent implements NamespaceService {
     if(!node.isDir())
       return;
 
-    node.setQuotas(namespaceQuota, diskspaceQuota);
-    node.updateINode(nsTable);
+    node.setQuota(namespaceQuota, diskspaceQuota);
+    updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -822,7 +790,7 @@ public class NamespaceAgent implements NamespaceService {
       return false;
 
     node.setReplication(replication);
-    node.updateINode(nsTable);
+    updateINode(node);
     return true;
   }
 
@@ -843,7 +811,7 @@ public class NamespaceAgent implements NamespaceService {
       return;
 
     node.setTimes(mtime, atime);
-    node.updateINode(nsTable);
+    updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -862,5 +830,202 @@ public class NamespaceAgent implements NamespaceService {
   public void close() throws IOException {
     nsTable.close();
     hbAdmin.close();
+  }
+
+  private INode newINode(RowKey key, Result res) throws IOException {
+    INode iNode = new INode(
+        getLength(res),
+        getDirectory(res),
+        getReplication(res),
+        getBlockSize(res),
+        getMTime(res),
+        getATime(res),
+        getPermissions(res),
+        getUserName(res),
+        getGroupName(res),
+        key.getPath().toString().getBytes(),
+        getSymlink(res),
+        key,
+        getNsQuota(res),
+        getDsQuota(res),
+        getState(res),
+        getDirectoryTable(res),
+        getBlocks(res));
+    return iNode;
+  }
+
+  private void updateINode(INode node) throws IOException {
+    updateINode(node, null);
+  }
+
+  private void updateINode(INode node, BlockAction ba) throws IOException {
+    long ts = now();
+    RowKey key = node.getRowKey();
+    Put put = new Put(key.getKey(), ts);
+    put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
+            key.getPath().getName().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
+            key.getPath().toString().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
+            node.getOwner().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
+            node.getGroup().getBytes())
+        .add(FileField.getFileAttributes(), FileField.getLength(), ts,
+            Bytes.toBytes(node.getLen()))
+        .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
+            Bytes.toBytes(node.getPermission().toShort()))
+        .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
+            Bytes.toBytes(node.getModificationTime()))
+        .add(FileField.getFileAttributes(), FileField.getATime(), ts,
+            Bytes.toBytes(node.getAccessTime()))
+        .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
+            Bytes.toBytes(node.getDsQuota()))
+        .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
+            Bytes.toBytes(node.getNsQuota()))
+        .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
+            Bytes.toBytes(node.getReplication()))
+        .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
+            Bytes.toBytes(node.getBlockSize()));
+
+    if(node.isDir())
+      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
+             node.getDirTable().toBytes());
+    else
+      put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
+             node.getBlocksBytes())
+         .add(FileField.getFileAttributes(), FileField.getState(), ts,
+             Bytes.toBytes(node.getFileState().toString()));
+
+    if(ba != null)
+      put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
+          Bytes.toBytes(ba.toString()));
+
+    nsTable.put(put);
+  }
+
+  /**
+   * Get LocatedBlock info from HBase based on this nodes internal RowKey.
+   * @param res
+   * @return LocatedBlock from HBase row. Null if a directory or
+   *  any sort of Exception happens.
+   * @throws IOException
+   */
+  static ArrayList<LocatedBlock> getBlocks(Result res) throws IOException {
+    if(getDirectory(res))
+      return null;
+  
+    ArrayList<LocatedBlock> blocks = new ArrayList<LocatedBlock>();
+    DataInputStream in = null;
+    byte[] value = res.getValue(
+        FileField.getFileAttributes(), FileField.getBlock());
+    in = new DataInputStream(new ByteArrayInputStream(value));
+    while(in.available() > 0) {
+      LocatedBlock loc = LocatedBlock.read(in);
+      blocks.add(loc);
+    }
+    in.close();
+    return blocks;
+  }
+
+  /**
+   * Get DirectoryTable from HBase.
+   * 
+   * @param res
+   * @return The directory table.
+   */
+  static DirectoryTable getDirectoryTable(Result res) {
+    if(!getDirectory(res))
+      return null;
+
+    DirectoryTable dirTable;
+    try {
+      dirTable = new DirectoryTable(res.getValue(
+          FileField.getFileAttributes(), FileField.getDirectory()));
+    } catch (IOException e) {
+      INode.LOG.info("Cannot get directory table", e);
+      return null;
+    } catch (ClassNotFoundException e) {
+      INode.LOG.info("Cannot get directory table", e);
+      return null;
+    }
+    return dirTable;
+  }
+
+  static boolean getDirectory(Result res) {
+    return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());
+  }
+
+  static short getReplication(Result res) {
+    return Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getReplication()));
+  }
+
+  static long getBlockSize(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getBlockSize()));
+  }
+
+  static long getMTime(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getMTime()));
+  }
+
+  static long getATime(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getATime()));
+  }
+
+  static FsPermission getPermissions(Result res) {
+    return new FsPermission(
+        Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getPermissions())));
+  }
+
+  static String getUserName(Result res) {
+    return new String(res.getValue(FileField.getFileAttributes(), FileField.getUserName()));
+  }
+
+  static String getGroupName(Result res) {
+    return new String(res.getValue(FileField.getFileAttributes(), FileField.getGroupName()));
+  }
+
+  static byte[] getSymlink(Result res) {
+    return res.getValue(FileField.getFileAttributes(), FileField.getSymlink());
+  }
+
+  static FileState getState(Result res) {
+    if(getDirectory(res))
+      return null;
+    return FileState.valueOf(
+        Bytes.toString(res.getValue(FileField.getFileAttributes(), FileField.getState())));
+  }
+
+  static long getNsQuota(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getNsQuota()));
+  }
+
+  static long getDsQuota(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getDsQuota()));
+  }
+
+  // Get file fields from Result
+  static long getLength(Result res) {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getLength()));
+  }
+
+  void removeDirectoryEntry(INode parent, INode child) throws IOException {
+    // delete the child key atomically first
+    Delete delete = new Delete(child.getRowKey().getKey());
+    nsTable.delete(delete);
+
+    Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
+    DirectoryTable dt = getDirectoryTable(parentNodeInfo);
+    dt.removeEntry(child.getRowKey().getPath().getName());
+    parent.setDirectoryTable(dt);
+    updateINode(parent);
+  }
+
+  void addDirectoryEntry(INode parent, INode child) throws IOException {
+    Result nodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
+    DirectoryTable dt = getDirectoryTable(nodeInfo);
+    boolean added = dt.addEntry(child.getRowKey());
+    assert added : "Directory already contains file: " + child.getRowKey();
+    parent.setDirectoryTable(dt);
+    updateINode(parent);
   }
 }

@@ -34,11 +34,12 @@ public class DirectoryTable implements Serializable {
 
   private ArrayList<RowKey> childrenKeys;
 
-  DirectoryTable() {
+  public DirectoryTable() {
     childrenKeys = new ArrayList<RowKey>();
   }
 
   @SuppressWarnings("unchecked")
+  public
   DirectoryTable(byte[] list) throws IOException, ClassNotFoundException {
     ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(list));
     try {
@@ -94,7 +95,7 @@ public class DirectoryTable implements Serializable {
     return false;
   }
 
-  byte[] toBytes() throws IOException {
+  public byte[] toBytes() throws IOException {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     ObjectOutputStream objout = new ObjectOutputStream(bos);
     objout.writeObject(childrenKeys);

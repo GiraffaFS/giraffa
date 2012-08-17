@@ -21,8 +21,5 @@ public interface GiraffaConstants {
   public static enum FileState {
     CLOSED, UNDER_CONSTRUCTION, DELETED
   }
-  public static enum BlockAction {
-    CLOSE, ALLOCATE, DELETE
-  }
 
 }

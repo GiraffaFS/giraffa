@@ -17,11 +17,6 @@
  */
 package org.apache.giraffa;
 
-import org.apache.giraffa.GiraffaConstants.FileState;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
-
 public enum FileField {
   REPLICATION ("replication".getBytes()),
   USER_NAME ("userName".getBytes()),
@@ -95,48 +90,5 @@ public enum FileField {
   }
   public static byte[] getLength() {
     return LENGTH.bytes;
-  }
-
-  // Get file fields from Result
-  public static long getLength(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getLength()));
-  }
-  public static boolean getDirectory(Result res) {
-    return res.containsColumn(getFileAttributes(), getDirectory());
-  }
-  public static short getReplication(Result res) {
-    return Bytes.toShort(res.getValue(getFileAttributes(), getReplication()));
-  }
-  public static long getBlockSize(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getBlockSize()));
-  }
-  public static long getMTime(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getMTime()));
-  }
-  public static long getATime(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getATime()));
-  }
-  public static FsPermission getPermissions(Result res) {
-    return new FsPermission(
-        Bytes.toShort(res.getValue(getFileAttributes(), getPermissions())));
-  }
-  public static String getUserName(Result res) {
-    return new String(res.getValue(getFileAttributes(), getUserName()));
-  }
-  public static String getGroupName(Result res) {
-    return new String(res.getValue(getFileAttributes(), getGroupName()));
-  }
-  public static byte[] getSymlink(Result res) {
-    return res.getValue(getFileAttributes(), getSymlink());
-  }
-  public static FileState getState(Result res) {
-    return FileState.valueOf(
-        Bytes.toString(res.getValue(getFileAttributes(), getState())));
-  }
-  public static long getNsQuota(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getNsQuota()));
-  }
-  public static long getDsQuota(Result res) {
-    return Bytes.toLong(res.getValue(getFileAttributes(), getDsQuota()));
   }
 }
