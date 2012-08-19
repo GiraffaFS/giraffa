@@ -5,12 +5,15 @@ Release 0.0.1 - Unreleased
   INCOMPATIBLE CHANGES
 
   NEW FEATURES
+
+    Issue 18: Upgrade HBase to 0.94. (Plamen)
     Issue 12: Extract common interface to allow different
               NamespaceService implementations. (shv)
     Issue 13: Create hbase package for isolating HBase implementation of
               NamespaceService. (shv)
 
   IMPROVEMENTS
+
     Issue 3:  Automatic download of lib jars. (Plamen)
     Issue 6:  Add eclipse build target. (Plamen via shv)
     Issue 9:  Move BlockManagementAgent under giraffa package. (shv)

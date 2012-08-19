@@ -76,6 +76,7 @@
     <dependency org="org.mockito" name="mockito-all" rev="${mockito-all.version}" />
     <dependency org="org.jboss.netty" name="netty" rev="${netty.version}" />
     <dependency org="oro" name="oro" rev="${oro.version}" />
+    <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}" />
     <dependency org="org.mortbay.jetty" name="servlet-api-2.5" rev="${servlet-api-2.5.version}" />
     <dependency org="org.slf4j" name="slf4j-api" rev="${slf4j-api.version}" />
     <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}" />
