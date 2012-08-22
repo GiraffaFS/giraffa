@@ -62,6 +62,7 @@
     <dependency org="log4j" name="log4j" rev="${log4j.version}" />
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="${jackson-mapper-asl.version}" />
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="${jackson-core-asl.version}" />
+    <dependency org="org.jamon" name="jamon-runtime" rev="${jamon-runtime.version}" />
     <dependency org="tomcat" name="jasper-compiler" rev="${jasper-compiler.version}" />
     <dependency org="tomcat" name="jasper-runtime" rev="${jasper-runtime.version}" />
     <dependency org="net.java.dev.jets3t" name="jets3t" rev="${jets3t.version}" />
@@ -73,6 +74,7 @@
     <dependency org="junit" name="junit" rev="${junit.version}" />
     <dependency org="net.sf.kosmosfs" name="kfs" rev="${kfs.version}" />
     <dependency org="log4j" name="log4j" rev="${log4j.version}" />
+    <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"/>
     <dependency org="org.mockito" name="mockito-all" rev="${mockito-all.version}" />
     <dependency org="org.jboss.netty" name="netty" rev="${netty.version}" />
     <dependency org="oro" name="oro" rev="${oro.version}" />

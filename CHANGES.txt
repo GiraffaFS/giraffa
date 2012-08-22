@@ -6,7 +6,6 @@ Release 0.0.1 - Unreleased
 
   NEW FEATURES
 
-    Issue 18: Upgrade HBase to 0.94. (Plamen)
     Issue 12: Extract common interface to allow different
               NamespaceService implementations. (shv)
     Issue 13: Create hbase package for isolating HBase implementation of
@@ -19,6 +18,8 @@ Release 0.0.1 - Unreleased
     Issue 9:  Move BlockManagementAgent under giraffa package. (shv)
     Issue 17: Move HBase dependent code from INode and FileField
               under giraffa.hbase package. (shv)
+    Issue 18: Upgrade HBase to 0.94.0 (Plamen)
+              Upgrade HBase to 0.94.1 (shv)
 
   OPTIMIZATIONS
 
