@@ -30,3 +30,4 @@ Release 0.0.1 - Unreleased
 
     Issue 7:  Fix conversion to URI of the default jrfa.jar path. (shv)
     Issue 10: Need to expose clientName via GiraffaClient. (Plamen)
+    Issue 21: Upgrade libraries for compatibility with HBase 0.94.1. (shv)
