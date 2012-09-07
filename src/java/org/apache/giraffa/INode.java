@@ -44,6 +44,7 @@ public class INode {
   private String group;
   private byte[] path;
   private byte[] symlink;
+
   private long dsQuota;
   private long nsQuota;
 
@@ -169,6 +170,10 @@ public class INode {
 
   public boolean isDir() {
     return isdir;
+  }
+
+  public byte[] getSymlink() {
+    return symlink;
   }
 
   public DirectoryTable getDirTable() {

@@ -17,25 +17,15 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.hadoop.hdfs.server.common.Util.now;
-
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.DirectoryTable;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
-import org.apache.giraffa.GiraffaConstants.FileState;
-import org.apache.giraffa.INode;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
 import org.apache.hadoop.fs.ContentSummary;
@@ -53,14 +43,9 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
@@ -83,7 +68,6 @@ import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.AccessControlException;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -94,6 +78,13 @@ import org.apache.hadoop.util.ReflectionUtils;
   * NameNode RPC proxy.
   */
 public class NamespaceAgent implements NamespaceService {
+  public static final String  GRFA_COPROCESSOR_KEY = "grfa.coprocessor.class";
+  public static final String  GRFA_COPROCESSOR_DEFAULT =
+                                  BlockManagementAgent.class.getName();
+  public static final String  GRFA_NAMESPACE_PROCESSOR_KEY = 
+                                  "grfa.namespace.processor.class"; 
+  public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
+                                  NamespaceProcessor.class.getName();
 
   public static enum BlockAction {
     CLOSE, ALLOCATE, DELETE
@@ -122,20 +113,30 @@ public class NamespaceAgent implements NamespaceService {
     LOG.info("Caching is set to: " + caching);
     LOG.info("RowKey is set to: " + rowKeyClass.getCanonicalName());
     this.hbAdmin = new HBaseAdmin(HBaseConfiguration.create(conf));
+    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
+        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+
     try {
-      this.nsTable = new HTable(hbAdmin.getConfiguration(),
-          conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-              GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+      this.nsTable = new HTable(hbAdmin.getConfiguration(), tableName);
     } catch(TableNotFoundException tnfe) {
       throw new IOException("Giraffa is not formatted.", tnfe);
     }
+  }
+
+  private NamespaceProtocol getRegionProxy(String src) throws IOException {
+    return getRegionProxy(getRowKey(new Path(src)));
+  }
+
+  NamespaceProtocol getRegionProxy(RowKey key) throws IOException {
+    return nsTable.coprocessorProxy(NamespaceProtocol.class, key.getKey());
   }
 
   @Override // ClientProtocol
   public void abandonBlock(Block b, String src, String holder)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.abandonBlock(b, src, holder);
   }
 
   @Override // ClientProtocol
@@ -144,29 +145,12 @@ public class NamespaceAgent implements NamespaceService {
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    Path path = new Path(src);
-    INode iNode = getINode(path);
-
-    if(iNode == null)
-      throw new FileNotFoundException();
-
-    // Calls addBlock on HDFS by putting another empty Block in HBase
-    if(previous != null) {
-      // we need to update in HBase the previous block
-      iNode.setLastBlock(previous);
-    }
-
-    // add a Block and modify times
-    // (if there was a previous block this call with add it in as well)
-    long time = now();
-    iNode.setTimes(time, time);
-    updateINode(iNode, BlockAction.ALLOCATE);
-
-    // grab blocks back from HBase and return the latest one added
-    Result nodeInfo = nsTable.get(new Get(iNode.getRowKey().getKey()));
-    ArrayList<LocatedBlock> al = NamespaceAgent.getBlocks(nodeInfo);
-    LOG.info("Added block. File: " + src + " has " + al.size() + " block(s).");
-    return al.get(al.size()-1);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    LocatedBlock blk = proxy.addBlock(src, clientName, previous, excludeNodes);
+    if(blk == null)
+      throw new FileNotFoundException("File does not exist: " + src);
+    LOG.info("Added block " + blk + " to file: " + src);
+    return blk;
   }
 
   @Override // ClientProtocol
@@ -186,28 +170,18 @@ public class NamespaceAgent implements NamespaceService {
   public boolean complete(String src, String clientName, Block last)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    if(last == null)
-      return true;
-    Path path = new Path(src);
-    INode iNode = getINode(path);
-
-    if(iNode == null) {
-      throw new FileNotFoundException();
-    }
-
-    // set the state and replace the block, then put the iNode
-    iNode.setState(FileState.CLOSED);
-    iNode.setLastBlock(last);
-    long time = now();
-    iNode.setTimes(time, time);
-    updateINode(iNode, BlockAction.CLOSE);
-    LOG.info("Completed file: "+src+" | BlockID: "+last.getBlockId());
-    return true;
+    NamespaceProtocol proxy = getRegionProxy(src);
+    boolean res = proxy.complete(src, clientName, last);
+    if(!res)
+      throw new FileNotFoundException("File does not exist: " + src);
+    LOG.info("File: " + src + " is " + (res ? "completed" : "not completed"));
+    return res;
   }
 
   @Override // ClientProtocol
   public void concat(String trg, String[] srcs) throws IOException,
       UnresolvedLinkException {
+    throw new IOException("concat is not supported");
   }
 
   @Override // ClientProtocol
@@ -219,55 +193,12 @@ public class NamespaceAgent implements NamespaceService {
       NSQuotaExceededException, FileAlreadyExistsException,
       FileNotFoundException, ParentNotDirectoryException, SafeModeException,
       UnresolvedLinkException, IOException {
-    EnumSet<CreateFlag> flag = createFlag.get();
-    boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
-    boolean append = flag.contains(CreateFlag.APPEND);
-    boolean create = flag.contains(CreateFlag.CREATE);
+    if(new Path(src).getParent() == null)
+      throw new IOException("Root cannot be a file.");
 
-    Path path = new Path(src);
-    if(path.getParent() == null) {
-      throw new IOException("Root has no parent.");
-    }
-
-    INode iParent = getINode(path.getParent());
-    INode iFile = getINode(path);
-
-    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String machineName = (ugi.getGroupNames().length == 0) ? "" : ugi.getGroupNames()[0];
-
-    if(!createParent && iParent == null)
-      throw new FileNotFoundException("File does not exist: " + src);
-
-    if(iParent == null) { // create parent directories
-      mkdirs(path.getParent().toString(), masked, true);
-      iParent = getINode(path.getParent());
-    }
-
-    if(!iParent.isDir())
-      throw new ParentNotDirectoryException(
-          "Parent path is not a directory: " + src);
-
-    if(!overwrite && iFile != null) {
-      // SHV !!!
-      // client cannot know if file exist
-      // should come from the table itself, when inserting a new row
-      // turns into update of an existing one
-      throw new FileAlreadyExistsException();
-    }
-
-    // if file did not exist, create its INode now
-    if(iFile == null) {
-      RowKey key = createRowKey(path);
-      iFile = new INode(0, false, replication, blockSize, System.currentTimeMillis(), System.currentTimeMillis(),
-          masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null);
-    }
-
-    // add file to HBase (update if already exists)
-    updateINode(iFile);
-
-    // get parent result and update parent dirTable.
-    addDirectoryEntry(iParent, iFile);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.create(src, masked, clientName, createFlag, createParent,
+        replication, blockSize);
   }
 
   /**
@@ -331,93 +262,25 @@ public class NamespaceAgent implements NamespaceService {
   public boolean delete(String src, boolean recursive) throws IOException {
 
     Path path = new Path(src);
-    INode node = getINode(path);
-    if(node == null) {
-      throw new FileNotFoundException();
-    }
     //check parent path first
     Path parentPath = path.getParent();
     if(parentPath == null) {
       throw new FileNotFoundException("Parent does not exist.");
     }
-    // then check parent inode
-    INode parent = getINode(parentPath);
-    if(parent == null)
-      throw new FileNotFoundException("Parent does not exist.");
-    if(!parent.isDir())
-      throw new ParentNotDirectoryException("Parent is not a directory.");
 
-    if(recursive) {
-      ArrayList<RowKey> keys = null;
-      if(node.isDir()) {
-        keys = node.getDirTable().getEntries();
-      } else {
-        node.setState(FileState.DELETED);
-        updateINode(node, BlockAction.DELETE);
-      }
-
-      // update the parent directory about the deletion
-      removeDirectoryEntry(parent, node);
-
-      // delete all of the children, and the children's children...
-      // only if the node WAS a directory
-      if(keys != null) {
-        deleteRecursive(keys);
-      }
-    } else {
-      if(node.isDir()) {
-        Result nodeInfo = nsTable.get(new Get(node.getRowKey().getKey()));
-        if(!NamespaceAgent.getDirectoryTable(nodeInfo).isEmpty())
-          return false;
-      }
-
-      // update parent Node
-      removeDirectoryEntry(parent, node);
-    }
-
-    // delete time penalty (resolves timestamp milliseconds issue)
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException e) {
-      // do nothing
-    }
-
-    return true;
-  }
-
-  /** 
-   * The recursive function used to delete all children within a directory.
-   * General algorithm is to delete children one by one and delete the children of
-   * directories if there are any.
-   * @param children
-   * @throws IOException
-   */
-  private void deleteRecursive(ArrayList<RowKey> children) throws IOException {
-    for(RowKey childKey : children) {
-      INode node = getINode(childKey);
-
-      // if childKey is a directory, recurse thru it
-      if(node.isDir()) {
-        deleteRecursive(node.getDirTable().getEntries());
-      } else {
-        node.setState(FileState.DELETED);
-        updateINode(node);
-      }
-
-      // delete this key after we have deleted all its children
-      Delete fileToBeDeleted = new Delete(childKey.getKey());
-      nsTable.delete(fileToBeDeleted);
-    }
+    NamespaceProtocol proxy = getRegionProxy(src);
+    return proxy.delete(src, recursive);
   }
 
   @Override // ClientProtocol
   public UpgradeStatusReport distributedUpgradeProgress(UpgradeAction action)
       throws IOException {
-    return null;
+    throw new IOException("distributed upgrade is not supported");
   }
 
   @Override // ClientProtocol
   public void finalizeUpgrade() throws IOException {
+    throw new IOException("upgrade is not supported");
   }
 
   /**
@@ -460,8 +323,8 @@ public class NamespaceAgent implements NamespaceService {
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     String jarFile = conf.get(GiraffaConfiguration.GRFA_JAR_FILE_KEY,
         GiraffaConfiguration.GRFA_JAR_FILE_DEFAULT);
-    String coprocClass = conf.get(GiraffaConfiguration.GRFA_COPROCESSOR_KEY, 
-        GiraffaConfiguration.GRFA_COPROCESSOR_DEFAULT);
+    String coprocClass =
+        conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
     Path jarPath = new Path(Util.stringAsURI(jarFile));
     FileSystem jarFs = jarPath.getFileSystem(conf);
     if(!jarFs.exists(jarPath)) {
@@ -473,6 +336,11 @@ public class NamespaceAgent implements NamespaceService {
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
     htd.addCoprocessor(coprocClass, jarPath, Coprocessor.PRIORITY_SYSTEM, null);
     LOG.info("Block management processor is set to: " + coprocClass);
+
+    String nsProcClass = conf.get(
+        GRFA_NAMESPACE_PROCESSOR_KEY, GRFA_NAMESPACE_PROCESSOR_DEFAULT);
+    htd.addCoprocessor(nsProcClass, jarPath, Coprocessor.PRIORITY_SYSTEM, null);
+    LOG.info("Namespace processor is set to: " + nsProcClass);
     return htd;
   }
 
@@ -486,28 +354,11 @@ public class NamespaceAgent implements NamespaceService {
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    Path path = new Path(src);
-    INode iNode = getINode(path);
-    if(iNode == null)
-      throw new FileNotFoundException();
-
-    List<LocatedBlock> al = iNode.getBlocks();
-    boolean underConstruction = 
-        (iNode.getFileState().equals(FileState.CLOSED)) ? true : false;
-
-    LocatedBlocks lbs = new LocatedBlocks(computeFileLength(al),
-        underConstruction, al, al.get(al.size()-1), underConstruction);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    LocatedBlocks lbs = proxy.getBlockLocations(src, offset, length);
+    if(lbs == null)
+      throw new FileNotFoundException("File does not exist: " + src);
     return lbs;
-  }
-
-  private long computeFileLength(List<LocatedBlock> al) {
-    // does not matter if underConstruction or not so far.
-    long n = 0;
-    for(LocatedBlock bl : al) {
-        n += bl.getBlockSize();
-    }
-    LOG.info("Block filesize sum is: " + n);
-    return n;
   }
 
   @Override // ClientProtocol
@@ -532,28 +383,17 @@ public class NamespaceAgent implements NamespaceService {
   @Override // ClientProtocol
   public HdfsFileStatus getFileInfo(String src) throws AccessControlException,
       FileNotFoundException, UnresolvedLinkException, IOException {
-    Path path = new Path(src);
-    INode node = getINode(path);
-    if(node == null)
-      throw new FileNotFoundException();
-    return node.getFileStatus();
+    NamespaceProtocol proxy = getRegionProxy(src);
+    HdfsFileStatus fStatus = proxy.getFileInfo(src);
+    if(fStatus == null)
+      throw new FileNotFoundException("File does not exist: " + src);
+    return fStatus;
   }
 
   @Override // ClientProtocol
   public HdfsFileStatus getFileLinkInfo(String src)
       throws AccessControlException, UnresolvedLinkException, IOException {
     throw new IOException("symlinks are not supported");
-  }
-
-  private INode getINode(Path path) throws IOException {
-    return getINode(getRowKey(path));
-  }
-
-  private INode getINode(RowKey key) throws IOException {
-    Result nodeInfo = nsTable.get(new Get(key.getKey()));
-    if(nodeInfo.isEmpty())
-      return null;
-    return newINode(key, nodeInfo);
   }
 
   @Override // ClientProtocol
@@ -567,32 +407,21 @@ public class NamespaceAgent implements NamespaceService {
       String src, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(src));
-
-    if(node == null) {
+    NamespaceProtocol proxy = getRegionProxy(src);
+    DirectoryListing files = proxy.getListing(src, startAfter, needLocation);
+    if(files == null)
       throw new FileNotFoundException("File does not exist: " + src);
-    }
-    if(!node.isDir()) {
-      return new DirectoryListing(new HdfsFileStatus[] { getFileInfo(src) }, 0);
-    }
-
-    ArrayList<RowKey> children = node.getDirTable().getEntries();
-    ArrayList<HdfsFileStatus> list = new ArrayList<HdfsFileStatus>();
-
-    // getListingRecursive(children, list);
-    for(RowKey childKey : children)
-      list.add(getFileInfo(childKey.getPath().toString()));
-
-    HdfsFileStatus[] retVal = new HdfsFileStatus[list.size()];
-    retVal = list.toArray(retVal);
-    return new DirectoryListing(retVal, 0);
+    return files;
   }
 
   @Override // ClientProtocol
-  public long getPreferredBlockSize(String fileName) throws IOException,
+  public long getPreferredBlockSize(String filename) throws IOException,
       UnresolvedLinkException {
-    INode inode = getINode(new Path(fileName));
-    return inode.getBlockSize();
+    NamespaceProtocol proxy = getRegionProxy(filename);
+    long blockSize = proxy.getPreferredBlockSize(filename);
+    if(blockSize < 0)
+      throw new FileNotFoundException("File does not exist: " + filename);
+    return blockSize;
   }
 
   @Override // ClientProtocol
@@ -625,59 +454,11 @@ public class NamespaceAgent implements NamespaceService {
       FileNotFoundException, NSQuotaExceededException,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
       IOException {
-    
-    Path path = new Path(src);
-    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String clientName = ugi.getShortUserName();
-    String machineName = (ugi.getGroupNames().length == 0) ? "" : ugi.getGroupNames()[0];
-
-    if(path.getParent() == null) {
-      //generate root if doesn't exist
-      INode root = getINode(path);
-      if(root == null) {
-        RowKey key = getRowKey(path);
-        root = new INode(0, true, (short) 0, 0, System.currentTimeMillis(), System.currentTimeMillis(),
-            masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-            key, 0, 0, null, new DirectoryTable(), null);
-        updateINode(root);
-        return true;
-      } else
-        throw new IOException("Root has no parent.");
-    }
-
-    INode iParent = getINode(path.getParent());
-    INode iDir = getINode(path);
-
-    if(!createParent && iParent == null) {
-      // SHV !!! make sure parent exists and is a directory
-      throw new FileNotFoundException();
-    } else if(iParent != null && !iParent.isDir()) {
-      throw new ParentNotDirectoryException();
-    } else if(createParent && iParent == null) {
-      //make the parent directories
-      mkdirs(path.getParent().toString(), masked, true);
-    } 
-
-    if(iDir != null) {
-      return true;
-    }
-    
-    RowKey key = createRowKey(path);
-    long time = now();
-    iDir = new INode(0, true, (short) 0, 0, time, time,
-        masked, clientName, machineName, path.toString().getBytes(), path.toString().getBytes(),
-        key, 0, 0, null, new DirectoryTable(), null);
-    // should be generated now, grab it again
-    if(iParent == null) {
-      iParent = getINode(path.getParent());
-    }
-
-    // add directory to HBase
-    updateINode(iDir);
-
-    // grab parent result and update parent dirTable.
-    addDirectoryEntry(iParent, iDir);
-    return true;
+    NamespaceProtocol proxy = getRegionProxy(src);
+    boolean created = proxy.mkdirs(src, masked, createParent);
+    if(!createParent && !created)
+      throw new FileNotFoundException("File does not exist: " + src);
+    return created;
   }
 
   @Override // ClientProtocol
@@ -734,47 +515,24 @@ public class NamespaceAgent implements NamespaceService {
   public void setOwner(String src, String username, String groupname)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    if(username == null && groupname == null)
-      return;
-    
-    INode node = getINode(new Path(src));
-
-    if(node == null)
-      throw new FileNotFoundException();
-
-    node.setOwner(username, groupname);
-    updateINode(node);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.setOwner(src, username, groupname);
   }
 
   @Override // ClientProtocol
   public void setPermission(String src, FsPermission permission)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-
-    INode node = getINode(new Path(src));
-
-    if(node == null)
-      throw new FileNotFoundException();
-
-    node.setPermission(permission);
-    updateINode(node);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.setPermission(src, permission);
   }
 
   @Override // ClientProtocol
   public void setQuota(String src, long namespaceQuota, long diskspaceQuota)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    
-    INode node = getINode(new Path(src));
-
-    if(node == null)
-      throw new FileNotFoundException();
-    //can only set Quota for directories
-    if(!node.isDir())
-      return;
-
-    node.setQuota(namespaceQuota, diskspaceQuota);
-    updateINode(node);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.setQuota(src, namespaceQuota, diskspaceQuota);
   }
 
   @Override // ClientProtocol
@@ -782,16 +540,8 @@ public class NamespaceAgent implements NamespaceService {
       throws AccessControlException, DSQuotaExceededException,
       FileNotFoundException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode node = getINode(new Path(src));
-
-    if(node == null)
-      return false;
-    if(node.isDir())
-      return false;
-
-    node.setReplication(replication);
-    updateINode(node);
-    return true;
+    NamespaceProtocol proxy = getRegionProxy(src);
+    return proxy.setReplication(src, replication);
   }
 
   @Override // ClientProtocol
@@ -803,15 +553,8 @@ public class NamespaceAgent implements NamespaceService {
   public void setTimes(String src, long mtime, long atime)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(src));
-
-    if(node == null)
-      throw new FileNotFoundException();
-    if(node.isDir())
-      return;
-
-    node.setTimes(mtime, atime);
-    updateINode(node);
+    NamespaceProtocol proxy = getRegionProxy(src);
+    proxy.setTimes(src, mtime, atime);
   }
 
   @Override // ClientProtocol
@@ -830,202 +573,5 @@ public class NamespaceAgent implements NamespaceService {
   public void close() throws IOException {
     nsTable.close();
     hbAdmin.close();
-  }
-
-  private INode newINode(RowKey key, Result res) throws IOException {
-    INode iNode = new INode(
-        getLength(res),
-        getDirectory(res),
-        getReplication(res),
-        getBlockSize(res),
-        getMTime(res),
-        getATime(res),
-        getPermissions(res),
-        getUserName(res),
-        getGroupName(res),
-        key.getPath().toString().getBytes(),
-        getSymlink(res),
-        key,
-        getNsQuota(res),
-        getDsQuota(res),
-        getState(res),
-        getDirectoryTable(res),
-        getBlocks(res));
-    return iNode;
-  }
-
-  private void updateINode(INode node) throws IOException {
-    updateINode(node, null);
-  }
-
-  private void updateINode(INode node, BlockAction ba) throws IOException {
-    long ts = now();
-    RowKey key = node.getRowKey();
-    Put put = new Put(key.getKey(), ts);
-    put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-            key.getPath().getName().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
-            key.getPath().toString().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
-            node.getOwner().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
-            node.getGroup().getBytes())
-        .add(FileField.getFileAttributes(), FileField.getLength(), ts,
-            Bytes.toBytes(node.getLen()))
-        .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
-            Bytes.toBytes(node.getPermission().toShort()))
-        .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
-            Bytes.toBytes(node.getModificationTime()))
-        .add(FileField.getFileAttributes(), FileField.getATime(), ts,
-            Bytes.toBytes(node.getAccessTime()))
-        .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
-            Bytes.toBytes(node.getDsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
-            Bytes.toBytes(node.getNsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
-            Bytes.toBytes(node.getReplication()))
-        .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-            Bytes.toBytes(node.getBlockSize()));
-
-    if(node.isDir())
-      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
-             node.getDirTable().toBytes());
-    else
-      put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
-             node.getBlocksBytes())
-         .add(FileField.getFileAttributes(), FileField.getState(), ts,
-             Bytes.toBytes(node.getFileState().toString()));
-
-    if(ba != null)
-      put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
-          Bytes.toBytes(ba.toString()));
-
-    nsTable.put(put);
-  }
-
-  /**
-   * Get LocatedBlock info from HBase based on this nodes internal RowKey.
-   * @param res
-   * @return LocatedBlock from HBase row. Null if a directory or
-   *  any sort of Exception happens.
-   * @throws IOException
-   */
-  static ArrayList<LocatedBlock> getBlocks(Result res) throws IOException {
-    if(getDirectory(res))
-      return null;
-  
-    ArrayList<LocatedBlock> blocks = new ArrayList<LocatedBlock>();
-    DataInputStream in = null;
-    byte[] value = res.getValue(
-        FileField.getFileAttributes(), FileField.getBlock());
-    in = new DataInputStream(new ByteArrayInputStream(value));
-    while(in.available() > 0) {
-      LocatedBlock loc = LocatedBlock.read(in);
-      blocks.add(loc);
-    }
-    in.close();
-    return blocks;
-  }
-
-  /**
-   * Get DirectoryTable from HBase.
-   * 
-   * @param res
-   * @return The directory table.
-   */
-  static DirectoryTable getDirectoryTable(Result res) {
-    if(!getDirectory(res))
-      return null;
-
-    DirectoryTable dirTable;
-    try {
-      dirTable = new DirectoryTable(res.getValue(
-          FileField.getFileAttributes(), FileField.getDirectory()));
-    } catch (IOException e) {
-      INode.LOG.info("Cannot get directory table", e);
-      return null;
-    } catch (ClassNotFoundException e) {
-      INode.LOG.info("Cannot get directory table", e);
-      return null;
-    }
-    return dirTable;
-  }
-
-  static boolean getDirectory(Result res) {
-    return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());
-  }
-
-  static short getReplication(Result res) {
-    return Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getReplication()));
-  }
-
-  static long getBlockSize(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getBlockSize()));
-  }
-
-  static long getMTime(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getMTime()));
-  }
-
-  static long getATime(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getATime()));
-  }
-
-  static FsPermission getPermissions(Result res) {
-    return new FsPermission(
-        Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getPermissions())));
-  }
-
-  static String getUserName(Result res) {
-    return new String(res.getValue(FileField.getFileAttributes(), FileField.getUserName()));
-  }
-
-  static String getGroupName(Result res) {
-    return new String(res.getValue(FileField.getFileAttributes(), FileField.getGroupName()));
-  }
-
-  static byte[] getSymlink(Result res) {
-    return res.getValue(FileField.getFileAttributes(), FileField.getSymlink());
-  }
-
-  static FileState getState(Result res) {
-    if(getDirectory(res))
-      return null;
-    return FileState.valueOf(
-        Bytes.toString(res.getValue(FileField.getFileAttributes(), FileField.getState())));
-  }
-
-  static long getNsQuota(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getNsQuota()));
-  }
-
-  static long getDsQuota(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getDsQuota()));
-  }
-
-  // Get file fields from Result
-  static long getLength(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getLength()));
-  }
-
-  void removeDirectoryEntry(INode parent, INode child) throws IOException {
-    // delete the child key atomically first
-    Delete delete = new Delete(child.getRowKey().getKey());
-    nsTable.delete(delete);
-
-    Result parentNodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
-    DirectoryTable dt = getDirectoryTable(parentNodeInfo);
-    dt.removeEntry(child.getRowKey().getPath().getName());
-    parent.setDirectoryTable(dt);
-    updateINode(parent);
-  }
-
-  void addDirectoryEntry(INode parent, INode child) throws IOException {
-    Result nodeInfo = nsTable.get(new Get(parent.getRowKey().getKey()));
-    DirectoryTable dt = getDirectoryTable(nodeInfo);
-    boolean added = dt.addEntry(child.getRowKey());
-    assert added : "Directory already contains file: " + child.getRowKey();
-    parent.setDirectoryTable(dt);
-    updateINode(parent);
   }
 }

@@ -104,7 +104,8 @@ public class GiraffaFileSystem extends FileSystem {
         hdfsFile.getReplication(), hdfsFile.getBlockSize(),
         hdfsFile.getModificationTime(), hdfsFile.getAccessTime(),
         hdfsFile.getPermission(), hdfsFile.getOwner(), hdfsFile.getGroup(), 
-        new Path(hdfsFile.getSymlink()), new Path(hdfsFile.getLocalName()));
+        (hdfsFile.isSymlink() ? new Path(hdfsFile.getSymlink()) : null),
+        new Path(hdfsFile.getLocalName()));
   }
 
   URI getHBaseUri() {

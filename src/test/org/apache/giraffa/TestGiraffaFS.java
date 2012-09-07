@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -53,16 +54,17 @@ public class TestGiraffaFS {
     UTIL.startMiniCluster(1);
     conf = new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
+    GiraffaFileSystem.format(conf, false);
   }
 
   @Before
   public void before() throws Exception {
-    GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 
   @After
   public void after() throws Exception {
+    grfs.delete(new Path("."), true);
     if(grfs != null) grfs.close();
   }
 
@@ -224,36 +226,6 @@ public class TestGiraffaFS {
     fileStat = grfs.getFileStatus(new Path("folder2/folder2"));
     printFileStatus(fileStat);
     assertEquals("folder2", fileStat.getPath().getName());
-  }
-
-  private void printFileStatus(FileStatus fileStat) throws IOException {
-    System.out.println("===============FILE STATUS===============");
-    System.out.println("OWNER: " + fileStat.getOwner());
-    System.out.println("GROUP: " + fileStat.getGroup());
-    System.out.println("PATH: " + fileStat.getPath());
-    System.out.println("PERMS: " + fileStat.getPermission().toString());
-    System.out.println("LEN: " + fileStat.getLen());
-    System.out.println("ATIME: " + fileStat.getAccessTime());
-    System.out.println("MTIME: " + fileStat.getModificationTime());
-    System.out.println("BLKSIZE: " + fileStat.getBlockSize());
-    System.out.println("REPL: " + fileStat.getReplication());
-    System.out.println("SYMLINK: " + fileStat.getSymlink());
-  }
-
-  private void printFileStatus(FileStatus[] fileStat) throws IOException {
-    for (int i = 0; i < fileStat.length; i++) {
-      System.out.println("===============FILE STATUS "+(i+1)+"===============");
-      System.out.println("OWNER: " + fileStat[i].getOwner());
-      System.out.println("GROUP: " + fileStat[i].getGroup());
-      System.out.println("PATH: " + fileStat[i].getPath());
-      System.out.println("PERMS: " + fileStat[i].getPermission().toString());
-      System.out.println("LEN: " + fileStat[i].getLen());
-      System.out.println("ATIME: " + fileStat[i].getAccessTime());
-      System.out.println("MTIME: " + fileStat[i].getModificationTime());
-      System.out.println("BLKSIZE: " + fileStat[i].getBlockSize());
-      System.out.println("REPL: " + fileStat[i].getReplication());
-      System.out.println("SYMLINK: " + fileStat[i].getSymlink());
-    }
   }
 
   public static void main(String[] args) throws Exception {

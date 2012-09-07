@@ -66,4 +66,31 @@ public class GiraffaTestUtils {
     listStatusRecursive(results, fs, f);
     return results.toArray(new FileStatus[results.size()]);
   }
+
+  public static void printFileStatus(FileStatus fileStat) throws IOException {
+    printFileStatus(fileStat, -1);
+  }
+
+  public static void printFileStatus(FileStatus fileStat, int i)
+      throws IOException {
+    System.out.println(
+        "=============== FILE STATUS " + (i>=0?i:"") + " ===============");
+    System.out.println("OWNER: " + fileStat.getOwner());
+    System.out.println("GROUP: " + fileStat.getGroup());
+    System.out.println("PATH: " + fileStat.getPath());
+    System.out.println("PERMS: " + fileStat.getPermission().toString());
+    System.out.println("LEN: " + fileStat.getLen());
+    System.out.println("ATIME: " + fileStat.getAccessTime());
+    System.out.println("MTIME: " + fileStat.getModificationTime());
+    System.out.println("BLKSIZE: " + fileStat.getBlockSize());
+    System.out.println("REPL: " + fileStat.getReplication());
+    if(fileStat.isSymlink())
+      System.out.println("SYMLINK: " + fileStat.getSymlink());
+  }
+
+  public static void printFileStatus(FileStatus[] fileStat) throws IOException {
+    for (int i = 0; i < fileStat.length; i++) {
+      printFileStatus(fileStat[i], i);
+    }
+  }
 }

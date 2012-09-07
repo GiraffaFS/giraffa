@@ -82,6 +82,8 @@ public class DirectoryTable implements Serializable {
   }
 
   public boolean addEntry(RowKey child) {
+    if(contains(child.getPath().getName()))
+      return false;
     return childrenKeys.add(child);
   }
 

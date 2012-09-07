@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa;
 
-import org.apache.giraffa.hbase.BlockManagementAgent;
 import org.apache.giraffa.hbase.NamespaceAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -33,9 +32,6 @@ public class GiraffaConfiguration extends Configuration {
                               FullPathRowKey.class;
   public static final String  GRFA_CACHING_KEY = "grfa.rowkey.caching";
   public static final Boolean GRFA_CACHING_DEFAULT = true;
-  public static final String  GRFA_COPROCESSOR_KEY = "grfa.coprocessor.class"; 
-  public static final String  GRFA_COPROCESSOR_DEFAULT =
-                                  BlockManagementAgent.class.getName();
   public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
                                   "grfa.namespace.service.class"; 
   public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =

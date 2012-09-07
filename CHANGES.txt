@@ -20,6 +20,8 @@ Release 0.0.1 - Unreleased
               under giraffa.hbase package. (shv)
     Issue 18: Upgrade HBase to 0.94.0 (Plamen)
               Upgrade HBase to 0.94.1 (shv)
+    Issue 5:  Move NamespaceAgent logic to server-side endpoint coprocessor
+              NamespaceProcessor. (shv)
 
   OPTIMIZATIONS
 
