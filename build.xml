@@ -33,6 +33,8 @@
   <property name="ivy" location="ivy"/>
   <property name="dist" location="dist"/>
   <property name="test.reports" location="${build}/test_reports"/>
+  <property name="findbugs.reports" location="${build}/findbugs_reports"/>
+  <property name="findbugs.failOnError" value="true"/>
   <!-- Ivy properties -->
   <property name="ivy.version" value="2.1.0"/>
   <property name="ivy_repo_url" value="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
@@ -177,10 +179,40 @@
         log="${ivyretrievelog}"/>
   </target>
 
+  <!-- Download findbugs.jar if does not exist -->
+  <target name="install-findbugs" depends="ivy-init-antlib">
+    <ivy:retrieve module="findbugs-ant" organisation="com.google.code.findbugs" revision="${findbugs.version}" pattern="${lib}/findbugs/[artifact].[ext]" sync="true" inline="true" log="download-only" type="jar,report"/>
+  </target>
+	
+  <!-- Setup and use FindBugs -->
+  <target name="findbugs" depends="compile, install-findbugs" description="Runs FindBugs over the byte code to check for problems.">
+    <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpath="${lib}/findbugs/findbugs-ant.jar" />
+
+    <!-- Set up a path containing the classpath for FindBugs, then convert to a property. -->
+    <path id="findbugs.classpath">
+      <fileset dir="${lib}/findbugs/">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+    <pathconvert property="findbugs.classpath" refid="findbugs.classpath" />
+
+    <!-- Run FindBugs. -->
+    <mkdir dir="${findbugs.reports}" />
+    <findbugs classpath="${findbugs.classpath}" pluginList="" failOnError="${findbugs.failOnError}" warningsProperty="findbugs.warningsfound" output="xml:withMessages" outputFile="${findbugs.reports}/findbugs.xml">
+    	<auxClasspath>
+    	  <path refid="classpath" />
+    	</auxClasspath>
+    	<sourcePath>
+        <fileset dir="${src}">
+          <include name="**/*.java" />
+        </fileset>
+      </sourcePath>
+      <class location="${build}/classes" />
+    </findbugs>
+  </target>
 
   <!-- Download ant-eclipse.jar if does not exist -->
-  <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists"
-         description="Downloads the ant-eclipse binary.">
+  <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists">
     <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
            dest="${lib}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false"/>
 
