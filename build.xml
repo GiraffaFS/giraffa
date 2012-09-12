@@ -22,8 +22,8 @@
   xmlns:ivy="antlib:org.apache.ivy.ant">
 
   <description>
-        The build file for the Giraffa file system.
-    </description>
+    The build file for the Giraffa file system.
+  </description>
   <!-- set global properties for this build -->
   <property name="src" location="src/java"/>
   <property name="test" location="src/test"/>
@@ -89,17 +89,17 @@
       <pathelement location="${build}/classes"/>
       <pathelement location="${build}/test-classes"/>
       <fileset dir="${lib}">
-            <include name="**/*.jar"/>
-        </fileset>
-        <fileset dir="${dist}">
         <include name="**/*.jar"/>
-        </fileset>
-        <pathelement location="${conf}"/>
-     </path>
-  
+      </fileset>
+      <fileset dir="${dist}">
+        <include name="**/*.jar"/>
+      </fileset>
+      <pathelement location="${conf}"/>
+    </path>
+
     <!-- Create the junit test -->
     <junit fork="yes" printsummary="yes"  haltonfailure="yes">
-        <formatter type="xml"/>
+      <formatter type="xml"/>
       <classpath refid="test.classpath"/>
       <batchtest fork="yes" todir="${test.reports}">
         <fileset dir="${test}">
@@ -109,10 +109,10 @@
     </junit>
     
     <junitreport todir="${test.reports}">
-        <fileset dir="${test.reports}">
-          <include name="TEST-*.xml"/>
-        </fileset>
-        <report todir="${test.reports}"/>
+      <fileset dir="${test.reports}">
+        <include name="TEST-*.xml"/>
+      </fileset>
+      <report todir="${test.reports}"/>
     </junitreport>
   </target>
 
@@ -124,7 +124,7 @@
   
   <!-- Check if ant-eclipse.jar exists -->
   <condition property="ant-eclipse.jar.exists">
-      <available file="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
+    <available file="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
   </condition>
 
   <!-- Download ivy.jar if it does not exist -->
@@ -199,10 +199,10 @@
     <!-- Run FindBugs. -->
     <mkdir dir="${findbugs.reports}" />
     <findbugs classpath="${findbugs.classpath}" pluginList="" failOnError="${findbugs.failOnError}" warningsProperty="findbugs.warningsfound" output="xml:withMessages" outputFile="${findbugs.reports}/findbugs.xml">
-    	<auxClasspath>
-    	  <path refid="classpath" />
-    	</auxClasspath>
-    	<sourcePath>
+      <auxClasspath>
+        <path refid="classpath" />
+      </auxClasspath>
+      <sourcePath>
         <fileset dir="${src}">
           <include name="**/*.java" />
         </fileset>

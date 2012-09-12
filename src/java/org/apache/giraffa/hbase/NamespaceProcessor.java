@@ -415,21 +415,29 @@ implements NamespaceProtocol {
    * @throws IOException
    */
   private void deleteRecursive(ArrayList<RowKey> children) throws IOException {
-    for(RowKey childKey : children) {
+	ArrayList<Delete> batchDelete = new ArrayList<Delete>();
+
+	for(RowKey childKey : children) {
       INode node = getINode(childKey);
 
       // if childKey is a directory, recurse thru it
       if(node.isDir()) {
         deleteRecursive(node.getDirTable().getEntries());
+
+        //delete this childKey immediately after recursing
+        table.delete(new Delete(childKey.getKey()));
       } else {
         node.setState(FileState.DELETED);
         updateINode(node);
-      }
 
-      // delete this key after we have deleted all its children
-      Delete fileToBeDeleted = new Delete(childKey.getKey());
-      table.delete(fileToBeDeleted);
+        // add this key to batch delete
+        batchDelete.add(new Delete(childKey.getKey()));
+      }
     }
+
+    //delete the batch (if exists)
+    if(!batchDelete.isEmpty())
+      table.delete(batchDelete);
   }
 
   @Override // ClientProtocol
