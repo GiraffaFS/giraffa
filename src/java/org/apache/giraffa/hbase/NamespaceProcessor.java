@@ -24,6 +24,7 @@ import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -370,7 +371,7 @@ implements NamespaceProtocol {
       return false; // parent already replaced
 
     if(recursive) {
-      ArrayList<RowKey> keys = null;
+      Collection<RowKey> keys = null;
       if(node.isDir()) {
         keys = node.getDirTable().getEntries();
       } else {
@@ -414,10 +415,10 @@ implements NamespaceProtocol {
    * @param children
    * @throws IOException
    */
-  private void deleteRecursive(ArrayList<RowKey> children) throws IOException {
-	ArrayList<Delete> batchDelete = new ArrayList<Delete>();
+  private void deleteRecursive(Collection<RowKey> children) throws IOException {
+    ArrayList<Delete> batchDelete = new ArrayList<Delete>();
 
-	for(RowKey childKey : children) {
+    for(RowKey childKey : children) {
       INode node = getINode(childKey);
 
       // if childKey is a directory, recurse thru it
@@ -562,7 +563,7 @@ implements NamespaceProtocol {
       return new DirectoryListing(new HdfsFileStatus[] { getFileInfo(src) }, 0);
     }
 
-    ArrayList<RowKey> children = node.getDirTable().getEntries();
+    Collection<RowKey> children = node.getDirTable().getEntries();
     ArrayList<HdfsFileStatus> list = new ArrayList<HdfsFileStatus>();
 
     // getListingRecursive(children, list);

@@ -23,7 +23,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Directory in Giraffa is a row, which associates file and sub-directory names
@@ -32,10 +35,10 @@ import java.util.ArrayList;
 public class DirectoryTable implements Serializable {
   private static final long serialVersionUID = 987654321098765432L;
 
-  private ArrayList<RowKey> childrenKeys;
+  private Map<String,RowKey> childrenKeys;
 
   public DirectoryTable() {
-    childrenKeys = new ArrayList<RowKey>();
+    childrenKeys = new HashMap<String,RowKey>();
   }
 
   @SuppressWarnings("unchecked")
@@ -43,7 +46,7 @@ public class DirectoryTable implements Serializable {
   DirectoryTable(byte[] list) throws IOException, ClassNotFoundException {
     ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(list));
     try {
-      childrenKeys = (ArrayList<RowKey>) in.readObject();
+      childrenKeys = (HashMap<String,RowKey>) in.readObject();
     } catch (IOException e) {
       throw e;
     } catch (ClassNotFoundException e) {
@@ -53,8 +56,8 @@ public class DirectoryTable implements Serializable {
     }
   }
 
-  public ArrayList<RowKey> getEntries() {
-    return childrenKeys;
+  public Collection<RowKey> getEntries() {
+    return Collections.unmodifiableCollection(childrenKeys.values());
   }
 
   int size() {
@@ -66,35 +69,19 @@ public class DirectoryTable implements Serializable {
   }
 
   boolean contains(String fileName) {
-    for(RowKey child : childrenKeys) {
-      if(child.getPath().getName().equals(fileName))
-        return true;
-    }
-    return false;
+    return childrenKeys.containsKey(fileName);
   }
 
   RowKey getEntry(String fileName) {
-    for(RowKey child : childrenKeys) {
-      if(child.getPath().getName().equals(fileName))
-        return child;
-    }
-    return null;
+    return childrenKeys.get(fileName);
   }
 
   public boolean addEntry(RowKey child) {
-    if(contains(child.getPath().getName()))
-      return false;
-    return childrenKeys.add(child);
+    return childrenKeys.put(child.getPath().getName(), child) == null;
   }
 
   public boolean removeEntry(String fileName) {
-    for(RowKey child : childrenKeys) {
-      if(child.getPath().getName().equals(fileName)) {
-        childrenKeys.remove(child);
-        return true;
-      }
-    }
-    return false;
+    return childrenKeys.remove(fileName) != null;
   }
 
   public byte[] toBytes() throws IOException {

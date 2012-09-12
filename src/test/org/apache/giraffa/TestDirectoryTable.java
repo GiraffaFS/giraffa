@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -32,9 +33,9 @@ public class TestDirectoryTable {
     DirectoryTable dirTable = new DirectoryTable();
     assertTrue(dirTable.isEmpty());
 
-    dirTable.addEntry(new FullPathRowKey(new Path("abc")));
-    dirTable.addEntry(new FullPathRowKey(new Path("def")));
-    dirTable.addEntry(new FullPathRowKey(new Path("ghi")));
+    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("abc"))));
+    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("def"))));
+    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("ghi"))));
     byte[] out = dirTable.toBytes();
 
     //dirTable serialized
@@ -47,6 +48,19 @@ public class TestDirectoryTable {
     assertEquals("abc", dirTable.getEntry("abc").getPath().toString());
     assertEquals("def", dirTable.getEntry("def").getPath().toString());
     assertEquals("ghi", dirTable.getEntry("ghi").getPath().toString());
-  }
 
+    assertFalse(dirTable.addEntry(new FullPathRowKey(new Path("abc"))));
+    
+    //remove entries
+    assertTrue(dirTable.removeEntry("abc"));
+    assertEquals(dirTable.getEntries().size(), 2);
+
+    assertTrue(dirTable.removeEntry("def"));
+    assertEquals(dirTable.getEntries().size(), 1);
+
+    assertTrue(dirTable.removeEntry("ghi"));
+    assertEquals(dirTable.getEntries().size(), 0);
+
+    assertTrue(dirTable.isEmpty());
+  }
 }
