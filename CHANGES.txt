@@ -22,11 +22,15 @@ Release 0.0.1 - Unreleased
               Upgrade HBase to 0.94.1 (shv)
     Issue 5:  Move NamespaceAgent logic to server-side endpoint coprocessor
               NamespaceProcessor. (shv)
+    Issue 22: Add FindBugs to Ant targets. (Plamen)    
 
   OPTIMIZATIONS
 
     Issue 2:  Optimize NamespaceAgent to access HBase once per operation.
               (Plamen)
+    Issue 14: Batch delete policy. (Plamen)
+    Issue 20: DirectoryTable should use Map or Set instead of the
+              ArrayList to store its directory entries. (Plamen)
 
   BUG FIXES
 
