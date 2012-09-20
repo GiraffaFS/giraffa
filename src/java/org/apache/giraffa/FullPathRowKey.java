@@ -26,7 +26,7 @@ import org.apache.hadoop.fs.Path;
  * The key of the row corresponding to a file is the file's full path in the
  * file system directory tree.
  */
-class FullPathRowKey extends RowKey implements Serializable {
+public class FullPathRowKey extends RowKey implements Serializable {
   private static final long serialVersionUID = 123456789009L;
 
   private String path;

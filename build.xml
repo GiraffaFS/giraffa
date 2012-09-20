@@ -32,6 +32,7 @@
   <property name="lib" location="lib"/>
   <property name="ivy" location="ivy"/>
   <property name="dist" location="dist"/>
+  <property name="javadoc" location="${build}/javadoc/"/>
   <property name="test.reports" location="${build}/test_reports"/>
   <property name="findbugs.reports" location="${build}/findbugs_reports"/>
   <property name="findbugs.failOnError" value="true"/>
@@ -81,7 +82,7 @@
     <jar jarfile="${dist}/lib/grfa.jar" basedir="${build}/classes"/>
   </target>
   
-  <target name="test" depends="dist" description="test the distribution">
+  <target name="test" depends="dist" description="Run tests.">
     <mkdir dir="${test.reports}"/>
     
     <!-- Create classpath -->
@@ -116,7 +117,7 @@
     </junitreport>
   </target>
 
-  <target name="clean" description="clean up">
+  <target name="clean" description="Clean up.">
     <!-- Delete the ${build} and ${dist} directory trees -->
     <delete dir="${build}"/>
     <delete dir="${dist}"/>
@@ -128,7 +129,7 @@
   </condition>
 
   <!-- Download ivy.jar if it does not exist -->
-  <target name="ivy-download" description="To download ivy" unless="offline">
+  <target name="ivy-download" unless="offline">
     <get src="${ivy_repo_url}" dest="${ivy.jar}" usetimestamp="false"/>
   </target>
 	
@@ -172,15 +173,16 @@
       log="${ivyresolvelog}"/>
   </target>
 
+  <!-- Download dependencies using Ivy -->
   <target name="ivy-retrieve" depends="ivy-resolve"
-    description="Retrieve Ivy-managed artifacts">
+    description="Retrieve Ivy-managed artifacts.">
     <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
       pattern="${ivy.artifact.retrieve.pattern}"
         log="${ivyretrievelog}"/>
   </target>
 
   <!-- Download findbugs.jar if does not exist -->
-  <target name="install-findbugs" depends="ivy-init-antlib">
+  <target name="install-findbugs" depends="ivy-init-dirs, ivy-init-antlib">
     <ivy:retrieve module="findbugs-ant" organisation="com.google.code.findbugs" revision="${findbugs.version}" pattern="${lib}/findbugs/[artifact].[ext]" sync="true" inline="true" log="download-only" type="jar,report"/>
   </target>
 	
@@ -196,7 +198,7 @@
     </path>
     <pathconvert property="findbugs.classpath" refid="findbugs.classpath" />
 
-    <!-- Run FindBugs. -->
+    <!-- Run FindBugs -->
     <mkdir dir="${findbugs.reports}" />
     <findbugs classpath="${findbugs.classpath}" pluginList="" failOnError="${findbugs.failOnError}" warningsProperty="findbugs.warningsfound" output="xml:withMessages" outputFile="${findbugs.reports}/findbugs.xml">
       <auxClasspath>
@@ -212,7 +214,7 @@
   </target>
 
   <!-- Download ant-eclipse.jar if does not exist -->
-  <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists">
+  <target name="ant-eclipse-download" depends="ivy-init-dirs" unless="ant-eclipse.jar.exists">
     <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
            dest="${lib}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false"/>
 
@@ -234,7 +236,7 @@
   </path>
   
   <target name="eclipse" 
-          depends="init,ant-eclipse-download"
+          depends="init, ivy-retrieve, ant-eclipse-download"
           description="Create eclipse project files.">
     <taskdef name="eclipse"
              classname="prantl.ant.eclipse.EclipseTask"
@@ -251,8 +253,15 @@
     </eclipse>
   </target>
 
+  <!-- Generate Javadoc -->
+  <target name="javadoc" description="Generate documentation.">
+    <delete dir="${javadoc}"/>
+    <mkdir dir="${javadoc}"/>
+    <javadoc sourcepath="${src}" classpathref="libs" destdir="${javadoc}"/>
+  </target>
+
   <!-- Clean up (remove) Eclipse project files -->
-  <target name="clean-eclipse" description="Clean eclipse files">
+  <target name="clean-eclipse" description="Clean eclipse files.">
     <delete file="${lib}/ant-eclipse-1.0-jvm1.2.jar"/>
     <delete file=".classpath"/>
     <delete file=".eclipse"/>
@@ -261,7 +270,7 @@
   </target>
 
   <!-- Clean up (remove) Ivy dependency files -->
-  <target name="veryclean" description="Clean ivy files" depends="clean">
+  <target name="veryclean" description="Clean ivy files." depends="clean">
     <delete file="${ivy.jar}"/>
     <delete dir="${ivy.cache.dir}" />
     <delete dir="${lib}"/>

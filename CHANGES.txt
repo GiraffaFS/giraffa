@@ -22,7 +22,8 @@ Release 0.0.1 - Unreleased
               Upgrade HBase to 0.94.1 (shv)
     Issue 5:  Move NamespaceAgent logic to server-side endpoint coprocessor
               NamespaceProcessor. (shv)
-    Issue 22: Add FindBugs to Ant targets. (Plamen)    
+    Issue 22: Add FindBugs to Ant targets. (Plamen)
+    Issue 11: Create Javadoc documention. (Plamen)
 
   OPTIMIZATIONS
 
