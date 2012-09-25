@@ -464,7 +464,7 @@ implements NamespaceProtocol {
       UnresolvedLinkException, IOException {
     Path path = new Path(src);
     INode iNode = getINode(path);
-    if(iNode == null) {
+    if(iNode == null || iNode.isDir()) {
       // throw new FileNotFoundException("File does not exist: " + src);
       LOG.error("File does not exist: " + src);
       return null; // HBase RPC does not pass exceptions
@@ -474,8 +474,9 @@ implements NamespaceProtocol {
     boolean underConstruction = 
         (iNode.getFileState().equals(FileState.CLOSED)) ? true : false;
 
+    LocatedBlock lastBlock = al.size() == 0 ? null : al.get(al.size()-1);
     LocatedBlocks lbs = new LocatedBlocks(computeFileLength(al),
-        underConstruction, al, al.get(al.size()-1), underConstruction);
+        underConstruction, al, lastBlock, underConstruction);
     return lbs;
   }
 
