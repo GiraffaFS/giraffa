@@ -39,3 +39,5 @@ Release 0.0.1 - Unreleased
     Issue 10: Need to expose clientName via GiraffaClient. (Plamen)
     Issue 21: Upgrade libraries for compatibility with HBase 0.94.1. (shv)
     Issue 40: Fix NameProcessor getBlockLocations() method errors. (Plamen)
+    Issue 41: Default group and permissions are incorrect according to
+              TestHDFSCLI. (Plamen)

@@ -247,7 +247,9 @@ implements NamespaceProtocol {
     INode iFile = getINode(path);
 
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String machineName = (ugi.getGroupNames().length == 0) ? "" : ugi.getGroupNames()[0];
+    clientName = ugi.getShortUserName();
+    String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
+    masked = new FsPermission((short) 0644);
 
     if(!createParent && iParent == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -621,7 +623,7 @@ implements NamespaceProtocol {
     Path path = new Path(src);
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     String clientName = ugi.getShortUserName();
-    String machineName = (ugi.getGroupNames().length == 0) ? "" : ugi.getGroupNames()[0];
+    String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
 
     if(path.getParent() == null) {
       //generate root if doesn't exist
