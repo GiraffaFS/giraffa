@@ -30,7 +30,6 @@ public class FullPathRowKey extends RowKey implements Serializable {
   private static final long serialVersionUID = 123456789009L;
 
   private String path;
-  private byte[] key;
 
   public FullPathRowKey() {}
 
@@ -41,7 +40,6 @@ public class FullPathRowKey extends RowKey implements Serializable {
   private void initialize(Path src) {
     // Strip off all URI components: should be pure file path
     this.path = src.toUri().getPath();
-    this.key = src.toString().getBytes();
   }
 
   @Override // RowKey
@@ -56,12 +54,12 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] getKey() {
-    return key;
+    return path.getBytes();
   }
 
   @Override // RowKey
   public byte[] generateKey() {
     // the key should already be generated if the path is set
-    return key;
+    return getKey();
   }
 }

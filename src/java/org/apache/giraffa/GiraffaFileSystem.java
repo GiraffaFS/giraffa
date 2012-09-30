@@ -95,17 +95,18 @@ public class GiraffaFileSystem extends FileSystem {
 
   @Override // FileSystem
   public FileStatus getFileStatus(Path f) throws IOException {
-    HdfsFileStatus hdfsFile = grfaClient.getFileInfo(getPathName(f));
-    return createFileStatus(hdfsFile);
+    HdfsFileStatus hdfsStatus = grfaClient.getFileInfo(getPathName(f));
+    return createFileStatus(hdfsStatus, f);
   }
 
-  private FileStatus createFileStatus(HdfsFileStatus hdfsFile) {
-    return new FileStatus(hdfsFile.getLen(), hdfsFile.isDir(),
-        hdfsFile.getReplication(), hdfsFile.getBlockSize(),
-        hdfsFile.getModificationTime(), hdfsFile.getAccessTime(),
-        hdfsFile.getPermission(), hdfsFile.getOwner(), hdfsFile.getGroup(), 
-        (hdfsFile.isSymlink() ? new Path(hdfsFile.getSymlink()) : null),
-        new Path(hdfsFile.getLocalName()));
+  private FileStatus createFileStatus(HdfsFileStatus hdfsStatus, Path src) {
+    return new FileStatus(hdfsStatus.getLen(), hdfsStatus.isDir(), hdfsStatus.getReplication(),
+        hdfsStatus.getBlockSize(), hdfsStatus.getModificationTime(),
+        hdfsStatus.getAccessTime(),
+        hdfsStatus.getPermission(), hdfsStatus.getOwner(), hdfsStatus.getGroup(),
+        (hdfsStatus.isSymlink() ? new Path(hdfsStatus.getSymlink()) : null),
+        (hdfsStatus.getFullPath(src)).makeQualified(
+                getUri(), getWorkingDirectory())); // fully-qualify path
   }
 
   URI getHBaseUri() {
@@ -186,8 +187,8 @@ public class GiraffaFileSystem extends FileSystem {
     FileStatus[] fs = new FileStatus[thisListing.getPartialListing().length];
     for(int i = 0; i < fs.length; i++)
     {
-      HdfsFileStatus hd = thisListing.getPartialListing()[i];
-      fs[i] = createFileStatus(hd);
+      HdfsFileStatus hdfsStatus = thisListing.getPartialListing()[i];
+      fs[i] = createFileStatus(hdfsStatus, f);
     }
     return fs;
   }

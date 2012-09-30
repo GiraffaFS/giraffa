@@ -41,3 +41,4 @@ Release 0.0.1 - Unreleased
     Issue 40: Fix NameProcessor getBlockLocations() method errors. (Plamen)
     Issue 41: Default group and permissions are incorrect according to
               TestHDFSCLI. (Plamen)
+    Issue 39: INode and RowKey Path variables do not include URI. (Plamen)
