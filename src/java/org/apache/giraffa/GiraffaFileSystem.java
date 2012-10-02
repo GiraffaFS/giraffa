@@ -96,6 +96,8 @@ public class GiraffaFileSystem extends FileSystem {
   @Override // FileSystem
   public FileStatus getFileStatus(Path f) throws IOException {
     HdfsFileStatus hdfsStatus = grfaClient.getFileInfo(getPathName(f));
+    if (hdfsStatus == null) 
+      throw new FileNotFoundException("File does not exist: " + f);
     return createFileStatus(hdfsStatus, f);
   }
 
@@ -183,6 +185,10 @@ public class GiraffaFileSystem extends FileSystem {
     // fetch the first batch of entries in the directory
     DirectoryListing thisListing = grfaClient.listPaths(
         src, HdfsFileStatus.EMPTY_NAME);
+    
+    if (thisListing == null) { // the directory does not exist
+        throw new FileNotFoundException("File " + f + " does not exist.");
+    }
     
     FileStatus[] fs = new FileStatus[thisListing.getPartialListing().length];
     for(int i = 0; i < fs.length; i++)

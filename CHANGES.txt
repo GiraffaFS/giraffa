@@ -42,3 +42,5 @@ Release 0.0.1 - Unreleased
     Issue 41: Default group and permissions are incorrect according to
               TestHDFSCLI. (Plamen)
     Issue 39: INode and RowKey Path variables do not include URI. (Plamen)
+    Issue 44: FileNotFoundExceptions are from NamespaceAgent not
+              GiraffaFileSystem. (Plamen)

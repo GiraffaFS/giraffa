@@ -385,8 +385,6 @@ public class NamespaceAgent implements NamespaceService {
       FileNotFoundException, UnresolvedLinkException, IOException {
     NamespaceProtocol proxy = getRegionProxy(src);
     HdfsFileStatus fStatus = proxy.getFileInfo(src);
-    if(fStatus == null)
-      throw new FileNotFoundException("File does not exist: " + src);
     return fStatus;
   }
 
@@ -405,12 +403,9 @@ public class NamespaceAgent implements NamespaceService {
   @Override // ClientProtocol
   public DirectoryListing getListing(
       String src, byte[] startAfter, boolean needLocation)
-      throws AccessControlException, FileNotFoundException,
-      UnresolvedLinkException, IOException {
+      throws IOException {
     NamespaceProtocol proxy = getRegionProxy(src);
     DirectoryListing files = proxy.getListing(src, startAfter, needLocation);
-    if(files == null)
-      throw new FileNotFoundException("File does not exist: " + src);
     return files;
   }
 
