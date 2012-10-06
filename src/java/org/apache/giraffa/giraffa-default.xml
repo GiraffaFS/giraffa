@@ -25,16 +25,16 @@
 
 <configuration>
 
-	<property>
-		<name>fs.defaultFS</name>
-		<value>grfa:///</value>
-		<description>The name of the default file system. A URI whose
-			scheme and authority determine the FileSystem implementation. The
-			uri's scheme determines the config property (fs.SCHEME.impl) naming
-			the FileSystem implementation class. The uri's authority is used to
-			determine the host, port, etc. for a filesystem.
+  <property>
+    <name>fs.defaultFS</name>
+    <value>grfa:///</value>
+    <description>The name of the default file system. A URI whose
+      scheme and authority determine the FileSystem implementation. The
+      uri's scheme determines the config property (fs.SCHEME.impl) naming
+      the FileSystem implementation class. The uri's authority is used to
+      determine the host, port, etc. for a filesystem.
     </description>
-	</property>
+  </property>
 
   <!-- Giraffa client properties -->
   <property>
@@ -43,39 +43,39 @@
     <description>The FileSystem implementation for grfa: URI.</description>
   </property>
 
-	<property>
-		<name>grfa.table.name</name>
-		<value>Namespace</value>
-		<description>
-			The name of the HBase table that stores the GiraffaFS namespace.
-		</description>
-	</property>
+  <property>
+    <name>grfa.table.name</name>
+    <value>Namespace</value>
+    <description>
+      The name of the HBase table that stores the GiraffaFS namespace.
+    </description>
+  </property>
 
-	<property>
-		<name>grfa.rowkey.class</name>
-		<value>org.apache.giraffa.FullPathRowKey</value>
-		<description>
-			Class that implements RowKey for the namespace table.
-  </description>
-	</property>
+  <property>
+    <name>grfa.rowkey.class</name>
+    <value>org.apache.giraffa.FullPathRowKey</value>
+    <description>
+      Class that implements RowKey for the namespace table.
+    </description>
+  </property>
 
-	<property>
-		<name>grfa.rowkey.caching</name>
-		<value>true</value>
-		<description>
-			True if row key caching is enabled.
-  </description>
-	</property>
+  <property>
+    <name>grfa.rowkey.caching</name>
+    <value>true</value>
+    <description>
+      True if row key caching is enabled.
+    </description>
+  </property>
 
   <!-- Giraffa serve-side properties -->
-	<property>
-		<name>grfa.coprocessor.class</name>
-		<value>org.apache.giraffa.hbase.BlockManagementAgent</value>
-		<description>
-			Class that implements coprocessor for namespace table responsible for
-			managing block requests.
-  </description>
-	</property>
+  <property>
+    <name>grfa.coprocessor.class</name>
+    <value>org.apache.giraffa.hbase.BlockManagementAgent</value>
+    <description>
+      Class that implements coprocessor for namespace table responsible for
+      managing block requests.
+    </description>
+  </property>
 
   <property>
     <name>grfa.jar.file</name>

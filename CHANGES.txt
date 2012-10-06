@@ -24,7 +24,7 @@ Release 0.0.1 - Unreleased
               NamespaceProcessor. (shv)
     Issue 22: Add FindBugs to Ant targets. (Plamen)
     Issue 11: Create Javadoc documention. (Plamen)
-    Issue 8:  Introduce .gitignore fil. (shv)e
+    Issue 8:  Introduce .gitignore file. (shv)
 
   OPTIMIZATIONS
 
@@ -45,3 +45,4 @@ Release 0.0.1 - Unreleased
     Issue 39: INode and RowKey Path variables do not include URI. (Plamen)
     Issue 44: FileNotFoundExceptions are from NamespaceAgent not
               GiraffaFileSystem. (Plamen)
+    Issue 37: Replace tabs with spaces in grfa-default.xml (shv)
