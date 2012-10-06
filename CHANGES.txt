@@ -24,6 +24,7 @@ Release 0.0.1 - Unreleased
               NamespaceProcessor. (shv)
     Issue 22: Add FindBugs to Ant targets. (Plamen)
     Issue 11: Create Javadoc documention. (Plamen)
+    Issue 8:  Introduce .gitignore fil. (shv)e
 
   OPTIMIZATIONS
 
