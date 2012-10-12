@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.util.EnumSet;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -91,6 +92,33 @@ public class GiraffaFileSystem extends FileSystem {
 
     GiraffaFileSystem grfs = (GiraffaFileSystem) FileSystem.get(conf);
     grfs.mkdirs(grfs.workingDir);
+  }
+
+  @Override // FileSystem
+  public ContentSummary getContentSummary(Path f) throws IOException {
+    HdfsFileStatus s = grfaClient.getFileInfo(getPathName(f));
+    if (!s.isDir()) {
+      // f is a file
+      return new ContentSummary(s.getLen(), 1, 0, -1, s.getLen()*s.getReplication(), -1);
+    }
+    // f is a directory
+    ContentSummary start = grfaClient.getContentSummary(getPathName(f));
+    HdfsFileStatus[] list = grfaClient.listPaths(getPathName(f),
+        HdfsFileStatus.EMPTY_NAME).getPartialListing();
+    long[] summary = {0, 0, 1, start.getQuota(), 0, start.getSpaceQuota()};
+    for(HdfsFileStatus t : list) {
+      Path path = t.getFullPath(f).makeQualified(getUri(), getWorkingDirectory());
+      // recursive if directory, else return file stats
+      ContentSummary c = t.isDir() ? getContentSummary(path) :
+          new ContentSummary(t.getLen(), 1, 0, -1, t.getLen()*t.getReplication(), -1);
+      // compound results
+      summary[0] += c.getLength();
+      summary[1] += c.getFileCount();
+      summary[2] += c.getDirectoryCount();
+      summary[4] += c.getSpaceConsumed();
+    }
+    return new ContentSummary(summary[0], summary[1], summary[2],
+        summary[3], summary[4], summary[5]);
   }
 
   @Override // FileSystem
@@ -233,6 +261,11 @@ public class GiraffaFileSystem extends FileSystem {
   @Override // FileSystem
   public void setTimes(Path p, long mtime, long atime) throws IOException {
     grfaClient.setTimes(getPathName(p), mtime, atime);
+  }
+
+  public void setQuota(Path src, long namespaceQuota, long diskspaceQuota) 
+    throws IOException {
+    grfaClient.setQuota(getPathName(src), namespaceQuota, diskspaceQuota);
   }
 
   @Override // FileSystem

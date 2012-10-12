@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 
@@ -220,8 +221,12 @@ public class INode {
   }
 
   public void setQuota(long namespaceQuota, long diskspaceQuota) {
-    this.nsQuota = namespaceQuota;
-    this.dsQuota = diskspaceQuota;
+    if (namespaceQuota != FSConstants.QUOTA_DONT_SET) {
+      this.nsQuota = namespaceQuota;
+    }
+    if (diskspaceQuota != FSConstants.QUOTA_DONT_SET) {
+      this.dsQuota = diskspaceQuota;
+    }
   }
 
   public void setReplication(short replication) {

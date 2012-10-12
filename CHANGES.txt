@@ -46,3 +46,4 @@ Release 0.0.1 - Unreleased
     Issue 44: FileNotFoundExceptions are from NamespaceAgent not
               GiraffaFileSystem. (Plamen)
     Issue 37: Replace tabs with spaces in grfa-default.xml (shv)
+    Issue 45: setQuota and setSpaceQuota are broken. (Plamen)

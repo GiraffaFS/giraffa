@@ -365,7 +365,9 @@ public class NamespaceAgent implements NamespaceService {
   public ContentSummary getContentSummary(String path)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    return null;
+    NamespaceProtocol proxy = getRegionProxy(path);
+    ContentSummary summary = proxy.getContentSummary(path);
+    return summary;
   }
 
   @Override // ClientProtocol

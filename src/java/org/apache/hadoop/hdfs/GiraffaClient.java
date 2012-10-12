@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 
 /**
@@ -48,6 +49,18 @@ public class GiraffaClient extends DFSClient {
   public static void format(GiraffaConfiguration conf) throws IOException {
     NamespaceService namespace = conf.newNamespaceService();
     namespace.format(conf);
+  }
+
+  @Override // DFSClient
+  public ContentSummary getContentSummary(String src)
+      throws IOException {
+    return super.getContentSummary(src);
+  }
+
+  @Override // DFSClient
+  public void setQuota(String src, long namespaceQuota, long diskspaceQuota)
+      throws IOException {
+    super.setQuota(src, namespaceQuota, diskspaceQuota);
   }
 
   @Override // DFSClient

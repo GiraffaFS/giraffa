@@ -496,6 +496,11 @@ implements NamespaceProtocol {
   public ContentSummary getContentSummary(String path)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
+    INode node = getINode(new Path(path));
+    if(node.isDir()) {
+      return new ContentSummary(0L, 0L, 1L, node.getNsQuota(), 
+          0L, node.getDsQuota());
+    }
     return null;
   }
 
@@ -563,7 +568,7 @@ implements NamespaceProtocol {
     }
 
     if(!node.isDir()) {
-      return new DirectoryListing(new HdfsFileStatus[] { getFileInfo(src) }, 0);
+      return new DirectoryListing(new HdfsFileStatus[] { node.getFileStatus() }, 0);
     }
 
     Collection<RowKey> children = node.getDirTable().getEntries();
@@ -852,8 +857,8 @@ implements NamespaceProtocol {
         key.getPath().toString().getBytes(),
         getSymlink(res),
         key,
-        getNsQuota(res),
         getDsQuota(res),
+        getNsQuota(res),
         getState(res),
         getDirectoryTable(res),
         getBlocks(res));
