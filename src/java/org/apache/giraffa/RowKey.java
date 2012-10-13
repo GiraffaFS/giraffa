@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa;
 
+import java.io.IOException;
+
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -43,8 +45,9 @@ public abstract class RowKey {
    * setKey() does not guarantee that the key will be generated,
    * only that the path is set making it ready for the key generation.
    * @param src
+   * @throws IOException 
    */
-  public abstract void setPath(Path src);
+  public abstract void setPath(Path src) throws IOException;
 
   /**
    * Get the row key of the file system object.
@@ -61,6 +64,10 @@ public abstract class RowKey {
    * @return
    */
   public abstract byte[] generateKey();
+
+  public abstract byte[] getStartListingKey(byte[] startAfter);
+
+  public abstract byte[] getStopListingKey();
 
   @Override // Object
   public String toString() {

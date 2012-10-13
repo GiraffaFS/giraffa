@@ -17,9 +17,11 @@
  */
 package org.apache.giraffa;
 
+import java.io.IOException;
 import java.io.Serializable;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * Implementation of a row key based on the file's full path.
@@ -29,22 +31,30 @@ import org.apache.hadoop.fs.Path;
 public class FullPathRowKey extends RowKey implements Serializable {
   private static final long serialVersionUID = 123456789009L;
 
+  private short depth;
   private String path;
+  private byte[] bytes;
 
   public FullPathRowKey() {}
 
-  FullPathRowKey(Path src) {
-    initialize(src);
+  FullPathRowKey(Path src) throws IOException {
+    setPath(src);
   }
 
-  private void initialize(Path src) {
+  private void initialize(short d, String src) {
     // Strip off all URI components: should be pure file path
-    this.path = src.toUri().getPath();
+    this.path = src;
+    this.depth = (short) d;
+    this.bytes = null;  // not generated yet
   }
 
   @Override // RowKey
-  public void setPath(Path src) {
-    initialize(src);
+  public void setPath(Path src) throws IOException {
+    // Strip off all URI components: should be pure file path
+    String s = src.toUri().getPath();
+    int d = src.depth();
+    assert d < Short.MAX_VALUE : "Path is too deep";
+    initialize((short)d, s);
   }
 
   @Override
@@ -54,12 +64,31 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] getKey() {
-    return path.getBytes();
+    if(bytes == null)
+      bytes = generateKey();
+    return bytes;
   }
 
   @Override // RowKey
   public byte[] generateKey() {
-    // the key should already be generated if the path is set
-    return getKey();
+    return Bytes.add(Bytes.toBytes(depth), path.getBytes());
+  }
+
+  @Override // RowKey
+  public byte[] getStartListingKey(byte[] startAfter) {
+    byte[] start = directoryStartKey();
+    return startAfter.length == 0 ? start : Bytes.add(start, startAfter);
+  }
+
+  @Override // RowKey
+  public byte[] getStopListingKey() {
+    return Bytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
+  }
+
+  private byte[] directoryStartKey() {
+    String startPath = path.endsWith("/") ? path : path + "/";
+    FullPathRowKey startKey = new FullPathRowKey();
+    startKey.initialize((short) (depth + 1), startPath);
+    return startKey.getKey();
   }
 }

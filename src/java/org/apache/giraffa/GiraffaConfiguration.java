@@ -19,6 +19,7 @@ package org.apache.giraffa;
 
 import org.apache.giraffa.hbase.NamespaceAgent;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.util.ReflectionUtils;
 
 public class GiraffaConfiguration extends Configuration {
@@ -40,6 +41,10 @@ public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_HDFS_ADDRESS_DEFAULT = "file:///";
   public static final String  GRFA_HBASE_ADDRESS_KEY = "grfa.hbase.address";
   public static final String  GRFA_HBASE_ADDRESS_DEFAULT = "file:///";
+  public static final String  GRFA_LIST_LIMIT_KEY =
+                                  DFSConfigKeys.DFS_LIST_LIMIT;
+  public static final int     GRFA_LIST_LIMIT_DEFAULT =
+                                  DFSConfigKeys.DFS_LIST_LIMIT_DEFAULT;
 
   static {
     // adds the default resources

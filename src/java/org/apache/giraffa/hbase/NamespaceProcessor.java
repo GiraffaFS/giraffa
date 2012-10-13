@@ -24,7 +24,6 @@ import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +33,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.DirectoryTable;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
-import org.apache.giraffa.INode;
 import org.apache.giraffa.GiraffaConstants.FileState;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
-import org.apache.giraffa.hbase.NamespaceProtocol;
+import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
@@ -55,6 +53,8 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -94,7 +94,9 @@ implements NamespaceProtocol {
   // private HRegion region;
   private HTableInterface table;
 
+  // SHV! Should be Path to RowKey
   private HashMap<String, RowKey> cache = new HashMap<String, RowKey>();
+  private int lsLimit;
 
   private static final Log LOG =
     LogFactory.getLog(NamespaceProcessor.class.getName());
@@ -109,6 +111,11 @@ implements NamespaceProtocol {
                                 RowKey.class);
     caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
                               GiraffaConfiguration.GRFA_CACHING_DEFAULT);
+    int configuredLimit = conf.getInt(
+        GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
+        GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
+    this.lsLimit = configuredLimit > 0 ?
+        configuredLimit : GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT;
     LOG.info("Caching is set to: " + caching);
     LOG.info("RowKey is set to: " + rowKeyClass.getCanonicalName());
 
@@ -282,7 +289,7 @@ implements NamespaceProtocol {
 
     // if file did not exist, create its INode now
     if(iFile == null) {
-      RowKey key = createRowKey(path);
+      RowKey key = getRowKey(path);
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
           masked, clientName, machineName, path.toString().getBytes(), null,
@@ -324,8 +331,9 @@ implements NamespaceProtocol {
    * is cached as well.
    * @param src
    * @return a new RowKey initialized with src
+   * @throws IOException 
    */
-  private RowKey createRowKey(Path src) {
+  private RowKey createRowKey(Path src) throws IOException {
     RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
     key.setPath(src);
 
@@ -372,33 +380,20 @@ implements NamespaceProtocol {
       // throw new ParentNotDirectoryException("Parent is not a directory.");
       return false; // parent already replaced
 
-    if(recursive) {
-      Collection<RowKey> keys = null;
-      if(node.isDir()) {
-        keys = node.getDirTable().getEntries();
-      } else {
-        node.setState(FileState.DELETED);
-        updateINode(node, BlockAction.DELETE);
-      }
+    if(node.isDir())
+      return deleteDirectory(node, recursive);
 
-      // update the parent directory about the deletion
-      removeDirectoryEntry(parent, node);
+    return deleteFile(node);
+  }
 
-      // delete all of the children, and the children's children...
-      // only if the node WAS a directory
-      if(keys != null) {
-        deleteRecursive(keys);
-      }
-    } else {
-      if(node.isDir()) {
-        Result nodeInfo = table.get(new Get(node.getRowKey().getKey()));
-        if(!NamespaceProcessor.getDirectoryTable(nodeInfo).isEmpty())
-          return false;
-      }
+  private boolean deleteFile(INode node) throws IOException {
+    // delete single file
+    node.setState(FileState.DELETED);
+    updateINode(node, BlockAction.DELETE);
 
-      // update parent Node
-      removeDirectoryEntry(parent, node);
-    }
+    // delete the child key atomically first
+    Delete delete = new Delete(node.getRowKey().getKey());
+    table.delete(delete);
 
     // delete time penalty (resolves timestamp milliseconds issue)
     try {
@@ -411,36 +406,44 @@ implements NamespaceProtocol {
   }
 
   /** 
-   * The recursive function used to delete all children within a directory.
-   * General algorithm is to delete children one by one and delete the children of
-   * directories if there are any.
-   * @param children
+   * The recursive function which first deletes all children within a directory
+   * then the directory itself.
+   * If any of the children cannot be deleted the directory itself will not 
+   * be deleted as well.
+   *
+   * @param node
+   * @param recursive
+   * @return true if the directory was actually deleted
+   * @throws AccessControlException
+   * @throws FileNotFoundException
+   * @throws UnresolvedLinkException
    * @throws IOException
    */
-  private void deleteRecursive(Collection<RowKey> children) throws IOException {
-    ArrayList<Delete> batchDelete = new ArrayList<Delete>();
+  private boolean deleteDirectory(INode node, boolean recursive) 
+      throws AccessControlException, FileNotFoundException, 
+      UnresolvedLinkException, IOException {
+    ArrayList<Delete> deletes = new ArrayList<Delete>();
+    List<INode> children = 
+        getListingInternal(node, HdfsFileStatus.EMPTY_NAME, false);
+    if(!recursive && children.size() > 0)
+        return false;
 
-    for(RowKey childKey : children) {
-      INode node = getINode(childKey);
-
-      // if childKey is a directory, recurse thru it
-      if(node.isDir()) {
-        deleteRecursive(node.getDirTable().getEntries());
-
-        //delete this childKey immediately after recursing
-        table.delete(new Delete(childKey.getKey()));
-      } else {
-        node.setState(FileState.DELETED);
-        updateINode(node);
-
-        // add this key to batch delete
-        batchDelete.add(new Delete(childKey.getKey()));
-      }
+    for(INode child : children) {
+      if(child.isDir()) {
+        if(! deleteDirectory(child, true))
+          return false;
+      } else  // add this key to batch delete
+        deletes.add(new Delete(child.getRowKey().getKey()));
     }
 
-    //delete the batch (if exists)
-    if(!batchDelete.isEmpty())
-      table.delete(batchDelete);
+    // delete files
+    if(!deletes.isEmpty())
+      table.delete(deletes);
+
+    // delete current directory
+    Delete delete = new Delete(node.getRowKey().getKey());
+    table.delete(delete);
+    return true;
   }
 
   @Override // ClientProtocol
@@ -571,16 +574,36 @@ implements NamespaceProtocol {
       return new DirectoryListing(new HdfsFileStatus[] { node.getFileStatus() }, 0);
     }
 
-    Collection<RowKey> children = node.getDirTable().getEntries();
-    ArrayList<HdfsFileStatus> list = new ArrayList<HdfsFileStatus>();
-
-    // getListingRecursive(children, list);
-    for(RowKey childKey : children)
-      list.add(getFileInfo(childKey.getPath().toString()));
+    List<INode> list = this.getListingInternal(node, startAfter, needLocation);
 
     HdfsFileStatus[] retVal = new HdfsFileStatus[list.size()];
-    retVal = list.toArray(retVal);
-    return new DirectoryListing(retVal, 0);
+    int i = 0;
+    for(INode child : list)
+      retVal[i++] = child.getFileStatus();
+    // We can say there is no more entries if the lsLimit is exhausted,
+    // otherwise we know only that there could be one more entry
+    return new DirectoryListing(retVal, list.size() < lsLimit ? 0 : 1);
+  }
+
+  private List<INode> getListingInternal(
+      INode dir, byte[] startAfter, boolean needLocation)
+      throws AccessControlException, FileNotFoundException,
+      UnresolvedLinkException, IOException {
+    RowKey key = dir.getRowKey();
+    byte[] start = key.getStartListingKey(startAfter);
+    byte[] stop = key.getStopListingKey();
+    Scan scan = new Scan(start, stop);
+    ResultScanner rs = table.getScanner(scan);
+
+    ArrayList<INode> list = new ArrayList<INode>();
+    for(Result result = rs.next();
+        result != null && list.size() < lsLimit;
+        result = rs.next()) {
+      Path cur = new Path(key.getPath(), getFileName(result));
+      list.add(newINode(getRowKey(cur), result));
+    }
+
+    return list;
   }
 
   @Override // ClientProtocol
@@ -663,7 +686,7 @@ implements NamespaceProtocol {
       return true;
     }
 
-    RowKey key = createRowKey(path);
+    RowKey key = getRowKey(path);
     long time = now();
     iDir = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, path.toString().getBytes(), null,
@@ -989,6 +1012,11 @@ implements NamespaceProtocol {
         Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getPermissions())));
   }
 
+  static String getFileName(Result res) {
+    return new String(res.getValue(FileField.getFileAttributes(),
+                                   FileField.getFileName()));
+  }
+
   static String getUserName(Result res) {
     return new String(res.getValue(FileField.getFileAttributes(), FileField.getUserName()));
   }
@@ -1026,16 +1054,14 @@ implements NamespaceProtocol {
     Delete delete = new Delete(child.getRowKey().getKey());
     table.delete(delete);
 
-    Result parentNodeInfo = table.get(new Get(parent.getRowKey().getKey()));
-    DirectoryTable dt = getDirectoryTable(parentNodeInfo);
+    DirectoryTable dt = parent.getDirTable();
     dt.removeEntry(child.getRowKey().getPath().getName());
     parent.setDirectoryTable(dt);
     updateINode(parent);
   }
 
   void addDirectoryEntry(INode parent, INode child) throws IOException {
-    Result nodeInfo = table.get(new Get(parent.getRowKey().getKey()));
-    DirectoryTable dt = getDirectoryTable(nodeInfo);
+    DirectoryTable dt = parent.getDirTable();
     boolean added = dt.addEntry(child.getRowKey());
     if(added)
       LOG.debug("Directory already contains file: " + child.getRowKey());

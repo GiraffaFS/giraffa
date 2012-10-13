@@ -112,7 +112,7 @@ public class NamespaceAgent implements NamespaceService {
                               GiraffaConfiguration.GRFA_CACHING_DEFAULT);
     LOG.info("Caching is set to: " + caching);
     LOG.info("RowKey is set to: " + rowKeyClass.getCanonicalName());
-    this.hbAdmin = new HBaseAdmin(HBaseConfiguration.create(conf));
+    this.hbAdmin = new HBaseAdmin(conf);
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
 
@@ -229,8 +229,9 @@ public class NamespaceAgent implements NamespaceService {
    * is cached as well.
    * @param src
    * @return a new RowKey initialized with src
+   * @throws IOException 
    */
-  private RowKey createRowKey(Path src) {
+  private RowKey createRowKey(Path src) throws IOException {
     RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
     key.setPath(src);
 
