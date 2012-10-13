@@ -51,7 +51,6 @@ public class INode {
 
   // Giraffa INode fields
   private final RowKey key;
-  private DirectoryTable dirTable;
   private List<LocatedBlock> blocks;
   private FileState fileState;
 
@@ -63,7 +62,7 @@ public class INode {
   public INode(long length, boolean directory, short replication, long blockSize,
       long mtime, long atime, FsPermission perms, String owner, String group,
       byte[] path, byte[] symlink, RowKey key, long dsQuota, long nsQuota,
-      FileState state, DirectoryTable dirTable, List<LocatedBlock> blocks)
+      FileState state, List<LocatedBlock> blocks)
   throws IOException {
     this.length = length;
     this.isdir = directory;
@@ -79,9 +78,7 @@ public class INode {
     this.key = key;
     this.nsQuota = nsQuota;
     this.dsQuota = dsQuota;
-    if(isDir()) {
-      this.dirTable = (dirTable == null ? new DirectoryTable() : dirTable);
-    } else {
+    if(! isDir()) {
       this.fileState = (state == null ? FileState.UNDER_CONSTRUCTION : state);
       this.blocks = (blocks == null? new ArrayList<LocatedBlock>() : blocks);
     }
@@ -177,10 +174,6 @@ public class INode {
     return symlink;
   }
 
-  public DirectoryTable getDirTable() {
-    return dirTable;
-  }
-
   public List<LocatedBlock> getBlocks() {
     return blocks;
   }
@@ -245,11 +238,6 @@ public class INode {
   public void setOwner(String username, String groupname) {
     this.owner = username;
     this.group = groupname;
-  }
-
-  public void setDirectoryTable(DirectoryTable dt) throws IOException {
-    if(!isDir()) return;
-    this.dirTable = (dt == null ? new DirectoryTable() : dt);
   }
 
   public void setLastBlock(Block last) {

@@ -30,7 +30,6 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.DirectoryTable;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaConstants.FileState;
@@ -247,44 +246,56 @@ implements NamespaceProtocol {
     boolean append = flag.contains(CreateFlag.APPEND);
     boolean create = flag.contains(CreateFlag.CREATE);
 
+    if(append) {
+      LOG.error("Append is not supported.");
+      // throw IOException("Append is not supported.")
+      return;
+    }
+
     Path path = new Path(src);
     assert path.getParent() != null : "File must have a parent";
-
-    INode iParent = getINode(path.getParent());
     INode iFile = getINode(path);
+    if(create && iFile != null) {
+      LOG.info("File already exists: " + src);
+      // throw FileAlreadyExistsException
+      return; // HBase RPC does not pass exceptions
+    }
+
+    if(iFile != null && iFile.isDir()) {
+      LOG.error("File already exists as a directory: " + src);
+      // throw FileAlreadyExistsException
+      return; // HBase RPC does not pass exceptions
+    }
 
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     clientName = ugi.getShortUserName();
     String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
     masked = new FsPermission((short) 0644);
 
+    INode iParent = getINode(path.getParent());
     if(!createParent && iParent == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
+      // throw new FileNotFoundException("Parent does not exist: " + src);
+      LOG.error("Parent does not exist: " + src);
       return; // HBase RPC does not pass exceptions
     }
 
     if(iParent == null) { // create parent directories
-      mkdirs(path.getParent().toString(), masked, true);
-      iParent = getINode(path.getParent());
-    }
-
-    if(!iParent.isDir()) {
+      if(! mkdirs(path.getParent().toString(), masked, true)) {
+        LOG.error("Cannot create parent directories: " + src);
+        return;
+      }
+    } else if(!iParent.isDir()) {
       // throw new ParentNotDirectoryException(
       //     "Parent path is not a directory: " + src);
       LOG.error("Parent path is not a directory: " + src);
       return; // HBase RPC does not pass exceptions
     }
 
-    if(!overwrite && iFile != null) {
-      // SHV !!!
-      // client cannot know if file exist
-      // should come from the table itself, when inserting a new row
-      // turns into update of an existing one
-
-      // throw new FileAlreadyExistsException();
-      LOG.error("File already exists: " + src);
-      return;
+    if(overwrite && iFile != null) {
+      if(! deleteFile(iFile)) {
+        LOG.error("Cannot override existing file: " + src);
+        return;
+      }
     }
 
     // if file did not exist, create its INode now
@@ -293,14 +304,11 @@ implements NamespaceProtocol {
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
           masked, clientName, machineName, path.toString().getBytes(), null,
-          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null);
+          key, 0, 0, FileState.UNDER_CONSTRUCTION, null);
     }
 
     // add file to HBase (update if already exists)
     updateINode(iFile);
-
-    // get parent result and update parent dirTable.
-    addDirectoryEntry(iParent, iFile);
   }
 
   /**
@@ -661,46 +669,40 @@ implements NamespaceProtocol {
         long time = now();
         root = new INode(0, true, (short) 0, 0, time, time,
             masked, clientName, machineName, path.toString().getBytes(), null,
-            key, 0, 0, null, new DirectoryTable(), null);
+            key, 0, 0, null, null);
         updateINode(root);
       }
       return true;
     }
 
-    INode iParent = getINode(path.getParent());
     INode iDir = getINode(path);
+    if(iDir != null) {  // already exists
+      return true;
+    }
 
+    // create parent directories if requested
+    INode iParent = getINode(path.getParent());
     if(!createParent && iParent == null) {
-      // SHV !!! make sure parent exists and is a directory
       // throw new FileNotFoundException();
       return false;
-    } else if(iParent != null && !iParent.isDir()) {
+    }
+    if(iParent != null && !iParent.isDir()) {
       // throw new ParentNotDirectoryException();
       return false;
-    } else if(createParent && iParent == null) {
+    }
+    if(createParent && iParent == null) {
       //make the parent directories
       mkdirs(path.getParent().toString(), masked, true);
     } 
-
-    if(iDir != null) {
-      return true;
-    }
 
     RowKey key = getRowKey(path);
     long time = now();
     iDir = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, path.toString().getBytes(), null,
-        key, 0, 0, null, new DirectoryTable(), null);
-    // should be generated now, grab it again
-    if(iParent == null) {
-      iParent = getINode(path.getParent());
-    }
+        key, 0, 0, null, null);
 
     // add directory to HBase
     updateINode(iDir);
-
-    // grab parent result and update parent dirTable.
-    addDirectoryEntry(iParent, iDir);
     return true;
   }
 
@@ -883,7 +885,6 @@ implements NamespaceProtocol {
         getDsQuota(res),
         getNsQuota(res),
         getState(res),
-        getDirectoryTable(res),
         getBlocks(res));
     return iNode;
   }
@@ -923,9 +924,9 @@ implements NamespaceProtocol {
       put.add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
           node.getSymlink());
 
-          if(node.isDir())
+    if(node.isDir())
       put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
-             node.getDirTable().toBytes());
+          Bytes.toBytes(node.isDir()));
     else
       put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
              node.getBlocksBytes())
@@ -968,7 +969,6 @@ implements NamespaceProtocol {
    * 
    * @param res
    * @return The directory table.
-   */
   static DirectoryTable getDirectoryTable(Result res) {
     if(!getDirectory(res))
       return null;
@@ -986,6 +986,7 @@ implements NamespaceProtocol {
     }
     return dirTable;
   }
+   */
 
   static boolean getDirectory(Result res) {
     return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());
@@ -1047,25 +1048,5 @@ implements NamespaceProtocol {
   // Get file fields from Result
   static long getLength(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getLength()));
-  }
-
-  void removeDirectoryEntry(INode parent, INode child) throws IOException {
-    // delete the child key atomically first
-    Delete delete = new Delete(child.getRowKey().getKey());
-    table.delete(delete);
-
-    DirectoryTable dt = parent.getDirTable();
-    dt.removeEntry(child.getRowKey().getPath().getName());
-    parent.setDirectoryTable(dt);
-    updateINode(parent);
-  }
-
-  void addDirectoryEntry(INode parent, INode child) throws IOException {
-    DirectoryTable dt = parent.getDirTable();
-    boolean added = dt.addEntry(child.getRowKey());
-    if(added)
-      LOG.debug("Directory already contains file: " + child.getRowKey());
-    parent.setDirectoryTable(dt);
-    updateINode(parent);
   }
 }
