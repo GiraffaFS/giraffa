@@ -34,6 +34,7 @@ Release 0.0.1 - Unreleased
     Issue 1:  Create Giraffa Wiki.
     Issue 11: Create Javadoc documention. (Plamen)
     Issue 54: Create Documentation section in CHANGES.txt. (shv)
+    Issue 33: Fix Javadoc build issues. (Plamen)
 
   OPTIMIZATIONS
 

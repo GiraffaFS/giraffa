@@ -287,7 +287,7 @@ public class NamespaceAgent implements NamespaceService {
   /**
    * Must be called before FileSystem can be used!
    * 
-   * @param uri
+   * @param conf
    * 
    * @throws IOException
    */

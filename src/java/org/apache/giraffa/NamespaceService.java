@@ -34,7 +34,7 @@ import org.apache.hadoop.hdfs.protocol.ClientProtocol;
  * Implement this interface to make Giraffa client connect to different
  * highly available storage systems.
  * <p>
- * {@link NamespaceAgent} is the default implementation of
+ * {@link org.apache.giraffa.hbase.NamespaceAgent} is the default implementation of
  * {@link NamespaceService} for HBase.
  */
 public interface NamespaceService extends ClientProtocol {

@@ -234,6 +234,13 @@
       <include name="*.jar"/>
     </fileset>
   </path>
+
+  <path id="javadocLibs">
+    <fileset dir="${lib}">
+      <include name="*.jar"/>
+      <exclude name="hbase-tests-${hbase.version}.jar"/>
+    </fileset>
+  </path>
   
   <target name="eclipse" 
           depends="init, ivy-retrieve, ant-eclipse-download"
@@ -257,7 +264,7 @@
   <target name="javadoc" description="Generate documentation.">
     <delete dir="${javadoc}"/>
     <mkdir dir="${javadoc}"/>
-    <javadoc sourcepath="${src}" classpathref="libs" destdir="${javadoc}"/>
+    <javadoc sourcepath="${src}" classpathref="javadocLibs" destdir="${javadoc}"/>
   </target>
 
   <!-- Clean up (remove) Eclipse project files -->

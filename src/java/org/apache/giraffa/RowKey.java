@@ -61,7 +61,7 @@ public abstract class RowKey {
    * Generate or regenerate the row key based on the path.
    * Key generation can be a distributed operation for some RowKey
    * implementations.
-   * @return
+   * @return row key as byte array
    */
   public abstract byte[] generateKey();
 
