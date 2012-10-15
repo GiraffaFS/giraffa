@@ -93,7 +93,6 @@ implements NamespaceProtocol {
   // private HRegion region;
   private HTableInterface table;
 
-  // SHV! Should be Path to RowKey
   private HashMap<String, RowKey> cache = new HashMap<String, RowKey>();
   private int lsLimit;
 
@@ -160,8 +159,7 @@ implements NamespaceProtocol {
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    Path path = new Path(src);
-    INode iNode = getINode(path);
+    INode iNode = getINode(src);
 
     if(iNode == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -207,8 +205,7 @@ implements NamespaceProtocol {
       UnresolvedLinkException, IOException {
     if(last == null)
       return true;
-    Path path = new Path(src);
-    INode iNode = getINode(path);
+    INode iNode = getINode(src);
 
     if(iNode == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -252,9 +249,7 @@ implements NamespaceProtocol {
       return;
     }
 
-    Path path = new Path(src);
-    assert path.getParent() != null : "File must have a parent";
-    INode iFile = getINode(path);
+    INode iFile = getINode(src);
     if(create && iFile != null) {
       LOG.info("File already exists: " + src);
       // throw FileAlreadyExistsException
@@ -272,7 +267,10 @@ implements NamespaceProtocol {
     String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
     masked = new FsPermission((short) 0644);
 
-    INode iParent = getINode(path.getParent());
+    Path parentPath = new Path(src).getParent();
+    assert parentPath != null : "File must have a parent";
+    String parent = parentPath.toString();
+    INode iParent = getINode(parent);
     if(!createParent && iParent == null) {
       // throw new FileNotFoundException("Parent does not exist: " + src);
       LOG.error("Parent does not exist: " + src);
@@ -280,7 +278,7 @@ implements NamespaceProtocol {
     }
 
     if(iParent == null) { // create parent directories
-      if(! mkdirs(path.getParent().toString(), masked, true)) {
+      if(! mkdirs(parent, masked, true)) {
         LOG.error("Cannot create parent directories: " + src);
         return;
       }
@@ -300,10 +298,10 @@ implements NamespaceProtocol {
 
     // if file did not exist, create its INode now
     if(iFile == null) {
-      RowKey key = getRowKey(path);
+      RowKey key = getRowKey(src);
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
-          masked, clientName, machineName, path.toString().getBytes(), null,
+          masked, clientName, machineName, null,
           key, 0, 0, FileState.UNDER_CONSTRUCTION, null);
     }
 
@@ -319,16 +317,20 @@ implements NamespaceProtocol {
    * @return the RowKey
    * @throws IOException
    */
-  private RowKey getRowKey(Path src) throws IOException {
+  private RowKey getRowKey(String src) throws IOException {
+    return getRowKey(src, null);
+  }
+
+  private RowKey getRowKey(String src, byte[] bytes) throws IOException {
     // try to grab child from cache
-    RowKey key = (caching) ? cache.get(src.toString()) : null;
+    RowKey key = (caching) ? cache.get(src) : null;
 
     if(key != null) {
       return key;
     }
 
     // generate new key (throw exception if not possible)
-    key = createRowKey(src);
+    key = createRowKey(src, bytes);
 
     return key;
   }
@@ -341,12 +343,15 @@ implements NamespaceProtocol {
    * @return a new RowKey initialized with src
    * @throws IOException 
    */
-  private RowKey createRowKey(Path src) throws IOException {
+  private RowKey createRowKey(String src, byte[] bytes) throws IOException {
     RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
-    key.setPath(src);
+    if(bytes == null)
+      key.setPath(src);
+    else
+      key.set(src, bytes);
 
     if(caching)
-      cache.put(src.toString(), key);
+      cache.put(src, key);
 
     return key;
   }
@@ -371,16 +376,15 @@ implements NamespaceProtocol {
    */
   @Override // ClientProtocol
   public boolean delete(String src, boolean recursive) throws IOException {
-    Path path = new Path(src);
     //check parent path first
-    Path parentPath = path.getParent();
+    Path parentPath = new Path(src).getParent();
     assert parentPath != null : "File must have a parent";
 
-    INode node = getINode(path);
+    INode node = getINode(src);
     if(node == null) return false;
 
     // then check parent inode
-    INode parent = getINode(parentPath);
+    INode parent = getINode(parentPath.toString());
     if(parent == null)
       // throw new FileNotFoundException("Parent does not exist.");
       return false; // parent already deleted
@@ -475,8 +479,7 @@ implements NamespaceProtocol {
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    Path path = new Path(src);
-    INode iNode = getINode(path);
+    INode iNode = getINode(src);
     if(iNode == null || iNode.isDir()) {
       // throw new FileNotFoundException("File does not exist: " + src);
       LOG.error("File does not exist: " + src);
@@ -507,7 +510,7 @@ implements NamespaceProtocol {
   public ContentSummary getContentSummary(String path)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(path));
+    INode node = getINode(path);
     if(node.isDir()) {
       return new ContentSummary(0L, 0L, 1L, node.getNsQuota(), 
           0L, node.getDsQuota());
@@ -530,7 +533,7 @@ implements NamespaceProtocol {
   @Override // ClientProtocol
   public HdfsFileStatus getFileInfo(String src) throws AccessControlException,
       FileNotFoundException, UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
       LOG.error("File does not exist: " + src);
@@ -545,7 +548,7 @@ implements NamespaceProtocol {
     throw new IOException("symlinks are not supported");
   }
 
-  private INode getINode(Path path) throws IOException {
+  private INode getINode(String path) throws IOException {
     return getINode(getRowKey(path));
   }
 
@@ -556,7 +559,7 @@ implements NamespaceProtocol {
       LOG.debug("File does not exist: " + key.getPath());
       return null;
     }
-    return newINode(key, nodeInfo);
+    return newINode(key.getPath(), nodeInfo);
   }
 
   @Override // ClientProtocol
@@ -570,7 +573,7 @@ implements NamespaceProtocol {
       String src, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -607,8 +610,7 @@ implements NamespaceProtocol {
     for(Result result = rs.next();
         result != null && list.size() < lsLimit;
         result = rs.next()) {
-      Path cur = new Path(key.getPath(), getFileName(result));
-      list.add(newINode(getRowKey(cur), result));
+      list.add(newINodeByParent(key.getPath(), result));
     }
 
     return list;
@@ -617,7 +619,7 @@ implements NamespaceProtocol {
   @Override // ClientProtocol
   public long getPreferredBlockSize(String src) throws IOException,
       UnresolvedLinkException {
-    INode inode = getINode(new Path(src));
+    INode inode = getINode(src);
     if(inode == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
       LOG.error("File does not exist: " + src);
@@ -656,32 +658,32 @@ implements NamespaceProtocol {
       FileNotFoundException, NSQuotaExceededException,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
       IOException {
-    Path path = new Path(src);
+    Path parentPath = new Path(src).getParent();
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     String clientName = ugi.getShortUserName();
     String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
 
-    if(path.getParent() == null) {
+    RowKey key = getRowKey(src);
+    INode inode = getINode(key);
+    if(parentPath == null) {
       //generate root if doesn't exist
-      INode root = getINode(path);
-      if(root == null) {
-        RowKey key = getRowKey(path);
+      if(inode == null) {
         long time = now();
-        root = new INode(0, true, (short) 0, 0, time, time,
-            masked, clientName, machineName, path.toString().getBytes(), null,
+        inode = new INode(0, true, (short) 0, 0, time, time,
+            masked, clientName, machineName, null,
             key, 0, 0, null, null);
-        updateINode(root);
+        updateINode(inode);
       }
       return true;
     }
 
-    INode iDir = getINode(path);
-    if(iDir != null) {  // already exists
+    if(inode != null) {  // already exists
       return true;
     }
 
     // create parent directories if requested
-    INode iParent = getINode(path.getParent());
+    String parent = parentPath.toString();
+    INode iParent = getINode(parent);
     if(!createParent && iParent == null) {
       // throw new FileNotFoundException();
       return false;
@@ -692,17 +694,16 @@ implements NamespaceProtocol {
     }
     if(createParent && iParent == null) {
       //make the parent directories
-      mkdirs(path.getParent().toString(), masked, true);
+      mkdirs(parent, masked, true);
     } 
 
-    RowKey key = getRowKey(path);
     long time = now();
-    iDir = new INode(0, true, (short) 0, 0, time, time,
-        masked, clientName, machineName, path.toString().getBytes(), null,
+    inode = new INode(0, true, (short) 0, 0, time, time,
+        masked, clientName, machineName, null,
         key, 0, 0, null, null);
 
     // add directory to HBase
-    updateINode(iDir);
+    updateINode(inode);
     return true;
   }
 
@@ -763,7 +764,7 @@ implements NamespaceProtocol {
     if(username == null && groupname == null)
       return;
     
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -780,7 +781,7 @@ implements NamespaceProtocol {
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
 
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -797,7 +798,7 @@ implements NamespaceProtocol {
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -818,7 +819,7 @@ implements NamespaceProtocol {
       throws AccessControlException, DSQuotaExceededException,
       FileNotFoundException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -842,7 +843,7 @@ implements NamespaceProtocol {
   public void setTimes(String src, long mtime, long atime)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(new Path(src));
+    INode node = getINode(src);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -868,24 +869,30 @@ implements NamespaceProtocol {
       throws IOException {
   }
 
-  private INode newINode(RowKey key, Result res) throws IOException {
+  private INode newINodeByParent(String parent, Result result)
+      throws IOException {
+    String cur = new Path(parent, getFileName(result)).toString();
+    return newINode(cur, result);
+  }
+
+  private INode newINode(String src, Result result) throws IOException {
+    RowKey key = getRowKey(src, result.getRow());
     INode iNode = new INode(
-        getLength(res),
-        getDirectory(res),
-        getReplication(res),
-        getBlockSize(res),
-        getMTime(res),
-        getATime(res),
-        getPermissions(res),
-        getUserName(res),
-        getGroupName(res),
-        key.getPath().toString().getBytes(),
-        getSymlink(res),
+        getLength(result),
+        getDirectory(result),
+        getReplication(result),
+        getBlockSize(result),
+        getMTime(result),
+        getATime(result),
+        getPermissions(result),
+        getUserName(result),
+        getGroupName(result),
+        getSymlink(result),
         key,
-        getDsQuota(res),
-        getNsQuota(res),
-        getState(res),
-        getBlocks(res));
+        getDsQuota(result),
+        getNsQuota(result),
+        getState(result),
+        getBlocks(result));
     return iNode;
   }
 
@@ -898,7 +905,7 @@ implements NamespaceProtocol {
     RowKey key = node.getRowKey();
     Put put = new Put(key.getKey(), ts);
     put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-            key.getPath().getName().getBytes())
+            new Path(key.getPath()).getName().getBytes())
         .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
             node.getOwner().getBytes())
         .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,

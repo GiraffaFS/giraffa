@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class TestDirectoryTable {
@@ -33,9 +32,9 @@ public class TestDirectoryTable {
     DirectoryTable dirTable = new DirectoryTable();
     assertTrue(dirTable.isEmpty());
 
-    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("abc"))));
-    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("def"))));
-    assertTrue(dirTable.addEntry(new FullPathRowKey(new Path("ghi"))));
+    assertTrue(dirTable.addEntry(new FullPathRowKey("/abc")));
+    assertTrue(dirTable.addEntry(new FullPathRowKey("/def")));
+    assertTrue(dirTable.addEntry(new FullPathRowKey("/ghi")));
     byte[] out = dirTable.toBytes();
 
     //dirTable serialized
@@ -45,11 +44,11 @@ public class TestDirectoryTable {
     assertTrue(dirTable.contains("abc"));
     assertTrue(dirTable.contains("def"));
     assertTrue(dirTable.contains("ghi"));
-    assertEquals("abc", dirTable.getEntry("abc").getPath().toString());
-    assertEquals("def", dirTable.getEntry("def").getPath().toString());
-    assertEquals("ghi", dirTable.getEntry("ghi").getPath().toString());
+    assertEquals("/abc", dirTable.getEntry("abc").getPath().toString());
+    assertEquals("/def", dirTable.getEntry("def").getPath().toString());
+    assertEquals("/ghi", dirTable.getEntry("ghi").getPath().toString());
 
-    assertFalse(dirTable.addEntry(new FullPathRowKey(new Path("abc"))));
+    assertFalse(dirTable.addEntry(new FullPathRowKey("/abc")));
     
     //remove entries
     assertTrue(dirTable.removeEntry("abc"));

@@ -28,6 +28,7 @@ Release 0.0.1 - Unreleased
     Issue 11: Create Javadoc documention. (Plamen)
     Issue 8:  Introduce .gitignore file. (shv)
     Issue 47: Remove directoryTable update from create() and mkdirs(). (shv)
+    Issue 48: Structuring RowKey and INode APIs. (shv)
 
   OPTIMIZATIONS
 

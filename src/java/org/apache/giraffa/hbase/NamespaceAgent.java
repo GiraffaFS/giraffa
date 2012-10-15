@@ -124,7 +124,7 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   private NamespaceProtocol getRegionProxy(String src) throws IOException {
-    return getRegionProxy(getRowKey(new Path(src)));
+    return getRegionProxy(getRowKey(src));
   }
 
   NamespaceProtocol getRegionProxy(RowKey key) throws IOException {
@@ -209,9 +209,9 @@ public class NamespaceAgent implements NamespaceService {
    * @return the RowKey
    * @throws IOException
    */
-  private RowKey getRowKey(Path src) throws IOException {
+  private RowKey getRowKey(String src) throws IOException {
     // try to grab child from cache
-    RowKey key = (caching) ? cache.get(src.toString()) : null;
+    RowKey key = (caching) ? cache.get(src) : null;
 
     if(key != null) {
       return key;
@@ -231,12 +231,12 @@ public class NamespaceAgent implements NamespaceService {
    * @return a new RowKey initialized with src
    * @throws IOException 
    */
-  private RowKey createRowKey(Path src) throws IOException {
+  private RowKey createRowKey(String src) throws IOException {
     RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
     key.setPath(src);
 
     if(caching)
-      cache.put(src.toString(), key);
+      cache.put(src, key);
 
     return key;
   }

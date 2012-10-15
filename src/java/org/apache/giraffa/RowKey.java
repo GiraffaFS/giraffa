@@ -19,8 +19,6 @@ package org.apache.giraffa;
 
 import java.io.IOException;
 
-import org.apache.hadoop.fs.Path;
-
 /**
  * Abstract class defining a row key for a file system object in the
  * Namespace Table in HBase.<br>
@@ -38,7 +36,7 @@ public abstract class RowKey {
    * Get full path of the file system object represented by the underlying row.
    * @return full path
    */
-  public abstract Path getPath();
+  public abstract String getPath();
 
   /**
    * Set full path to the file system object represented by the row.
@@ -47,7 +45,9 @@ public abstract class RowKey {
    * @param src
    * @throws IOException 
    */
-  public abstract void setPath(Path src) throws IOException;
+  public abstract void setPath(String src) throws IOException;
+
+  public abstract void set(String src, byte[] bytes) throws IOException;
 
   /**
    * Get the row key of the file system object.

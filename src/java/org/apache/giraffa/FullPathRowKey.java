@@ -20,7 +20,6 @@ package org.apache.giraffa;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Bytes;
 
 /**
@@ -37,29 +36,53 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   public FullPathRowKey() {}
 
-  FullPathRowKey(Path src) throws IOException {
+  FullPathRowKey(String src) throws IOException {
     setPath(src);
   }
 
-  private void initialize(short d, String src) {
+  private void initialize(short d, String src, byte[] bytes) {
     // Strip off all URI components: should be pure file path
     this.path = src;
     this.depth = (short) d;
-    this.bytes = null;  // not generated yet
+    this.bytes = bytes;  // not generated yet
   }
 
   @Override // RowKey
-  public void setPath(Path src) throws IOException {
-    // Strip off all URI components: should be pure file path
-    String s = src.toUri().getPath();
-    int d = src.depth();
+  public void setPath(String src) throws IOException {
+    if(!src.startsWith(SEPARATOR))
+      throw new IOException("Cannot calculate key for a relative path: " + src);
+    int d = depth(src);
     assert d < Short.MAX_VALUE : "Path is too deep";
-    initialize((short)d, s);
+    initialize((short)d, src, null);
+  }
+
+  @Override // RowKey
+  public void set(String src, byte[] bytes) throws IOException {
+    initialize(Bytes.toShort(bytes), src, bytes);
+    assert Bytes.compareTo(Bytes.toBytes(src), 0, Bytes.toBytes(src).length,
+        bytes, 2, bytes.length-2) == 0 :
+          "Path and key don't match path = " + src +
+          " key = " + Bytes.toString(bytes, 2, bytes.length-2);
+    
+  }
+  public static final String SEPARATOR = "/";
+  /**
+   * Return the number of elements in this path.
+   */
+  public static int depth(String path) {
+    int depth = 0;
+    int slash =
+        path.length()==1 && path.charAt(0)==SEPARATOR.charAt(0) ? -1 : 0;
+    while (slash != -1) {
+      depth++;
+      slash = path.indexOf(SEPARATOR, slash+1);
+    }
+    return depth;
   }
 
   @Override
-  public Path getPath() {
-    return new Path(path);
+  public String getPath() {
+    return path;
   }
 
   @Override // RowKey
@@ -88,7 +111,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
   private byte[] directoryStartKey() {
     String startPath = path.endsWith("/") ? path : path + "/";
     FullPathRowKey startKey = new FullPathRowKey();
-    startKey.initialize((short) (depth + 1), startPath);
+    startKey.initialize((short) (depth + 1), startPath, null);
     return startKey.getKey();
   }
 }

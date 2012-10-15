@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.fs.Path;
+
 /**
  * Directory in Giraffa is a row, which associates file and sub-directory names
  * contained in the directory with their row keys.
@@ -77,7 +79,7 @@ public class DirectoryTable implements Serializable {
   }
 
   public boolean addEntry(RowKey child) {
-    return childrenKeys.put(child.getPath().getName(), child) == null;
+    return childrenKeys.put(new Path(child.getPath()).getName(), child) == null;
   }
 
   public boolean removeEntry(String fileName) {

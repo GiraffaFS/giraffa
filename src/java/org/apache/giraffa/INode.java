@@ -43,7 +43,6 @@ public class INode {
   private FsPermission permission;
   private String owner;
   private String group;
-  private byte[] path;
   private byte[] symlink;
 
   private long dsQuota;
@@ -61,7 +60,7 @@ public class INode {
    */
   public INode(long length, boolean directory, short replication, long blockSize,
       long mtime, long atime, FsPermission perms, String owner, String group,
-      byte[] path, byte[] symlink, RowKey key, long dsQuota, long nsQuota,
+      byte[] symlink, RowKey key, long dsQuota, long nsQuota,
       FileState state, List<LocatedBlock> blocks)
   throws IOException {
     this.length = length;
@@ -73,7 +72,6 @@ public class INode {
     this.permission = perms;
     this.owner = owner;
     this.group = group;
-    this.path = path;
     this.symlink = symlink;
     this.key = key;
     this.nsQuota = nsQuota;
@@ -87,7 +85,7 @@ public class INode {
   public HdfsFileStatus getFileStatus() {
     return new HdfsFileStatus(length, isdir, block_replication,
            blocksize, modification_time, access_time, permission,
-           owner, group, symlink, path);
+           owner, group, symlink, key.getPath().getBytes());
   }
 
   public RowKey getRowKey() {
