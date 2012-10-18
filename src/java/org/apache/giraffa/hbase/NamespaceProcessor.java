@@ -25,7 +25,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -35,6 +34,7 @@ import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -80,20 +80,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.util.ReflectionUtils;
 
  /**
   */
 public class NamespaceProcessor extends BaseEndpointCoprocessor
 implements NamespaceProtocol {
-
-  private Class<? extends RowKey> rowKeyClass;
-  private boolean caching;
-
   // private HRegion region;
   private HTableInterface table;
 
-  private HashMap<String, RowKey> cache = new HashMap<String, RowKey>();
   private int lsLimit;
 
   private static final Log LOG =
@@ -104,18 +98,15 @@ implements NamespaceProtocol {
     super.start(env);
     LOG.info("Start NamespaceProcessor...");
     Configuration conf = env.getConfiguration();
-    rowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
-                                GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT,
-                                RowKey.class);
-    caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
-                              GiraffaConfiguration.GRFA_CACHING_DEFAULT);
+    RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
     this.lsLimit = configuredLimit > 0 ?
         configuredLimit : GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT;
-    LOG.info("Caching is set to: " + caching);
-    LOG.info("RowKey is set to: " + rowKeyClass.getCanonicalName());
+    LOG.info("Caching is set to: " + RowKeyFactory.isCaching());
+    LOG.info("RowKey is set to: " +
+        RowKeyFactory.getRowKeyClass().getCanonicalName());
 
     // this.region = ((RegionCoprocessorEnvironment)getEnvironment()).getRegion();
   }
@@ -298,7 +289,7 @@ implements NamespaceProtocol {
 
     // if file did not exist, create its INode now
     if(iFile == null) {
-      RowKey key = getRowKey(src);
+      RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
           masked, clientName, machineName, null,
@@ -307,53 +298,6 @@ implements NamespaceProtocol {
 
     // add file to HBase (update if already exists)
     updateINode(iFile);
-  }
-
-  /**
-   * Method designed to generate a single RowKey. It may try to grab the key
-   * from a memory cache.
-   * 
-   * @param src Used to generate the RowKey
-   * @return the RowKey
-   * @throws IOException
-   */
-  private RowKey getRowKey(String src) throws IOException {
-    return getRowKey(src, null);
-  }
-
-  private RowKey getRowKey(String src, byte[] bytes) throws IOException {
-    // try to grab child from cache
-    RowKey key = (caching) ? cache.get(src) : null;
-
-    if(key != null) {
-      return key;
-    }
-
-    // generate new key (throw exception if not possible)
-    key = createRowKey(src, bytes);
-
-    return key;
-  }
-
-  /**
-   * Should only be called in the event that a new RowKey needs to be generated
-   * due to create() or mkdirs() file not already existing; this is where the key
-   * is cached as well.
-   * @param src
-   * @return a new RowKey initialized with src
-   * @throws IOException 
-   */
-  private RowKey createRowKey(String src, byte[] bytes) throws IOException {
-    RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
-    if(bytes == null)
-      key.setPath(src);
-    else
-      key.set(src, bytes);
-
-    if(caching)
-      cache.put(src, key);
-
-    return key;
   }
 
   @Override // ClientProtocol
@@ -549,7 +493,7 @@ implements NamespaceProtocol {
   }
 
   private INode getINode(String path) throws IOException {
-    return getINode(getRowKey(path));
+    return getINode(RowKeyFactory.newInstance(path));
   }
 
   private INode getINode(RowKey key) throws IOException {
@@ -663,7 +607,7 @@ implements NamespaceProtocol {
     String clientName = ugi.getShortUserName();
     String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
 
-    RowKey key = getRowKey(src);
+    RowKey key = RowKeyFactory.newInstance(src);
     INode inode = getINode(key);
     if(parentPath == null) {
       //generate root if doesn't exist
@@ -876,7 +820,7 @@ implements NamespaceProtocol {
   }
 
   private INode newINode(String src, Result result) throws IOException {
-    RowKey key = getRowKey(src, result.getRow());
+    RowKey key = RowKeyFactory.newInstance(src, result.getRow());
     INode iNode = new INode(
         getLength(result),
         getDirectory(result),
@@ -970,30 +914,6 @@ implements NamespaceProtocol {
     in.close();
     return blocks;
   }
-
-  /**
-   * Get DirectoryTable from HBase.
-   * 
-   * @param res
-   * @return The directory table.
-  static DirectoryTable getDirectoryTable(Result res) {
-    if(!getDirectory(res))
-      return null;
-
-    DirectoryTable dirTable;
-    try {
-      dirTable = new DirectoryTable(res.getValue(
-          FileField.getFileAttributes(), FileField.getDirectory()));
-    } catch (IOException e) {
-      INode.LOG.info("Cannot get directory table", e);
-      return null;
-    } catch (ClassNotFoundException e) {
-      INode.LOG.info("Cannot get directory table", e);
-      return null;
-    }
-    return dirTable;
-  }
-   */
 
   static boolean getDirectory(Result res) {
     return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());

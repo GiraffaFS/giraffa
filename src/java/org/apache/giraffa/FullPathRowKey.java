@@ -63,8 +63,8 @@ public class FullPathRowKey extends RowKey implements Serializable {
         bytes, 2, bytes.length-2) == 0 :
           "Path and key don't match path = " + src +
           " key = " + Bytes.toString(bytes, 2, bytes.length-2);
-    
   }
+
   public static final String SEPARATOR = "/";
   /**
    * Return the number of elements in this path.

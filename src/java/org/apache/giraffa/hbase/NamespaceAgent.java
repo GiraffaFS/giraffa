@@ -20,7 +20,6 @@ package org.apache.giraffa.hbase;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +27,7 @@ import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
@@ -69,7 +69,6 @@ import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.util.ReflectionUtils;
 
  /**
   * NamespaceAgent is the proxy used by DFSClient to communicate with HBase
@@ -90,13 +89,8 @@ public class NamespaceAgent implements NamespaceService {
     CLOSE, ALLOCATE, DELETE
   }
 
-  private Class<? extends RowKey> rowKeyClass;
-  private boolean caching;
-
   private HBaseAdmin hbAdmin;
   private HTableInterface nsTable;
-
-  private HashMap<String, RowKey> cache = new HashMap<String, RowKey>();
 
   private static final Log LOG =
     LogFactory.getLog(NamespaceAgent.class.getName());
@@ -105,13 +99,7 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
-    rowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
-                                GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT,
-                                RowKey.class);
-    caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
-                              GiraffaConfiguration.GRFA_CACHING_DEFAULT);
-    LOG.info("Caching is set to: " + caching);
-    LOG.info("RowKey is set to: " + rowKeyClass.getCanonicalName());
+    RowKeyFactory.registerRowKey(conf);
     this.hbAdmin = new HBaseAdmin(conf);
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
@@ -124,7 +112,7 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   private NamespaceProtocol getRegionProxy(String src) throws IOException {
-    return getRegionProxy(getRowKey(src));
+    return getRegionProxy(RowKeyFactory.newInstance(src));
   }
 
   NamespaceProtocol getRegionProxy(RowKey key) throws IOException {
@@ -199,46 +187,6 @@ public class NamespaceAgent implements NamespaceService {
     NamespaceProtocol proxy = getRegionProxy(src);
     proxy.create(src, masked, clientName, createFlag, createParent,
         replication, blockSize);
-  }
-
-  /**
-   * Method designed to generate a single RowKey. It may try to grab the key
-   * from a memory cache.
-   * 
-   * @param src Used to generate the RowKey
-   * @return the RowKey
-   * @throws IOException
-   */
-  private RowKey getRowKey(String src) throws IOException {
-    // try to grab child from cache
-    RowKey key = (caching) ? cache.get(src) : null;
-
-    if(key != null) {
-      return key;
-    }
-
-    // generate new key (throw exception if not possible)
-    key = createRowKey(src);
-
-    return key;
-  }
-
-  /**
-   * Should only be called in the event that a new RowKey needs to be generated
-   * due to create() or mkdirs() file not already existing; this is where the key
-   * is cached as well.
-   * @param src
-   * @return a new RowKey initialized with src
-   * @throws IOException 
-   */
-  private RowKey createRowKey(String src) throws IOException {
-    RowKey key = ReflectionUtils.newInstance(rowKeyClass, null);
-    key.setPath(src);
-
-    if(caching)
-      cache.put(src, key);
-
-    return key;
   }
 
   @Override // ClientProtocol
