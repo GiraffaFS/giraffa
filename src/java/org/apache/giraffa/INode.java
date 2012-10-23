@@ -30,7 +30,9 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
+import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
+import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 
 public class INode {
   // HdfsFileStatus fields
@@ -86,6 +88,17 @@ public class INode {
     return new HdfsFileStatus(length, isdir, block_replication,
            blocksize, modification_time, access_time, permission,
            owner, group, symlink, key.getPath().getBytes());
+  }
+
+  public HdfsFileStatus getLocatedFileStatus() {
+    LocatedBlock lastBlock = blocks.get(blocks.size()-1);
+    boolean isUnderConstruction = (fileState == FileState.UNDER_CONSTRUCTION);
+    boolean isLastBlockComplete = (fileState == FileState.CLOSED);
+    LocatedBlocks locatedBlocks = new LocatedBlocks(length, isUnderConstruction,
+    blocks, lastBlock, isLastBlockComplete);
+    return new HdfsLocatedFileStatus(length, isdir, block_replication,
+            blocksize, modification_time, access_time, permission,
+            owner, group, symlink, key.getPath().getBytes(), locatedBlocks);
   }
 
   public RowKey getRowKey() {
@@ -251,4 +264,5 @@ public class INode {
   public String toString() {
     return "\"" + getRowKey().getPath() + "\":" + permission;
   }
+
 }

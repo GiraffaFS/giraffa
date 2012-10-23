@@ -150,7 +150,7 @@ implements NamespaceProtocol {
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode iNode = getINode(src);
+    INode iNode = getINode(src, true);
 
     if(iNode == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -196,7 +196,7 @@ implements NamespaceProtocol {
       UnresolvedLinkException, IOException {
     if(last == null)
       return true;
-    INode iNode = getINode(src);
+    INode iNode = getINode(src, true);
 
     if(iNode == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -423,7 +423,7 @@ implements NamespaceProtocol {
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode iNode = getINode(src);
+    INode iNode = getINode(src, true);
     if(iNode == null || iNode.isDir()) {
       // throw new FileNotFoundException("File does not exist: " + src);
       LOG.error("File does not exist: " + src);
@@ -493,17 +493,39 @@ implements NamespaceProtocol {
   }
 
   private INode getINode(String path) throws IOException {
-    return getINode(RowKeyFactory.newInstance(path));
+    return getINode(path, false);
+  }
+
+  /**
+   * Fetch an INode by source path String with / without block locations.
+   * @param path the source path String
+   * @param needLocation whether to get block locations
+   * @return INode with / without block locations
+   * @throws IOException
+   */
+  private INode getINode(String path, boolean needLocation) throws IOException {
+    return getINode(RowKeyFactory.newInstance(path), needLocation);
   }
 
   private INode getINode(RowKey key) throws IOException {
+    return getINode(key, false);
+  }
+
+  /**
+   * Fetch an INode, by RowKey, with / without block locations.
+   * @param key the RowKey
+   * @param needLocation whether to get block locations
+   * @return INode with / without block locations
+   * @throws IOException
+   */
+  private INode getINode(RowKey key, boolean needLocation) throws IOException {
     openTable();
     Result nodeInfo = table.get(new Get(key.getKey()));
     if(nodeInfo.isEmpty()) {
       LOG.debug("File does not exist: " + key.getPath());
       return null;
     }
-    return newINode(key.getPath(), nodeInfo);
+    return newINode(key.getPath(), nodeInfo, needLocation);
   }
 
   @Override // ClientProtocol
@@ -517,7 +539,7 @@ implements NamespaceProtocol {
       String src, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(src);
+    INode node = getINode(src, needLocation);
 
     if(node == null) {
       // throw new FileNotFoundException("File does not exist: " + src);
@@ -526,7 +548,8 @@ implements NamespaceProtocol {
     }
 
     if(!node.isDir()) {
-      return new DirectoryListing(new HdfsFileStatus[] { node.getFileStatus() }, 0);
+      return new DirectoryListing(new HdfsFileStatus[] { (needLocation) ?
+          node.getLocatedFileStatus() : node.getFileStatus() }, 0);
     }
 
     List<INode> list = this.getListingInternal(node, startAfter, needLocation);
@@ -534,7 +557,8 @@ implements NamespaceProtocol {
     HdfsFileStatus[] retVal = new HdfsFileStatus[list.size()];
     int i = 0;
     for(INode child : list)
-      retVal[i++] = child.getFileStatus();
+      retVal[i++] = (needLocation) ? child.getLocatedFileStatus() :
+          child.getFileStatus();
     // We can say there is no more entries if the lsLimit is exhausted,
     // otherwise we know only that there could be one more entry
     return new DirectoryListing(retVal, list.size() < lsLimit ? 0 : 1);
@@ -554,7 +578,7 @@ implements NamespaceProtocol {
     for(Result result = rs.next();
         result != null && list.size() < lsLimit;
         result = rs.next()) {
-      list.add(newINodeByParent(key.getPath(), result));
+      list.add(newINodeByParent(key.getPath(), result, needLocation));
     }
 
     return list;
@@ -813,13 +837,30 @@ implements NamespaceProtocol {
       throws IOException {
   }
 
-  private INode newINodeByParent(String parent, Result result)
+  /**
+   * Fetch an INode by parent path, child result, with / without block locations.
+   * @param parent parent source path
+   * @param result Result row obtained from HBase by RowKey
+   * @param needLocation whether to grab block locations
+   * @return fully-constructed INode with / without block locations
+   * @throws IOException
+   */
+  private INode newINodeByParent(String parent, Result result, boolean needLocation)
       throws IOException {
     String cur = new Path(parent, getFileName(result)).toString();
-    return newINode(cur, result);
+    return newINode(cur, result, needLocation);
   }
 
-  private INode newINode(String src, Result result) throws IOException {
+  /**
+   * This private method is ultimately responsible for generating INode objects based
+   * on HBase rows and RowKeys.
+   * @param src source path
+   * @param result HBase row obtained by RowKey
+ * @param needLocation 
+   * @return fully constructed INode
+   * @throws IOException
+   */
+  private INode newINode(String src, Result result, boolean needLocation) throws IOException {
     RowKey key = RowKeyFactory.newInstance(src, result.getRow());
     INode iNode = new INode(
         getLength(result),
@@ -836,7 +877,7 @@ implements NamespaceProtocol {
         getDsQuota(result),
         getNsQuota(result),
         getState(result),
-        getBlocks(result));
+        (needLocation) ? getBlocks(result) : null);
     return iNode;
   }
 

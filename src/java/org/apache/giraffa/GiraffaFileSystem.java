@@ -44,7 +44,7 @@ import org.apache.hadoop.util.Progressable;
  * HDFS blocks, residing on DataNodes.
  */
 public class GiraffaFileSystem extends FileSystem {
-  private GiraffaClient grfaClient;
+  GiraffaClient grfaClient;
   private URI hdfsUri;
   private URI hbaseUri;
   private Path workingDir;
