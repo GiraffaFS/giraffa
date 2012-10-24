@@ -44,6 +44,7 @@ Release 0.0.1 - Unreleased
     Issue 14: Batch delete policy. (Plamen)
     Issue 20: DirectoryTable should use Map or Set instead of the
               ArrayList to store its directory entries. (Plamen)
+    Issue 52: Eliminate recursion in delete(). (Plamen)
 
   BUG FIXES
 

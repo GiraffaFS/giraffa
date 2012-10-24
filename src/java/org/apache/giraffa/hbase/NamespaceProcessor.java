@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.ListIterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -315,8 +316,9 @@ implements NamespaceProtocol {
   }
 
   /**
-   * Guarantees to atomically delete the source file first, and any subsequent
-   * files recursively if desired.
+   * Delete file(s). If recursive, will start from the lowest subtree, and
+   * working up the directory tree, breadth first. This is NOT atomic.
+   * If any failure occurs along the way, the deletion process will stop.
    */
   @Override // ClientProtocol
   public boolean delete(String src, boolean recursive) throws IOException {
@@ -362,13 +364,13 @@ implements NamespaceProtocol {
   }
 
   /** 
-   * The recursive function which first deletes all children within a directory
-   * then the directory itself.
+   * The psuedo-recursive function which first deletes all children within 
+   * a directory, then the directory itself.
    * If any of the children cannot be deleted the directory itself will not 
    * be deleted as well.
    *
-   * @param node
-   * @param recursive
+   * @param node the parent INode (a directory)
+   * @param recursive whether to delete entire subtree
    * @return true if the directory was actually deleted
    * @throws AccessControlException
    * @throws FileNotFoundException
@@ -378,25 +380,44 @@ implements NamespaceProtocol {
   private boolean deleteDirectory(INode node, boolean recursive) 
       throws AccessControlException, FileNotFoundException, 
       UnresolvedLinkException, IOException {
-    ArrayList<Delete> deletes = new ArrayList<Delete>();
-    List<INode> children = 
-        getListingInternal(node, HdfsFileStatus.EMPTY_NAME, false);
-    if(!recursive && children.size() > 0)
-        return false;
+    ArrayList<INode> directories = new ArrayList<INode>();
+    directories.add(node);
 
-    for(INode child : children) {
-      if(child.isDir()) {
-        if(! deleteDirectory(child, true))
-          return false;
-      } else  // add this key to batch delete
-        deletes.add(new Delete(child.getRowKey().getKey()));
+    // start loop descending the tree (breadth first, then depth)
+    for(int i = 0; i < directories.size(); i++) {
+      // get next directory INode in the list and it's Scanner
+      INode dir = directories.get(i);
+      RowKey key = dir.getRowKey();
+      ResultScanner rs = 
+          getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
+      // check against recursive boolean (only if at source)
+      if(i == 0 && !recursive && rs.iterator().hasNext())
+        return false;
+      // get immediate directory children
+      for(Result result = rs.next(); result != null; result = rs.next()) {
+        if(getDirectory(result))
+          directories.add(newINodeByParent(key.getPath(), result, false));
+      }
     }
 
-    // delete files
-    if(!deletes.isEmpty())
-      table.delete(deletes);
+    // start ascending the tree (breadth first, then depth)
+    // we do this by iterating through directories in reverse
+    ListIterator<INode> it = directories.listIterator(directories.size());
+    while(it.hasPrevious()) {
+      INode dir = it.previous();
+      ResultScanner rs = getListingScanner(dir.getRowKey(),
+          HdfsFileStatus.EMPTY_NAME);
+      ArrayList<Delete> deletes = new ArrayList<Delete>();
+      // schedule immediate children for deletion
+      for(Result result = rs.next(); result != null; result = rs.next()) {
+        deletes.add(new Delete(result.getRow()));
+      }
+      // perform delete (if non-empty)
+      if(!deletes.isEmpty())
+        table.delete(deletes);
+    }
 
-    // delete current directory
+    // delete source directory
     Delete delete = new Delete(node.getRowKey().getKey());
     table.delete(delete);
     return true;
@@ -564,15 +585,21 @@ implements NamespaceProtocol {
     return new DirectoryListing(retVal, list.size() < lsLimit ? 0 : 1);
   }
 
+  private ResultScanner getListingScanner(RowKey key, byte[] startAfter) 
+      throws IOException {
+    byte[] start = key.getStartListingKey(startAfter);
+    byte[] stop = key.getStopListingKey();
+    Scan scan = new Scan(start, stop);
+    ResultScanner rs = table.getScanner(scan);
+    return rs;
+  }
+
   private List<INode> getListingInternal(
       INode dir, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     RowKey key = dir.getRowKey();
-    byte[] start = key.getStartListingKey(startAfter);
-    byte[] stop = key.getStopListingKey();
-    Scan scan = new Scan(start, stop);
-    ResultScanner rs = table.getScanner(scan);
+    ResultScanner rs = getListingScanner(key, startAfter);
 
     ArrayList<INode> list = new ArrayList<INode>();
     for(Result result = rs.next();
