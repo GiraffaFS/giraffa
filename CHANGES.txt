@@ -29,6 +29,8 @@ Release 0.0.1 - Unreleased
     Issue 47: Remove directoryTable update from create() and mkdirs(). (shv)
     Issue 48: Structuring RowKey and INode APIs. (shv)
     Issue 50: Move row key cache into RowKeyFactory. (Plamen, shv)
+    Issue 43: TestHDFSCLI uses DFSAdmin which relies on
+              DistributedFileSystem. (Plamen)
 
   DOCUMENTATION
 
