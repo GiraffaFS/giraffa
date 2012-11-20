@@ -12,6 +12,7 @@ Release 0.0.1 - Unreleased
               NamespaceService. (shv)
     Issue 46: Add depth to FullPathRowKey to make directory entries local and
               implement getListing() as a scan. (shv)
+    Issue 15: Implement TestGiraffaCLI. (Plamen)
 
   IMPROVEMENTS
 
