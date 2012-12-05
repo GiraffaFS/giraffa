@@ -17,15 +17,12 @@
  */
 package org.apache.giraffa;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
-
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hdfs.GiraffaClient;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
@@ -37,7 +34,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class TestGiraffaFileStatus {
+  private static MiniHBaseCluster cluster;
   private static final String BASE_TEST_DIRECTORY = "build/test-data";
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
@@ -48,7 +49,7 @@ public class TestGiraffaFileStatus {
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, BASE_TEST_DIRECTORY);
-    UTIL.startMiniCluster(1);
+    cluster = UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -68,7 +69,7 @@ public class TestGiraffaFileStatus {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    UTIL.shutdownMiniCluster();
+    cluster.shutdown();
   }
 
   @Test

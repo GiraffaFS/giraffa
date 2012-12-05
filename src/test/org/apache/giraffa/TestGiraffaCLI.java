@@ -1,12 +1,10 @@
 package org.apache.giraffa;
 
-import static org.junit.Assert.assertTrue;
-
+import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URI;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.cli.CLITestHelper;
@@ -18,11 +16,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.io.Files;
+import static org.junit.Assert.assertTrue;
 
 /**
  * TestGiraffaCLI
@@ -33,6 +32,7 @@ import com.google.common.io.Files;
  * inside the test-data directory.
  */
 public class TestGiraffaCLI extends CLITestHelper {
+  private static MiniHBaseCluster cluster;
   private static final String TEST_FILES_DIR = "src/test/test-data";
   private static final String TEST_CONFIG_FILE = TEST_FILES_DIR+"/testHDFSConf.xml";
   private static final String GIRAFFA_TEST_URI = "grfa://localhost:9000";
@@ -70,7 +70,7 @@ public class TestGiraffaCLI extends CLITestHelper {
     FileUtils.copyDirectory(testFilesDir, testCacheDir);
 
     //start the cluster
-    UTIL.startMiniCluster(1);
+    cluster = UTIL.startMiniCluster(1);
     conf = new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaFileSystem.setDefaultUri(conf, new URI(GIRAFFA_TEST_URI));
     GiraffaFileSystem.format((GiraffaConfiguration) conf, false);
@@ -102,6 +102,7 @@ public class TestGiraffaCLI extends CLITestHelper {
         throw a;
       }
     }
+    cluster.shutdown();
   }
 
   @Override

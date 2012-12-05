@@ -17,60 +17,60 @@
  */
 package org.apache.giraffa;
 
-import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
-
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
  * Test common file system use cases.
  */
 public class TestGiraffaFS {
+  private static MiniHBaseCluster cluster;
   private static final String BASE_TEST_DIRECTORY = "build/test-data";
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
-  static GiraffaConfiguration conf;
   GiraffaFileSystem grfs;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, BASE_TEST_DIRECTORY);
-    UTIL.startMiniCluster(1);
-    conf = new GiraffaConfiguration(UTIL.getConfiguration());
-    GiraffaTestUtils.setGiraffaURI(conf);
-    GiraffaFileSystem.format(conf, false);
+    cluster = UTIL.startMiniCluster(1);
   }
 
   @Before
-  public void before() throws Exception {
+  public void before() throws IOException {
+    GiraffaConfiguration conf =
+        new GiraffaConfiguration(UTIL.getConfiguration());
+    GiraffaTestUtils.setGiraffaURI(conf);
+    GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 
   @After
-  public void after() throws Exception {
-    grfs.delete(new Path("."), true);
+  public void after() throws IOException {
     if(grfs != null) grfs.close();
   }
 
   @AfterClass
-  public static void afterClass() throws Exception {
-    UTIL.shutdownMiniCluster();
+  public static void afterClass() throws IOException {
+    cluster.shutdown();
   }
 
   @Test

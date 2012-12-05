@@ -17,25 +17,26 @@
  */
 package org.apache.giraffa;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.EOFException;
 import java.io.IOException;
-
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class TestBlockManagement {
+  private static MiniHBaseCluster cluster;
   private static final String BASE_TEST_DIRECTORY = "build/test-data";
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
@@ -45,13 +46,13 @@ public class TestBlockManagement {
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, BASE_TEST_DIRECTORY);
-    UTIL.startMiniCluster(1);
+    cluster = UTIL.startMiniCluster(1);
   }
 
   @Before
   public void before() throws IOException {
     GiraffaConfiguration conf =
-      new GiraffaConfiguration(UTIL.getConfiguration());
+        new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
@@ -63,8 +64,8 @@ public class TestBlockManagement {
   }
 
   @AfterClass
-  public static void afterClass() throws Exception {
-    UTIL.shutdownMiniCluster();
+  public static void afterClass() throws IOException {
+    cluster.shutdown();
   }
 
   @Test
@@ -113,7 +114,7 @@ public class TestBlockManagement {
     in.close();
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     TestBlockManagement test = new TestBlockManagement();
     GiraffaConfiguration conf =
       new GiraffaConfiguration(UTIL.getConfiguration());

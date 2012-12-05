@@ -63,3 +63,4 @@ Release 0.0.1 - Unreleased
     Issue 37: Replace tabs with spaces in grfa-default.xml (shv)
     Issue 45: setQuota and setSpaceQuota are broken. (Plamen)
     Issue 53: Implement needLocation logic in getListing(). (Plamen)
+    Issue 56: Unit tests failing on Mac OSX. (Plamen)

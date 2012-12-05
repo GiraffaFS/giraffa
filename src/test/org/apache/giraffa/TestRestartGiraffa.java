@@ -19,6 +19,7 @@ package org.apache.giraffa;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -26,7 +27,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
+
 public class TestRestartGiraffa {
+  private static MiniHBaseCluster cluster;
   private static final String BASE_TEST_DIRECTORY = "build/test-data";
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
@@ -36,11 +40,11 @@ public class TestRestartGiraffa {
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, BASE_TEST_DIRECTORY);
-    UTIL.startMiniCluster(1);
+    cluster = UTIL.startMiniCluster(1);
   }
 
   @Before
-  public void before() throws Exception {
+  public void before() throws IOException {
     GiraffaConfiguration conf =
       new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
@@ -49,13 +53,13 @@ public class TestRestartGiraffa {
   }
 
   @After
-  public void after() throws Exception {
+  public void after() throws IOException {
     if(grfs != null) grfs.close();
   }
 
   @AfterClass
-  public static void afterClass() throws Exception {
-    UTIL.shutdownMiniCluster();
+  public static void afterClass() throws IOException {
+    cluster.shutdown();
   }
 
   @Test
