@@ -65,3 +65,4 @@ Release 0.0.1 - Unreleased
     Issue 45: setQuota and setSpaceQuota are broken. (Plamen)
     Issue 53: Implement needLocation logic in getListing(). (Plamen)
     Issue 56: Unit tests failing on Mac OSX. (Plamen)
+    Issue 57: TestGiraffaUpgrade doesn't handle missing Qoutas. (Plamen)

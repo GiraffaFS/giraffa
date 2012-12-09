@@ -147,16 +147,26 @@ public class TestGiraffaUpgrade {
         } else {
           isDirectory = true;
         }
-        long nsQuota =
-            Long.parseLong(br.readLine().replace("      NS_QUOTA = ", "").trim());
-        long dsQuota =
-            Long.parseLong(br.readLine().replace("      DS_QUOTA = ", "").trim());
+
+        long nsQuota = -1;
+        long dsQuota = -1;
+
+        // When numOfBlocks == 0 there is no Quota information
+        if(numOfBlocks != 0) {
+          nsQuota =
+              Long.parseLong(br.readLine().replace("      NS_QUOTA = ", "").trim());
+          dsQuota =
+              Long.parseLong(br.readLine().replace("      DS_QUOTA = ", "").trim());
+        }
+
+        // Fetch permissions information
         String perms = br.readLine();
-        assert perms.equals("      PERMISSIONS");
+        assertTrue("Permissions were not next; corrupt FsImageOut?",
+            perms.equals("      PERMISSIONS"));
         String userName = br.readLine().replace("        USER_NAME = ", "").trim();
         String groupName = br.readLine().replace("        GROUP_NAME = ", "").trim();
-        FsPermission perm =
-            FsPermission.valueOf("-"+br.readLine().replace("        PERMISSION_STRING = ","").trim());
+        FsPermission perm = FsPermission.valueOf("-"+br.readLine()
+             .replace("        PERMISSION_STRING = ","").trim());
 
         // COMMIT IT!
         commitToHBase(path, replication, modTime, accessTime, blockSize, blocks,
@@ -253,6 +263,8 @@ public class TestGiraffaUpgrade {
           Long.parseLong(br.readLine().replace("          GENERATION_STAMP = ", "").trim());
       totalLength += blockLength;
     }
+    // PJJ: We need to replace LocatedBlocks in Giraffa with Blocks & Locations.
+    // This is just a work around for now to make it work.
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
     LocatedBlocks lbs =
         dfsCluster.getNameNode().getBlockLocations(path, 0, totalLength);
