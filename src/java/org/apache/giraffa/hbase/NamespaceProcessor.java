@@ -912,7 +912,8 @@ implements NamespaceProtocol {
     updateINode(node, null);
   }
 
-  private void updateINode(INode node, BlockAction ba) throws IOException {
+  private synchronized void updateINode(INode node, BlockAction ba)
+      throws IOException {
     long ts = now();
     RowKey key = node.getRowKey();
     Put put = new Put(key.getKey(), ts);
