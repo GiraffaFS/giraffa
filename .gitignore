@@ -17,6 +17,6 @@
 .project
 .settings
 .externalToolBuilders/
-build/
-dist/
-lib/
+target/
+*.iml
+.idea/

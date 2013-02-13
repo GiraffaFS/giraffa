@@ -1,0 +1,40 @@
+<project name="Maven" xmlns="http://maven.apache.org/DECORATION/1.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.0.0 http://maven.apache.org/xsd/decoration-1.0.0.xsd
+http://maven.apache.org/DECORATION/1.0.0 ">
+
+    <bannerLeft>
+        <name>Giraffa - A distributed highly available file system</name>
+    </bannerLeft>
+
+    <bannerRight>
+        <src>https://ssl.gstatic.com/codesite/ph/images/apacheextras.png</src>
+    </bannerRight>
+
+    <publishDate position="right"/>
+    <version position="right"/>
+
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>${maven-fluido-skin.version}</version>
+    </skin>
+
+    <custom>
+        <fluidoSkin>
+            <sideBarEnabled>true</sideBarEnabled>
+            <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
+        </fluidoSkin>
+    </custom>
+
+    <body>
+        <breadcrumbs>
+            <item name="Giraffa home" href="https://code.google.com/a/apache-extras.org/p/giraffa"/>
+            <item name="Downloads" href="https://code.google.com/a/apache-extras.org/p/giraffa/downloads/list"/>
+            <item name="Wiki" href="https://code.google.com/a/apache-extras.org/p/giraffa/w/list"/>
+            <item name="Issues" href="https://code.google.com/a/apache-extras.org/p/giraffa/issues/list"/>
+            <item name="Source" href="https://code.google.com/a/apache-extras.org/p/giraffa/source/checkout"/>
+        </breadcrumbs>
+        <menu ref="reports"/>
+    </body>
+</project>

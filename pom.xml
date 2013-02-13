@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-hdfs-giraffa</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <description>A distributed highly available file system using HDFS and HBase.</description>
+    <name>Giraffa</name>
+    <url>https://code.google.com/a/apache-extras.org/p/giraffa/</url>
+    <packaging>jar</packaging>
+
+    <prerequisites>
+        <maven>${mavenVersion}</maven>
+    </prerequisites>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>Apache Software Foundation</name>
+        <url>http://www.apache.org</url>
+    </organization>
+
+    <issueManagement>
+        <system>Google Code</system>
+        <url>http://code.google.com/a/apache-extras.org/p/giraffa/issues</url>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:https://code.google.com/a/apache-extras.org/p/giraffa/</connection>
+        <developerConnection>scm:git:https://code.google.com/a/apache-extras.org/p/giraffa/</developerConnection>
+        <url>https://code.google.com/a/apache-extras.org/p/giraffa/source/browse/?name=trunk</url>
+    </scm>
+
+    <properties>
+        <grfa.test.jar.filename>${basedir}/target/${project.build.finalName}.${project.packaging}</grfa.test.jar.filename>
+
+        <compileSource>1.6</compileSource>
+        <mavenVersion>2.2.1</mavenVersion>
+
+        <clover.license>${basedir}/src/test/clover/clover.license</clover.license>
+        <clover.path>${basedir}/clover</clover.path>
+        <clover.reportPath>${clover.path}/report</clover.reportPath>
+        <clover.enabled>true</clover.enabled>
+
+        <hadoop.version>0.22.0</hadoop.version>
+        <hbase.version>0.94.1</hbase.version>
+
+        <!-- maven plugin versions -->
+        <maven.surefire.plugin.version>2.13</maven.surefire.plugin.version>
+        <maven.license.plugin.version>1.10.b1</maven.license.plugin.version>
+        <maven.source.plugin.version>2.2.1</maven.source.plugin.version>
+        <maven.clover.plugin.version>3.1.10.1</maven.clover.plugin.version>
+        <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
+        <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+
+        <!-- reporting plugins -->
+        <maven-fluido-skin.version>1.3.0</maven-fluido-skin.version>
+        <maven.checkstyle.plugin>2.7</maven.checkstyle.plugin>
+        <maven.cobertura.plugin>2.5.1</maven.cobertura.plugin>
+        <maven.pmd.plugin>2.7.1</maven.pmd.plugin>
+        <maven.project.info.reports.plugin>2.6</maven.project.info.reports.plugin>
+        <maven.site.plugin>3.2</maven.site.plugin>
+        <maven.sonar.plugin>3.3.1</maven.sonar.plugin>
+        <maven.surefire.report.plugin>2.12.4</maven.surefire.report.plugin>
+        <maven.versions.plugin>1.3.1</maven.versions.plugin>
+        <maven.jxr.plugin>2.3</maven.jxr.plugin>
+        <maven.findbugs.plugin>2.5.2</maven.findbugs.plugin>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    </properties>
+
+    <dependencies>
+        <!-- Hadoop dependencies -->
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common-test</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs-test</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Hbase dependencies -->
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase</artifactId>
+            <version>${hbase.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- have to provide this dependency directly here,
+             otherwise clover pluging can't find some of guava classes during compilation -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>r09</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>scripts/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+       <pluginManagement>
+            <!-- TODO: move to parent pom -->
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.mycila.maven-license-plugin</groupId>
+                    <artifactId>maven-license-plugin</artifactId>
+                    <version>${maven.license.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven.source.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>${maven.site.plugin}</version>
+		     <configuration>
++                        <relativizeDecorationLinks>false</relativizeDecorationLinks>
++                   </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven.jar.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${compileSource}</source>
+                        <target>${compileSource}</target>
+                    </configuration>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-jar-artifact</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Xms256m -Xmx2056m -XX:MaxPermSize=256m
+                             -Dgrfa.test.jar.file=${grfa.test.jar.filename}
+                             -Dtest.cache.data=${basedir}/target/build/test/cache
+                    </argLine>
+                    <includes>
+                        <include>**/Test*.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.mycila.maven-license-plugin</groupId>
+                <artifactId>maven-license-plugin</artifactId>
+                <configuration>
+                    <header>src/header.txt</header>
+                    <strictCheck>true</strictCheck>
+                    <failIfMissing>true</failIfMissing>
+                    <includes>
+                        <include>src/main</include>
+                        <include>src/test/**</include>
+                    </includes>
+                    <excludes>
+                        <exclude>target/**</exclude>
+                        <exclude>build/**</exclude>
+                        <exclude>src/site/**</exclude>
+                        <exclude>src/test/clover/**</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/main/resources/scripts/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>${maven.jxr.plugin}</version>
+                <configuration>
+                    <aggregate>true</aggregate>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>site</id>
+                        <phase>pre-site</phase>
+                        <goals>
+                            <goal>jxr</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <reporting>
+        <outputDirectory>${project.build.directory}/site</outputDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>${maven.surefire.report.plugin}</version>
+                <configuration>
+                    <outputDirectory>${project.reporting.outputDirectory}/testresults</outputDirectory>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.plugin}</version>
+                <configuration>
+                    <!-- for all possible checkstyle modules see
+                    http://checkstyle.sourceforge.net/availablechecks.html -->
+                    <configLocation>${basedir}/src/site/check_style.xml</configLocation>
+                    <failsOnError>false</failsOnError>
+                    <enableRulesSummary>true</enableRulesSummary>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <propertyExpansion>
+                        cacheFile=${project.build.directory}/checkstyle-cachefile
+                    </propertyExpansion>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${maven.findbugs.plugin}</version>
+                <configuration>
+                    <jvmArgs>-Xmx256m -XX:MaxPermSize=256m</jvmArgs>
+                    <xmlOutput>true</xmlOutput>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>${maven.project.info.reports.plugin}</version>
+                <configuration>
+                    <dependencyDetailsEnabled>false</dependencyDetailsEnabled>
+                    <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>index</report>
+                            <report>summary</report>
+                            <report>dependencies</report>
+                            <report>issue-tracking</report>
+                            <report>scm</report>
+                            <report>license</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>${maven.pmd.plugin}</version>
+                <configuration>
+                    <aggregate>true</aggregate>
+                    <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+                    <!-- The minimum tokens before a violation -->
+                    <minimumTokens>100</minimumTokens>
+                    <!-- Turn off if no xref report -->
+                    <linkXRef>true</linkXRef>
+                    <minimumPriority>3</minimumPriority>
+                    <verbose>true</verbose>
+                    <targetJdk>${compileSource}</targetJdk>
+                    <failOnViolation>false</failOnViolation>
+                    <rulesetfiles>${basedir}/src/site/rules-pmd.xml</rulesetfiles>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+
+    <profiles>
+        <profile>
+            <id>clover</id>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.atlassian.maven.plugins</groupId>
+                        <artifactId>maven-clover2-plugin</artifactId>
+                        <version>${maven.clover.plugin.version}</version>
+                        <configuration>
+                            <baseDir>${project.basedir}</baseDir>
+                            <licenseLocation>${clover.license}</licenseLocation>
+                            <!--<snapshot>${clover.path}/snapshots/${groupId}-${artifactId}/clover.snapshot</snapshot>-->
+                            <cloverDatabase>${clover.path}/db/clover.db</cloverDatabase>
+                            <historyDir>${clover.path}/history</historyDir>
+                            <generateHistorical>true</generateHistorical>
+                            <outputDirectory>${clover.reportPath}/clover-report</outputDirectory>
+                            <generateHtml>true</generateHtml>
+                            <generateHistorical>true</generateHistorical>
+                            <includesTestSourceRoots>false</includesTestSourceRoots>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>setup</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+
+            <reporting>
+                <outputDirectory>${project.build.directory}/site</outputDirectory>
+                <plugins>
+                    <plugin>
+                        <groupId>com.atlassian.maven.plugins</groupId>
+                        <artifactId>maven-clover2-plugin</artifactId>
+                        <version>${maven.clover.plugin.version}</version>
+                        <configuration>
+                            <baseDir>${project.basedir}</baseDir>
+                            <licenseLocation>${clover.license}</licenseLocation>
+                            <!--<snapshot>${clover.path}/snapshots/${groupId}-${artifactId}/clover.snapshot</snapshot>-->
+                            <cloverDatabase>${clover.path}/db/clover.db</cloverDatabase>
+                            <historyDir>${clover.path}/history</historyDir>
+                            <generateHistorical>true</generateHistorical>
+                            <outputDirectory>${clover.reportPath}/clover-report</outputDirectory>
+                            <generateHtml>true</generateHtml>
+                            <generateHistorical>true</generateHistorical>
+                            <includesTestSourceRoots>false</includesTestSourceRoots>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </reporting>
+        </profile>
+    </profiles>
+
+</project>

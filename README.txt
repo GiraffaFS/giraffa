@@ -3,3 +3,23 @@ Giraffa is an Apache Extras project and
 is not an official project of the Apache Software Foundation.
 Giraffa project is related to Apache Hadoop and Apache HBase projects.
 Giraffa is licensed under Apache License 2.0.
+
+Considering that maven v3 is already installed:
+
+Build Giraffa jar:
+
+    mvn clean install
+
+Build Giraffa + Project site:
+
+    mvn clean site
+
+    When build is complete, open ${basedir}/target/site/index.html
+
+Build Project Site With Clover Report:
+
+    mvn -Pclover site
+
+    When build is complete, open ${basedir}/target/site/index.html
+
+Please note that clover plugin instruments source files and and it should be used for production.

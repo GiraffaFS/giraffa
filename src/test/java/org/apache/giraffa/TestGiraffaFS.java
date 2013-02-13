@@ -42,7 +42,6 @@ import static org.junit.Assert.fail;
  */
 public class TestGiraffaFS {
   private static MiniHBaseCluster cluster;
-  private static final String BASE_TEST_DIRECTORY = "build/test-data";
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
   GiraffaFileSystem grfs;
@@ -50,7 +49,7 @@ public class TestGiraffaFS {
   @BeforeClass
   public static void beforeClass() throws Exception {
     System.setProperty(
-        HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, BASE_TEST_DIRECTORY);
+        HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
     cluster = UTIL.startMiniCluster(1);
   }
 

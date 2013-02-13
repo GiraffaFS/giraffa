@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 
 public class GiraffaTestUtils {
   static final HBaseTestingUtility HB_UTIL = new HBaseTestingUtility();
+  public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
 
   public static URI getGiraffaURI() throws IOException {
     try {
