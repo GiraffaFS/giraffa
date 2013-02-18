@@ -117,8 +117,12 @@ implements NamespaceProtocol {
     LOG.info("Stopping NamespaceProcessor...");
     super.stop(env);
     try {
-      if(table != null) table.close();
-      table = null;
+      if(table != null) {
+        synchronized(table) {
+          table.close();
+          table = null;
+        }
+      }
     } catch (IOException e) {
       LOG.error("Cannot close table: ",e);
     }
@@ -134,7 +138,7 @@ implements NamespaceProtocol {
       table = ((RegionCoprocessorEnvironment)getEnvironment()).getTable(
           tableName.getBytes());
     } catch (IOException e) {
-      LOG.error("Cannot get table: " + table, e);
+      LOG.error("Cannot get table: " + tableName, e);
     }
   }
 
@@ -172,7 +176,10 @@ implements NamespaceProtocol {
     updateINode(iNode, BlockAction.ALLOCATE);
 
     // grab blocks back from HBase and return the latest one added
-    Result nodeInfo = table.get(new Get(iNode.getRowKey().getKey()));
+    Result nodeInfo;
+    synchronized(table) {
+      nodeInfo = table.get(new Get(iNode.getRowKey().getKey()));
+    }
     ArrayList<LocatedBlock> al = getBlocks(nodeInfo);
     LOG.info("Added block. File: " + src + " has " + al.size() + " block(s).");
     return al.get(al.size()-1);
@@ -351,7 +358,9 @@ implements NamespaceProtocol {
 
     // delete the child key atomically first
     Delete delete = new Delete(node.getRowKey().getKey());
-    table.delete(delete);
+    synchronized(table) {
+      table.delete(delete);
+    }
 
     // delete time penalty (resolves timestamp milliseconds issue)
     try {
@@ -414,12 +423,16 @@ implements NamespaceProtocol {
       }
       // perform delete (if non-empty)
       if(!deletes.isEmpty())
-        table.delete(deletes);
+        synchronized(table) {
+          table.delete(deletes);
+        }
     }
 
     // delete source directory
     Delete delete = new Delete(node.getRowKey().getKey());
-    table.delete(delete);
+    synchronized(table) {
+      table.delete(delete);
+    }
     return true;
   }
 
@@ -541,7 +554,10 @@ implements NamespaceProtocol {
    */
   private INode getINode(RowKey key, boolean needLocation) throws IOException {
     openTable();
-    Result nodeInfo = table.get(new Get(key.getKey()));
+    Result nodeInfo;
+    synchronized(table) {
+      nodeInfo = table.get(new Get(key.getKey()));
+    }
     if(nodeInfo.isEmpty()) {
       LOG.debug("File does not exist: " + key.getPath());
       return null;
@@ -590,8 +606,9 @@ implements NamespaceProtocol {
     byte[] start = key.getStartListingKey(startAfter);
     byte[] stop = key.getStopListingKey();
     Scan scan = new Scan(start, stop);
-    ResultScanner rs = table.getScanner(scan);
-    return rs;
+    synchronized(table) {
+      return table.getScanner(scan);
+    }
   }
 
   private List<INode> getListingInternal(
@@ -912,7 +929,7 @@ implements NamespaceProtocol {
     updateINode(node, null);
   }
 
-  private synchronized void updateINode(INode node, BlockAction ba)
+  private void updateINode(INode node, BlockAction ba)
       throws IOException {
     long ts = now();
     RowKey key = node.getRowKey();
@@ -957,7 +974,9 @@ implements NamespaceProtocol {
       put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
           Bytes.toBytes(ba.toString()));
 
-    table.put(put);
+    synchronized(table) {
+      table.put(put);
+    }
   }
 
   /**
