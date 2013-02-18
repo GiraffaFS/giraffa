@@ -56,7 +56,7 @@ Release 0.0.1 - Unreleased
 
   BUG FIXES
 
-    Issue 7:  Fix conversion to URI of the default jrfa.jar path. (shv)
+    Issue 7:  Fix conversion to URI of the default grfa.jar path. (shv)
     Issue 10: Need to expose clientName via GiraffaClient. (Plamen)
     Issue 21: Upgrade libraries for compatibility with HBase 0.94.1. (shv)
     Issue 40: Fix NameProcessor getBlockLocations() method errors. (Plamen)
@@ -71,3 +71,5 @@ Release 0.0.1 - Unreleased
     Issue 56: Unit tests failing on Mac OSX. (Plamen)
     Issue 57: TestGiraffaUpgrade doesn't handle missing Qoutas. (Plamen)
     Issue 62: NamespaceProcessor should synchronize on table. (shv)
+    Issue 63: Temporary blocks should be created directly via namenode proxy
+              rather than DFSClient. (shv)

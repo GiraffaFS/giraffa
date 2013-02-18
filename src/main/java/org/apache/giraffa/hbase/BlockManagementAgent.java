@@ -24,8 +24,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -34,7 +34,9 @@ import org.apache.giraffa.FileField;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -43,9 +45,11 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
+import org.apache.hadoop.io.EnumSetWritable;
 
 /**
  * BlockManagementAgent provides access to underlying block management layer.
@@ -247,13 +251,18 @@ private void removeBlockAction(List<KeyValue> kvs) {
    * @return LocatedBlock
    * @throws IOException
    */
+  @SuppressWarnings("deprecation")
   private LocatedBlock allocateBlockFile(ArrayList<LocatedBlock> blocks)
   throws IOException {
-    Path tmpFile = getTemporaryBlockPath();
+    String tmpFile = getTemporaryBlockPath().toString();
 
     // create temporary block file
-    OutputStream tmpOut = hdfs.create(tmpFile);
-    assert tmpOut != null : "File create never returns null";
+    DFSClient dfsClient = hdfs.getClient();
+    dfsClient.getNamenode().create(
+            tmpFile, FsPermission.getDefault(), clientName,
+            new EnumSetWritable<CreateFlag>(EnumSet.of(CreateFlag.CREATE)),
+            true, dfsClient.getDefaultReplication(), dfsClient.getDefaultBlockSize());
+    // assert tmpOut != null : "File create never returns null";
 
     // if previous block exists, get it
     Block previous = null;
@@ -266,14 +275,14 @@ private void removeBlockAction(List<KeyValue> kvs) {
 
     // add block and close previous
     LocatedBlock block = null;
-    block = hdfs.getClient().getNamenode().addBlock(
+    block = dfsClient.getNamenode().addBlock(
         tmpFile.toString(), clientName, previous, null);
     // Update block offset
     long offset = getFileSize(blocks);
     block = new LocatedBlock(block.getBlock(), block.getLocations(), offset);
 
     // rename temporary file to the Giraffa block file
-    hdfs.rename(tmpFile, getGiraffaBlockPath(block.getBlock()));
+    dfsClient.getNamenode().rename(tmpFile, getGiraffaBlockPath(block.getBlock()).toString());
     LOG.info("Allocated Giraffa block: " + block);
     return block;
   }
