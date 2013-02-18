@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.hadoop</groupId>
-    <artifactId>hadoop-hdfs-giraffa</artifactId>
+    <artifactId>giraffa</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <description>A distributed highly available file system using HDFS and HBase.</description>
@@ -41,12 +41,10 @@
     </scm>
 
     <properties>
-        <grfa.test.jar.filename>${basedir}/target/${project.build.finalName}.${project.packaging}</grfa.test.jar.filename>
-
         <compileSource>1.6</compileSource>
         <mavenVersion>2.2.1</mavenVersion>
 
-        <clover.license>${basedir}/src/test/clover/clover.license</clover.license>
+        <clover.license>~/.m2/clover.license</clover.license>
         <clover.path>${basedir}/clover</clover.path>
         <clover.reportPath>${clover.path}/report</clover.reportPath>
         <clover.enabled>true</clover.enabled>
@@ -209,13 +207,15 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xms256m -Xmx2056m -XX:MaxPermSize=256m
-                             -Dgrfa.test.jar.file=${grfa.test.jar.filename}
-                             -Dtest.cache.data=${basedir}/target/build/test/cache
-                    </argLine>
+                    <argLine>-Xms256m -Xmx2056m -XX:MaxPermSize=256m</argLine>
                     <includes>
                         <include>**/Test*.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <grfa.test.jar.file>${basedir}/target/${project.build.finalName}.jar</grfa.test.jar.file>
+                        <test.cache.data>${basedir}/target/build/test/cache</test.cache.data>
+                    </systemPropertyVariables>
+                    <forkMode>once</forkMode>
                 </configuration>
             </plugin>
 

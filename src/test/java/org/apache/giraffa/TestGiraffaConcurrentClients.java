@@ -52,6 +52,7 @@ public class TestGiraffaConcurrentClients {
   public void before() throws IOException {
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
+    conf.set(GiraffaConfiguration.GRFA_JAR_FILE_KEY, GiraffaTestUtils.TEST_GRFA_JAR_FILE);
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 512);
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);

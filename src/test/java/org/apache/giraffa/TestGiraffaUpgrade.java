@@ -85,6 +85,7 @@ public class TestGiraffaUpgrade {
   public void before() throws IOException {
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
+    conf.set(GiraffaConfiguration.GRFA_JAR_FILE_KEY, GiraffaTestUtils.TEST_GRFA_JAR_FILE);
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
