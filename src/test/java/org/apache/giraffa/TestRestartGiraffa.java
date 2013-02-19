@@ -59,7 +59,7 @@ public class TestRestartGiraffa {
 
   @AfterClass
   public static void afterClass() throws IOException {
-    cluster.shutdown();
+    if (cluster != null) cluster.shutdown();
   }
 
   @Test
@@ -70,9 +70,11 @@ public class TestRestartGiraffa {
     grfs.close();
 
     // restart the cluster
-    UTIL.shutdownMiniHBaseCluster();
+    cluster.shutdown();
+    cluster = null;
     Thread.sleep(2000);
     UTIL.restartHBaseCluster(1);
+    cluster = UTIL.getMiniHBaseCluster();
 
     GiraffaConfiguration conf =
       new GiraffaConfiguration(UTIL.getConfiguration());
