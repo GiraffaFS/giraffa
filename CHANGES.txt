@@ -73,3 +73,4 @@ Release 0.0.1 - Unreleased
     Issue 62: NamespaceProcessor should synchronize on table. (shv)
     Issue 63: Temporary blocks should be created directly via namenode proxy
               rather than DFSClient. (shv)
+    Issue 64: Fix OutOfMemoryError in TestGiraffaUpgrade. (Plamen)

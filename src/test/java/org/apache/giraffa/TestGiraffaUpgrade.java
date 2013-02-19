@@ -17,6 +17,10 @@
  */
 package org.apache.giraffa;
 
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.apache.hadoop.hdfs.server.common.Util.now;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -31,14 +35,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DFSTestUtil;
@@ -53,11 +57,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
-import static org.apache.hadoop.hdfs.server.common.Util.now;
 
 public class TestGiraffaUpgrade {
   private static MiniHBaseCluster cluster;
@@ -119,11 +118,14 @@ public class TestGiraffaUpgrade {
     // we now have the indented fsImage, write it into GRFA!
     BufferedReader br = new BufferedReader(new FileReader(TEST_IMAGE_FILE_OUT));
     assertTrue(parseIndentedFsImageOut(br));
+    br.close();
+
+    // check that the files appear in GRFA!
     assertTrue(fsUtil.checkFiles(grfa, "generateFsImage"));
 
     FileStatus[] stats = grfa.listStatus(new Path("/"));
     for (FileStatus stat : stats) {
-      System.out.println(stat);
+      System.out.println(stat.getPath().getName());
     }
   }
 
@@ -131,7 +133,7 @@ public class TestGiraffaUpgrade {
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
     NameNode nn = dfsCluster.getNameNode();
     FileSystem dfs = dfsCluster.getFileSystem();
-    fsUtil = new DFSTestUtil("generateFsImage", 1000, 5, 4096);
+    fsUtil = new DFSTestUtil("generateFsImage", 100, 5, 4096);
     fsUtil.createFiles(dfs, "generateFsImage");
     nn.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_ENTER);
     nn.saveNamespace();
@@ -200,9 +202,8 @@ public class TestGiraffaUpgrade {
                              long nsQuota, long dsQuota, String userName,
                              String groupName, FsPermission perm, long length) {
     try {
-      HTablePool pool = new HTablePool(cluster.getConfiguration(), 1);
-      HTableInterface table =
-          pool.getTable(GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
+      HTable table = new HTable(cluster.getConfiguration(),
+          GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
 
       long ts = now();
       RowKey key = new FullPathRowKey(path);
@@ -239,7 +240,10 @@ public class TestGiraffaUpgrade {
             .add(FileField.getFileAttributes(), FileField.getState(), ts,
                 Bytes.toBytes(GiraffaConstants.FileState.CLOSED.toString()));
 
-      table.put(put);
+      synchronized(table) {
+        table.put(put);
+        table.close();
+      }
       System.out.println("COMMITED: "+path+", with BLOCKS:"+blocks);
     } catch (IOException e) {
       System.err.println("Failed to commit INODE: "+path);
@@ -260,9 +264,7 @@ public class TestGiraffaUpgrade {
       }
       retVal = baos.toByteArray();
     } finally {
-      try {
-        out.close();
-      } catch (IOException ignored) {}
+      out.close();
     }
     return retVal;
   }
