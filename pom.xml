@@ -44,7 +44,7 @@
         <compileSource>1.6</compileSource>
         <mavenVersion>2.2.1</mavenVersion>
 
-        <clover.license>~/.m2/clover.license</clover.license>
+        <clover.license>${user.home}/.m2/clover.license</clover.license>
         <clover.path>${basedir}/clover</clover.path>
         <clover.reportPath>${clover.path}/report</clover.reportPath>
         <clover.enabled>true</clover.enabled>
@@ -216,6 +216,7 @@
                         <test.cache.data>${basedir}/target/build/test/cache</test.cache.data>
                     </systemPropertyVariables>
                     <forkMode>once</forkMode>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
             </plugin>
 
