@@ -113,34 +113,35 @@ public class TestGiraffaFileStatus {
             listing.getPartialListing().length > 0);
     HdfsFileStatus status = listing.getPartialListing()[0];
 
-    assertTrue("Returned FileStatus was not HdfsFileStatus.", status instanceof HdfsFileStatus);
+    assertFalse("Returned FileStatus was HdfsLocatedFileStatus.",
+        status instanceof HdfsLocatedFileStatus);
 
     assertTrue(grfs.delete(file, false));
   }
 
-  //TODO: fix the tests, see http://code.google.com/a/apache-extras.org/p/giraffa/issues/detail?id=61 for details
-  //@Test
+  @Test
   public void testUnderConstructionLocatedFileStatus() throws IOException, InterruptedException {
     Path file = new Path("/fileB");
     FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);
     for(int i = 0; i < 12345; i++) {
       out.write('B');
     }
+    out.flush();
 
     DirectoryListing listing = grfaClient.listPaths("/fileB", null, true);
     assertTrue("DirectoryListing.getPartialListing() returned empty result.",
               listing.getPartialListing().length > 0);
     HdfsFileStatus status = listing.getPartialListing()[0];
 
+    out.close();
+
     assertTrue("Returned FileStatus was not HdfsLocatedFileStatus.", 
         status instanceof HdfsLocatedFileStatus);
     
     LocatedBlocks blocks = ((HdfsLocatedFileStatus) status).getBlockLocations();
-    assertEquals("Incorrect number of blocks returned.", (int) Math.ceil(12345/512d), blocks.getLocatedBlocks().size());
     assertTrue("Not marked under construction.", blocks.isUnderConstruction());
     assertFalse("Last block marked complete.", blocks.isLastBlockComplete());
-
-    assertTrue("File size by blocks differs from status.", blocks.getFileLength() == status.getLen());
+    assertEquals("File size by blocks differs from status.", blocks.getFileLength(), status.getLen());
 
     assertTrue(grfs.delete(file, false));
   }

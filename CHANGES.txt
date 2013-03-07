@@ -77,3 +77,6 @@ Release 0.0.1 - Unreleased
     Issue 64: Fix OutOfMemoryError in TestGiraffaUpgrade. (Plamen)
     Issue 67: TestRestartGiraffa closes wrong cluster after restart. (shv)
     Issue 68: Do not print test output to the screen by default. (Konstantin P)
+    Issue 61: Incorrect number of blocks returned in
+              TestGiraffaFileStatus.testUnderConstructionLocatedFileStatus().
+              (Plamen)
