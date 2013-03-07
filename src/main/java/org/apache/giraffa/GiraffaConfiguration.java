@@ -24,8 +24,6 @@ import org.apache.hadoop.util.ReflectionUtils;
 
 public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_URI_SCHEME = "grfa";
-  public static final String  GRFA_JAR_FILE_KEY = "grfa.jar.file";
-  public static final String  GRFA_JAR_FILE_DEFAULT = "dist/lib/grfa.jar";
   public static final String  GRFA_TABLE_NAME_KEY = "grfa.table.name";
   public static final String  GRFA_TABLE_NAME_DEFAULT = "Namespace";
   public static final String  GRFA_ROW_KEY_KEY = "grfa.rowkey.class";

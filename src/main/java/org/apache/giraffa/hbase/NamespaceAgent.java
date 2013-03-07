@@ -62,7 +62,6 @@ import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
-import org.apache.hadoop.hdfs.server.common.Util;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
@@ -270,25 +269,15 @@ public class NamespaceAgent implements NamespaceService {
   throws IOException {
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    String jarFile = conf.get(GiraffaConfiguration.GRFA_JAR_FILE_KEY,
-        GiraffaConfiguration.GRFA_JAR_FILE_DEFAULT);
-    String coprocClass =
-        conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
-    Path jarPath = new Path(Util.stringAsURI(jarFile));
-    FileSystem jarFs = jarPath.getFileSystem(conf);
-    if(!jarFs.exists(jarPath)) {
-      LOG.fatal("grfa.jar file is missing!");
-      throw new IOException("grfa.jar file is missing in " + jarPath);
-    }
-    LOG.info("JAR file location is: " + jarPath);
     HTableDescriptor htd = new HTableDescriptor(tableName);
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
-    htd.addCoprocessor(coprocClass, jarPath, Coprocessor.PRIORITY_SYSTEM, null);
+    String coprocClass =
+        conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
+    htd.addCoprocessor(coprocClass, null, Coprocessor.PRIORITY_SYSTEM, null);
     LOG.info("Block management processor is set to: " + coprocClass);
-
     String nsProcClass = conf.get(
         GRFA_NAMESPACE_PROCESSOR_KEY, GRFA_NAMESPACE_PROCESSOR_DEFAULT);
-    htd.addCoprocessor(nsProcClass, jarPath, Coprocessor.PRIORITY_SYSTEM, null);
+    htd.addCoprocessor(nsProcClass, null, Coprocessor.PRIORITY_SYSTEM, null);
     LOG.info("Namespace processor is set to: " + nsProcClass);
     return htd;
   }

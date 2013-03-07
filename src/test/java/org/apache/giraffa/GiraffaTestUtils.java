@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,9 +29,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 
 public class GiraffaTestUtils {
-  static final HBaseTestingUtility HB_UTIL = new HBaseTestingUtility();
   public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
-  public static final String TEST_GRFA_JAR_FILE = System.getProperty("grfa.test.jar.file");
 
   public static URI getGiraffaURI() throws IOException {
     try {
@@ -52,7 +49,7 @@ public class GiraffaTestUtils {
 
   static void listStatusRecursive(
       ArrayList<FileStatus> results, FileSystem fs, Path f
-      ) throws FileNotFoundException, IOException {
+      ) throws IOException {
     FileStatus listing[] = fs.listStatus(f);
 
     for(FileStatus file : listing) {
@@ -63,7 +60,7 @@ public class GiraffaTestUtils {
   }
 
   public static FileStatus[] listStatusRecursive(FileSystem fs, Path f)
-  throws FileNotFoundException, IOException {
+      throws IOException {
     ArrayList<FileStatus> results = new ArrayList<FileStatus> ();
     listStatusRecursive(results, fs, f);
     return results.toArray(new FileStatus[results.size()]);

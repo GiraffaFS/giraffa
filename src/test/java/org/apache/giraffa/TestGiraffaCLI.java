@@ -89,10 +89,9 @@ public class TestGiraffaCLI extends CLITestHelper {
     //start the cluster
     cluster = UTIL.startMiniCluster(1);
     conf = new GiraffaConfiguration(UTIL.getConfiguration());
-    conf.set(GiraffaConfiguration.GRFA_JAR_FILE_KEY, GiraffaTestUtils.TEST_GRFA_JAR_FILE);
     GiraffaFileSystem.setDefaultUri(conf, new URI(GIRAFFA_TEST_URI));
     GiraffaFileSystem.format((GiraffaConfiguration) conf, false);
-    fs = GiraffaFileSystem.get(new URI(GIRAFFA_TEST_URI), (GiraffaConfiguration) conf);
+    fs = GiraffaFileSystem.get(new URI(GIRAFFA_TEST_URI), conf);
     assertTrue("Not a GiraffaFS: "+fs.getUri(), fs instanceof GiraffaFileSystem);
   }
 

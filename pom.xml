@@ -212,7 +212,6 @@
                         <include>**/Test*.java</include>
                     </includes>
                     <systemPropertyVariables>
-                        <grfa.test.jar.file>${basedir}/target/${project.build.finalName}.jar</grfa.test.jar.file>
                         <test.cache.data>${basedir}/target/build/test/cache</test.cache.data>
                     </systemPropertyVariables>
                     <forkMode>once</forkMode>

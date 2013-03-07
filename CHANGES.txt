@@ -37,6 +37,7 @@ Release 0.0.1 - Unreleased
     Issue 59: Migrate Giraffa to Maven build infrastructure. (Konstantin P)
     Issue 66: Rename artifact to giraffa, remove giraffa-site.xml from
               test resources. (Plamen)
+    Issue 70: Remove grfa.jar dependency. (Plamen)
 
   DOCUMENTATION
 
