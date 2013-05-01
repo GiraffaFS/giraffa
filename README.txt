@@ -22,4 +22,11 @@ Build Project Site With Clover Report:
 
     When build is complete, open ${basedir}/target/site/index.html
 
-Please note that clover plugin instruments source files and and it should be used for production.
+Please note that clover plugin instruments source files and and it should not be used
+for production.
+
+Run Giraffa Web UI in demo mode:
+
+    mvn -Pwebdemo
+
+to stop demo server, type "stop" in console

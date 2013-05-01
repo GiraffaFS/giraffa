@@ -52,6 +52,14 @@
         <hadoop.version>0.22.0</hadoop.version>
         <hbase.version>0.94.1</hbase.version>
 
+        <!-- Giraffa Web UI resources -->
+        <twitter.bootstrap.version>2.3.1</twitter.bootstrap.version>
+        <bootstrap.jasny.ext.version>2.3.0-j5</bootstrap.jasny.ext.version>
+        <jquery.version>1.8.3</jquery.version>
+        <jquery.form.version>3.28.0-2013.02.06</jquery.form.version>
+        <commons.fileupload.version>1.2.2</commons.fileupload.version>
+        <datatables.version>1.9.4</datatables.version>
+
         <!-- maven plugin versions -->
         <maven.surefire.plugin.version>2.13</maven.surefire.plugin.version>
         <maven.license.plugin.version>1.10.b1</maven.license.plugin.version>
@@ -59,6 +67,7 @@
         <maven.clover.plugin.version>3.1.10.1</maven.clover.plugin.version>
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
+        <exec.maven.plugin.version>1.2.1</exec.maven.plugin.version>
 
         <!-- reporting plugins -->
         <maven-fluido-skin.version>1.3.0</maven-fluido-skin.version>
@@ -91,6 +100,20 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mortbay.jetty</groupId>
+                    <artifactId>jsp-2.1-jetty</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-compiler</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -123,12 +146,43 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- have to provide this dependency directly here,
-             otherwise clover pluging can't find some of guava classes during compilation -->
+
+        <!-- Giraffa Web UI dependencies -->
+
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>r09</version>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>${commons.fileupload.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>${twitter.bootstrap.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jasny-bootstrap</artifactId>
+            <version>${bootstrap.jasny.ext.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery</artifactId>
+            <version>${jquery.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery-form</artifactId>
+            <version>${jquery.form.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>datatables</artifactId>
+            <version>${datatables.version}</version>
         </dependency>
 
     </dependencies>
@@ -183,6 +237,11 @@
                         <source>${compileSource}</source>
                         <target>${compileSource}</target>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec.maven.plugin.version}</version>
                 </plugin>
 
             </plugins>
@@ -278,6 +337,67 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>generate</id>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <target>
+                                <property name="build.webapps"
+                                          location="${project.build.directory}/hbase-webapps/giraffa"/>
+                                <property name="src.webapps"
+                                          location="${basedir}/src/main/resources/hbase-webapps/giraffa"/>
+                                <property name="generated.sources"
+                                          location="${project.build.directory}/generated-sources"/>
+
+                                <mkdir dir="${build.webapps}"/>
+                                <copy todir="${build.webapps}">
+                                    <fileset dir="${src.webapps}">
+                                        <exclude name="**/*.jsp"/>
+                                        <exclude name="**/.*"/>
+                                        <exclude name="**/*~"/>
+                                    </fileset>
+                                </copy>
+
+                                <!--The compile.classpath is passed in by maven-->
+                                <taskdef classname="org.apache.jasper.JspC" name="jspcompiler" classpathref="maven.compile.classpath"/>
+
+                                <mkdir dir="${build.webapps}/WEB-INF"/>
+                                <jspcompiler uriroot="${src.webapps}"
+                                             outputdir="${generated.sources}/java"
+                                             package="org.apache.giraffa.web"
+                                             webxml="${build.webapps}/WEB-INF/web.xml"/>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>jspcSource</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -362,8 +482,52 @@
 
     <profiles>
         <profile>
-            <id>clover</id>
+            <id>webdemo</id>
+            <build>
+                <defaultGoal>org.codehaus.mojo:exec-maven-plugin:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <executable>java</executable>
+                            <includeProjectDependencies>true</includeProjectDependencies>
+                            <includePluginDependencies>false</includePluginDependencies>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>-Xms1g</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-XX:MaxPermSize=512m</argument>
+                                <argument>-Dtest.cache.data=${basedir}/target/build/test/cache</argument>
+                                <!--<argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</argument>-->
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>org.apache.giraffa.web.GiraffaWebDemoRunner</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 
+        <profile>
+            <id>clover</id>
+            <dependencies>
+                <!-- have to provide this dependency directly here,
+                otherwise clover pluging can't find some of guava classes during compilation -->
+                <dependency>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                    <version>r09</version>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>

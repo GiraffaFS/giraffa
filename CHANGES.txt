@@ -15,6 +15,7 @@ Release 0.0.1 - Unreleased
     Issue 15: Implement TestGiraffaCLI. (Plamen)
     Issue 27: Implement a way to load FSImage into HBase. (Plamen)
     Issue 58: Add concurrency testing for Giraffa. (Plamen)
+    Issue 30: Add a webui for Giraffa (Konstantin P)
 
   IMPROVEMENTS
 

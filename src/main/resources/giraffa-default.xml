@@ -81,7 +81,17 @@
   <property>
     <name>grfa.jar.file</name>
     <value>dist/lib/grfa.jar</value>
-    <description>The location of the Giraffa jar file HBase to use to find the Coprocessor class.</description>
+    <description>The location of the Giraffa jar file HBase to use to find
+         the Coprocessor class.
+    </description>
+  </property>
+
+  <property>
+    <name>grfa.http-address</name>
+    <value>0.0.0.0:40010</value>
+    <description>
+        Giraffa UI http server address and port.
+    </description>
   </property>
 
 </configuration>

@@ -986,7 +986,8 @@ implements NamespaceProtocol {
    *  any sort of Exception happens.
    * @throws IOException
    */
-  static ArrayList<LocatedBlock> getBlocks(Result res) throws IOException {
+  public static ArrayList<LocatedBlock> getBlocks(Result res) throws
+       IOException {
     if(getDirectory(res))
       return null;
   
@@ -1003,65 +1004,65 @@ implements NamespaceProtocol {
     return blocks;
   }
 
-  static boolean getDirectory(Result res) {
+  public static boolean getDirectory(Result res) {
     return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());
   }
 
-  static short getReplication(Result res) {
+  public static short getReplication(Result res) {
     return Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getReplication()));
   }
 
-  static long getBlockSize(Result res) {
+  public static long getBlockSize(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getBlockSize()));
   }
 
-  static long getMTime(Result res) {
+  public static long getMTime(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getMTime()));
   }
 
-  static long getATime(Result res) {
+  public static long getATime(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getATime()));
   }
 
-  static FsPermission getPermissions(Result res) {
+  public static FsPermission getPermissions(Result res) {
     return new FsPermission(
         Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getPermissions())));
   }
 
-  static String getFileName(Result res) {
+  public static String getFileName(Result res) {
     return new String(res.getValue(FileField.getFileAttributes(),
                                    FileField.getFileName()));
   }
 
-  static String getUserName(Result res) {
+  public static String getUserName(Result res) {
     return new String(res.getValue(FileField.getFileAttributes(), FileField.getUserName()));
   }
 
-  static String getGroupName(Result res) {
+  public static String getGroupName(Result res) {
     return new String(res.getValue(FileField.getFileAttributes(), FileField.getGroupName()));
   }
 
-  static byte[] getSymlink(Result res) {
+  public static byte[] getSymlink(Result res) {
     return res.getValue(FileField.getFileAttributes(), FileField.getSymlink());
   }
 
-  static FileState getState(Result res) {
+  public static FileState getState(Result res) {
     if(getDirectory(res))
       return null;
     return FileState.valueOf(
         Bytes.toString(res.getValue(FileField.getFileAttributes(), FileField.getState())));
   }
 
-  static long getNsQuota(Result res) {
+  public static long getNsQuota(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getNsQuota()));
   }
 
-  static long getDsQuota(Result res) {
+  public static long getDsQuota(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getDsQuota()));
   }
 
   // Get file fields from Result
-  static long getLength(Result res) {
+ public static long getLength(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getLength()));
   }
 }

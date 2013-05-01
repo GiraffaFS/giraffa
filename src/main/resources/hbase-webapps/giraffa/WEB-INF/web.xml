@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://java.sun.com/xml/ns/javaee"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+        http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+        version="2.5">
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.index_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.index_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.stats_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.stats_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.filebrowser_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.filebrowser_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.hbase_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.hbase_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.htable_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.htable_jsp</servlet-class>
+    </servlet>
+
+    <servlet>
+        <servlet-name>org.apache.giraffa.web.namenode_jsp</servlet-name>
+        <servlet-class>org.apache.giraffa.web.namenode_jsp</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.index_jsp</servlet-name>
+        <url-pattern>/index.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.stats_jsp</servlet-name>
+        <url-pattern>/stats.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.filebrowser_jsp</servlet-name>
+        <url-pattern>/filebrowser.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.hbase_jsp</servlet-name>
+        <url-pattern>/hbase.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.htable_jsp</servlet-name>
+        <url-pattern>/htable.jsp</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>org.apache.giraffa.web.namenode_jsp</servlet-name>
+        <url-pattern>/namenode.jsp</url-pattern>
+    </servlet-mapping>
+
+</web-app>

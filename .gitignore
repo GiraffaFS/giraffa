@@ -19,4 +19,4 @@
 .externalToolBuilders/
 target/
 *.iml
-.idea/
+.idea/clover/*

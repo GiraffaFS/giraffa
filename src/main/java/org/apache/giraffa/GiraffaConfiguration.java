@@ -44,6 +44,10 @@ public class GiraffaConfiguration extends Configuration {
   public static final int     GRFA_LIST_LIMIT_DEFAULT =
                                   DFSConfigKeys.DFS_LIST_LIMIT_DEFAULT;
 
+
+  public static final String  GRFA_WEB_ADDRESS_KEY = "grfa.http-address";
+  public static final String  GRFA_WEB_ADDRESS_DEFAULT = "0.0.0.0:40010";
+
   static {
     // adds the default resources
     Configuration.addDefaultResource("giraffa-default.xml");
