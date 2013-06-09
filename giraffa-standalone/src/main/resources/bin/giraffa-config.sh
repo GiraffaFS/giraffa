@@ -81,11 +81,11 @@ CLASSPATH=${CLASSPATH}:$JAVA_HOME/lib/tools.jar
 IFS=
 
 # for developers, add Hadoop classes to CLASSPATH
-if [ -d "$GIRAFFA_HOME/build/classes" ]; then
-  GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$GIRAFFA_HOME/build/classes
+if [ -d "$GIRAFFA_HOME/target/classes" ]; then
+  GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$GIRAFFA_HOME/target/classes
 fi
-if [ -d "$GIRAFFA_HOME/build/test-classes" ]; then
-  GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$GIRAFFA_HOME/build/test-classes
+if [ -d "$GIRAFFA_HOME/target/test-classes" ]; then
+  GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$GIRAFFA_HOME/target/test-classes
 fi
 
 if [ -d "${GIRAFFA_HOME}/lib" ]; then
@@ -126,7 +126,7 @@ if [ "$HADOOP_HOME" = "" ]; then
     HADOOP_HOME=$GIRAFFA_HOME/../hadoop
   fi
 fi
-# HADOOP_CONF_DIR="$HADOOP_HOME/conf"
+HADOOP_CONF_DIR="$HADOOP_HOME/conf"
 
 if [ -d "${HADOOP_HOME}" ]; then
   for f in $HADOOP_HOME/hadoop-*.jar; do
@@ -148,11 +148,11 @@ if [ "$HBASE_HOME" = "" ]; then
     HBASE_HOME=$GIRAFFA_HOME/../hbase
   fi
 fi
-# HBASE_CONF_DIR="$HBASE_HOME/conf"
+HBASE_CONF_DIR="$HBASE_HOME/conf"
 
 if [ -d "${HBASE_HOME}" ]; then
   for f in ${HBASE_HOME}/hbase-*.jar; do
-    echo $f
+    # echo $f
     HBASE_CLASSPATH=${HBASE_CLASSPATH}:$f;
   done
 fi

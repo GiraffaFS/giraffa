@@ -69,22 +69,6 @@
   </property>
 
   <!-- Giraffa serve-side properties -->
-  <property>
-    <name>grfa.coprocessor.class</name>
-    <value>org.apache.giraffa.hbase.BlockManagementAgent</value>
-    <description>
-      Class that implements coprocessor for namespace table responsible for
-      managing block requests.
-    </description>
-  </property>
-
-  <property>
-    <name>grfa.jar.file</name>
-    <value>dist/lib/grfa.jar</value>
-    <description>The location of the Giraffa jar file HBase to use to find
-         the Coprocessor class.
-    </description>
-  </property>
 
   <property>
     <name>grfa.http-address</name>

@@ -54,10 +54,10 @@ cd "$HADOOP_HOME"
 . "$HADOOP_HOME"/bin/hdfs-config.sh
 
 echo "starting namenode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh --script "$bin"/hdfs start namenode $nameStartOpt
+"$HADOOP_HOME"/bin/hadoop-daemon.sh start namenode $nameStartOpt
 
 echo "starting datanode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh --script "$bin"/hdfs start datanode $dataStartOpt
+"$HADOOP_HOME"/bin/hadoop-daemon.sh start datanode $dataStartOpt
 
 # start hbase
 echo "HBASE_HOME = " $HBASE_HOME
