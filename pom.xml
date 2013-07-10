@@ -6,7 +6,7 @@
 
     <groupId>org.apache.hadoop</groupId>
     <artifactId>giraffa</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
 
     <description>A distributed highly available file system using HDFS and HBase.</description>
