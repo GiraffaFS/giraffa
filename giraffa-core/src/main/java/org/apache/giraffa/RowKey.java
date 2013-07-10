@@ -71,6 +71,7 @@ public abstract class RowKey {
 
   @Override // Object
   public String toString() {
-    return getClass().getSimpleName() + ": " + getKey() +" | " + getPath();
+    return getClass().getSimpleName() + ": " + RowKeyBytes.toString(getKey())
+        +" | " + getPath();
   }
 }

@@ -11,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaFileSystem;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -38,16 +39,16 @@ public class GiraffaFileServlet extends HttpServlet {
   private static final Log LOG = LogFactory.getLog(GiraffaFileServlet.class);
   private static final long serialVersionUID = 1L;
 
-  public static final String[] TEXT_FILE_EXT =
+  static final String[] TEXT_FILE_EXT =
       {".txt", ".proj", ".java", ".css", ".htm", ".html", ".xml", ".js"};
 
   private static final int TEXT_PREVIEW_SIZE = 1024 * 5; //5Kb
 
-  public static final SimpleDateFormat dateForm =
+  public final SimpleDateFormat dateForm =
       new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
-  private ObjectMapper mapper = new ObjectMapper();
-  private GiraffaFileSystem grfs;
+  private transient ObjectMapper mapper = new ObjectMapper();
+  private transient GiraffaFileSystem grfs;
 
   @Override
   public void init() throws ServletException {
@@ -160,8 +161,8 @@ public class GiraffaFileServlet extends HttpServlet {
     FileItem file = new FileItem(stat.getLen(), stat.isDirectory(),
         stat.getReplication(), stat.getBlockSize(), stat.getModificationTime(),
         stat.getAccessTime(), stat.getPermission(), stat.getOwner(),
-        stat.getGroup(), (stat.isSymlink() ? stat.getSymlink().toString().getBytes() :
-        null), rowKey);
+        stat.getGroup(), (stat.isSymlink() ? RowKeyBytes.toBytes(
+            stat.getSymlink().toString()) : null), rowKey);
     file.setTextFile(GiraffaWebUtils.endsWithAny(stat.getPath().toString(), TEXT_FILE_EXT));
     return file;
   }
@@ -262,7 +263,7 @@ public class GiraffaFileServlet extends HttpServlet {
     }
   }
 
-  class UploadResult {
+  static class UploadResult {
     List<String> success;
     List<String> error;
 

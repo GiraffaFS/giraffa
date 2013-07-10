@@ -55,7 +55,7 @@ public class GiraffaWebJsonWrappers {
       this.endKey = req.getParameter("endKey");
       this.endKeyPosition =
           StringUtils.isEmpty(req.getParameter("endKeyPosition")) ? 0 :
-              Integer.valueOf(req.getParameter("endKeyPosition"));
+              Integer.parseInt(req.getParameter("endKeyPosition"));
     }
 
     public int getIDisplayStart() {

@@ -74,7 +74,7 @@ public class INode {
     this.permission = perms;
     this.owner = owner;
     this.group = group;
-    this.symlink = symlink;
+    this.symlink = symlink == null ? null : symlink.clone();
     this.key = key;
     this.nsQuota = nsQuota;
     this.dsQuota = dsQuota;
@@ -87,7 +87,7 @@ public class INode {
   public HdfsFileStatus getFileStatus() {
     return new HdfsFileStatus(length, isdir, block_replication,
            blocksize, modification_time, access_time, permission,
-           owner, group, symlink, key.getPath().getBytes());
+           owner, group, symlink, RowKeyBytes.toBytes(key.getPath()));
   }
 
   public HdfsFileStatus getLocatedFileStatus() {
@@ -98,7 +98,8 @@ public class INode {
     blocks, lastBlock, isLastBlockComplete);
     return new HdfsLocatedFileStatus(length, isdir, block_replication,
             blocksize, modification_time, access_time, permission,
-            owner, group, symlink, key.getPath().getBytes(), locatedBlocks);
+            owner, group, symlink, RowKeyBytes.toBytes(key.getPath()),
+                locatedBlocks);
   }
 
   public RowKey getRowKey() {
@@ -182,7 +183,7 @@ public class INode {
   }
 
   public byte[] getSymlink() {
-    return symlink;
+    return symlink == null ? null : symlink.clone();
   }
 
   public List<LocatedBlock> getBlocks() {

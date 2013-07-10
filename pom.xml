@@ -122,6 +122,16 @@
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${exec.maven.plugin.version}</version>
                 </plugin>
+                <plugin>
+	                <groupId>org.codehaus.mojo</groupId>
+	                <artifactId>findbugs-maven-plugin</artifactId>
+	                <version>${maven.findbugs.plugin}</version>
+	                <configuration>
+	                    <jvmArgs>-Xmx256m -XX:MaxPermSize=256m</jvmArgs>
+	                    <xmlOutput>true</xmlOutput>
+	                    <excludeFilterFile>${basedir}/src/main/resources/findbugs-exclude.xml</excludeFilterFile>
+	                </configuration>
+            	</plugin>
 
             </plugins>
         </pluginManagement>

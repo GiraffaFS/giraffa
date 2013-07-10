@@ -18,6 +18,7 @@
 package org.apache.giraffa.web;
 
 import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaConstants;
 import org.apache.giraffa.GiraffaFileSystem;
 import org.apache.giraffa.GiraffaTestUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -55,7 +56,8 @@ public class GiraffaWebDemoRunner {
 
     String cmd = null;
     //  open up standard input
-    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    BufferedReader br = new BufferedReader(new InputStreamReader(System.in,
+        GiraffaConstants.UTF8));
     do {
       System.out.println("Enter 'stop' to shutdown:");
       try {
@@ -64,7 +66,7 @@ public class GiraffaWebDemoRunner {
         System.out.println("IO error trying to read command!");
         System.exit(1);
       }
-    } while (!cmd.equals("stop"));
+    } while (cmd == null || !cmd.equals("stop"));
 
     webDemoRunner.shutdown();
     System.exit(0);

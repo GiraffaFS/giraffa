@@ -6,6 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
@@ -38,8 +39,8 @@ public class GiraffaHbaseServlet extends HttpServlet {
   private static final Log LOG = LogFactory.getLog(GiraffaFileServlet.class);
   private static final long serialVersionUID = 1L;
 
-  private HTableInterface table;
-  private ObjectMapper mapper = new ObjectMapper();
+  private transient HTableInterface table;
+  private transient ObjectMapper mapper = new ObjectMapper();
 
   private static final long BLOCK_RESULT_LIMIT = 20;
   private static final long PAGING_FORWARD_PRESCAN = 10;
@@ -71,8 +72,8 @@ public class GiraffaHbaseServlet extends HttpServlet {
 
     ResultScanner resultScanner;
     if (!StringUtils.isEmpty(dataRequest.getEndKey())) {
-      RowKey rowKey = RowKeyFactory.newInstance(null, dataRequest.getEndKey()
-          .getBytes());
+      RowKey rowKey = RowKeyFactory.newInstance(null, RowKeyBytes.toBytes(
+          dataRequest.getEndKey()));
       s.setStartRow(rowKey.getKey());
       resultScanner = table.getScanner(s);
       resultScanner.next();
@@ -131,7 +132,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
       // 15 - replication
       // 16 - state
 
-      data.put(0, new String(r.getRow()));
+      data.put(0, RowKeyBytes.toString(r.getRow()));
 
       for (FileField entry : FileField.values()) {
         if (r.containsColumn(FileField.FILE_ATTRIBUTES.getBytes(),
@@ -156,8 +157,8 @@ public class GiraffaHbaseServlet extends HttpServlet {
             switch (entry) {
               case A_TIME:     data.put(7, NamespaceProcessor.getATime(r));     break;
               case M_TIME:     data.put(6, NamespaceProcessor.getMTime(r));     break;
-              case ACTION:     data.put(14, new String(r.getValue(FileField.
-                  getFileAttributes(), FileField.getAction())));                break;
+              case ACTION:     data.put(14, RowKeyBytes.toString(r.getValue(
+                  FileField.getFileAttributes(), FileField.getAction())));      break;
               case NAME:       data.put(1, NamespaceProcessor.getFileName(r));  break;
               case NS_QUOTA:   data.put(13, NamespaceProcessor.getNsQuota(r));  break;
               case BLOCK_SIZE: data.put(4, NamespaceProcessor.getBlockSize(r)); break;
@@ -170,6 +171,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
               case USER_NAME:  data.put(9, NamespaceProcessor.getUserName(r));  break;
               case SYMLINK:    data.put(11, NamespaceProcessor.getSymlink(r));  break;
               case STATE:      data.put(16, NamespaceProcessor.getState(r));    break;
+              default:                                                          break;
             }
           }
         }
@@ -211,7 +213,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
         .get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     try {
-      table = masterEnv.getTable(tableName.getBytes());
+      table = masterEnv.getTable(RowKeyBytes.toBytes(tableName));
     } catch (IOException e) {
       LOG.error("Cannot get table: " + tableName, e);
     }

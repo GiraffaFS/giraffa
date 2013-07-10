@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -77,7 +78,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
   private static final String GRFA_TMP_FILE_PREFFIX = "tmp_";
 
   private DistributedFileSystem hdfs;
-  private volatile long temporaryFileId;
+  private AtomicLong temporaryFileId;
   private String clientName;
 
   @Override // BaseRegionObserver
@@ -98,7 +99,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       LOG.error(msg);
       throw new IOException(msg);
     }
-    temporaryFileId = now();
+    temporaryFileId = new AtomicLong(now());
     clientName = getClientName();
   }
 
@@ -305,9 +306,8 @@ private void removeBlockAction(List<KeyValue> kvs) {
   }
 
   private Path getTemporaryBlockPath() {
-    temporaryFileId++;
     return new Path(GRFA_TMP_BLOCKS_DIR,
-        GRFA_TMP_FILE_PREFFIX + temporaryFileId);
+        GRFA_TMP_FILE_PREFFIX + temporaryFileId.incrementAndGet());
   }
 
   String getGiraffaBlockName(Block block) {

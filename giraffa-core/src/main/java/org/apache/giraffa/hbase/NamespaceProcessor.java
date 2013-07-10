@@ -35,6 +35,7 @@ import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
+import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
@@ -136,7 +137,7 @@ implements NamespaceProtocol {
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     try {
       table = ((RegionCoprocessorEnvironment)getEnvironment()).getTable(
-          tableName.getBytes());
+          RowKeyBytes.toBytes(tableName));
     } catch (IOException e) {
       LOG.error("Cannot get table: " + tableName, e);
     }
@@ -935,11 +936,11 @@ implements NamespaceProtocol {
     RowKey key = node.getRowKey();
     Put put = new Put(key.getKey(), ts);
     put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-            new Path(key.getPath()).getName().getBytes())
+            RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
         .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
-            node.getOwner().getBytes())
+            RowKeyBytes.toBytes(node.getOwner()))
         .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
-            node.getGroup().getBytes())
+            RowKeyBytes.toBytes(node.getGroup()))
         .add(FileField.getFileAttributes(), FileField.getLength(), ts,
             Bytes.toBytes(node.getLen()))
         .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
@@ -1030,16 +1031,18 @@ implements NamespaceProtocol {
   }
 
   public static String getFileName(Result res) {
-    return new String(res.getValue(FileField.getFileAttributes(),
+    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
                                    FileField.getFileName()));
   }
 
   public static String getUserName(Result res) {
-    return new String(res.getValue(FileField.getFileAttributes(), FileField.getUserName()));
+    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
+        FileField.getUserName()));
   }
 
   public static String getGroupName(Result res) {
-    return new String(res.getValue(FileField.getFileAttributes(), FileField.getGroupName()));
+    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
+        FileField.getGroupName()));
   }
 
   public static byte[] getSymlink(Result res) {

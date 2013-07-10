@@ -18,27 +18,27 @@
 package org.apache.giraffa;
 
 public enum FileField {
-  REPLICATION ("replication".getBytes()),
-  USER_NAME ("userName".getBytes()),
-  GROUP_NAME ("groupName".getBytes()),
-  LENGTH ("length".getBytes()),
-  DS_QUOTA ("dsQuota".getBytes()),
-  NS_QUOTA ("nsQuota".getBytes()),
-  M_TIME ("mtime".getBytes()),
-  A_TIME ("atime".getBytes()),
-  PERMISSIONS ("permissions".getBytes()),
-  NAME ("src".getBytes()),
-  STATE ("state".getBytes()),
-  ACTION ("action".getBytes()),
-  SYMLINK ("symlink".getBytes()),
-  DIRECTORY ("directory".getBytes()),
-  BLOCK_SIZE ("blockSize".getBytes()),
-  BLOCK ("block".getBytes()),
-  FILE_ATTRIBUTES ("default".getBytes());
+  REPLICATION (RowKeyBytes.toBytes("replication")),
+  USER_NAME (RowKeyBytes.toBytes("userName")),
+  GROUP_NAME (RowKeyBytes.toBytes("groupName")),
+  LENGTH (RowKeyBytes.toBytes("length")),
+  DS_QUOTA (RowKeyBytes.toBytes("dsQuota")),
+  NS_QUOTA (RowKeyBytes.toBytes("nsQuota")),
+  M_TIME (RowKeyBytes.toBytes("mtime")),
+  A_TIME (RowKeyBytes.toBytes("atime")),
+  PERMISSIONS (RowKeyBytes.toBytes("permissions")),
+  NAME (RowKeyBytes.toBytes("src")),
+  STATE (RowKeyBytes.toBytes("state")),
+  ACTION (RowKeyBytes.toBytes("action")),
+  SYMLINK (RowKeyBytes.toBytes("symlink")),
+  DIRECTORY (RowKeyBytes.toBytes("directory")),
+  BLOCK_SIZE (RowKeyBytes.toBytes("blockSize")),
+  BLOCK (RowKeyBytes.toBytes("block")),
+  FILE_ATTRIBUTES (RowKeyBytes.toBytes("default"));
 
   private byte[] bytes = null;
   private FileField(byte[] arg) {this.bytes = arg;}
-  public byte[] getBytes() {return bytes;}
+  public byte[] getBytes() {return bytes == null ? null : bytes.clone();}
 
   public static byte[] getReplication() {
     return REPLICATION.bytes;

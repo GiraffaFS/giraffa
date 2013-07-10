@@ -22,4 +22,5 @@ public interface GiraffaConstants {
     CLOSED, UNDER_CONSTRUCTION, DELETED
   }
 
+  public static final String UTF8 = "UTF-8";
 }

@@ -89,12 +89,12 @@ public class FullPathRowKey extends RowKey implements Serializable {
   public byte[] getKey() {
     if(bytes == null)
       bytes = generateKey();
-    return bytes;
+    return bytes == null ? null : bytes.clone();
   }
 
   @Override // RowKey
   public byte[] generateKey() {
-    return Bytes.add(Bytes.toBytes(depth), path.getBytes());
+    return Bytes.add(Bytes.toBytes(depth), RowKeyBytes.toBytes(path));
   }
 
   @Override // RowKey
