@@ -39,6 +39,7 @@ Release 0.0.1 - Unreleased
     Issue 66: Rename artifact to giraffa, remove giraffa-site.xml from
               test resources. (Plamen)
     Issue 70: Remove grfa.jar dependency. (Plamen)
+    Issue 55: Upgrade to Hadoop 2. (Milan)
 
   DOCUMENTATION
 

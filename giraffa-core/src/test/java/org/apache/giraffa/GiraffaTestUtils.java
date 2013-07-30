@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 
 public class GiraffaTestUtils {
   public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
@@ -44,7 +45,10 @@ public class GiraffaTestUtils {
   }
 
   public static HBaseTestingUtility getHBaseTestingUtility() {
-    return new HBaseTestingUtility();
+    Configuration conf = new Configuration();
+    conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
+        DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
+    return new HBaseTestingUtility(conf);
   }
 
   static void listStatusRecursive(

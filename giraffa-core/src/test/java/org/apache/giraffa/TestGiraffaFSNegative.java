@@ -26,7 +26,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -45,7 +44,7 @@ public class TestGiraffaFSNegative {
   private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
-  private GiraffaFileSystem grfs;
+  private static GiraffaFileSystem grfs;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -63,13 +62,9 @@ public class TestGiraffaFSNegative {
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 
-  @After
-  public void after() throws IOException {
-    if(grfs != null) grfs.close();
-  }
-
   @AfterClass
   public static void afterClass() throws IOException {
+    if(grfs != null) grfs.close();
     cluster.shutdown();
   }
 
@@ -244,7 +239,7 @@ public class TestGiraffaFSNegative {
 
     System.out.println("SETTING PERMISSION OF \"folder2\" TO 777");
     try {
-      grfs.setPermission(new Path("folder2"), new FsPermission((short) 777));
+      grfs.setPermission(new Path("folder2"), new FsPermission((short) 0777));
       fail();
     } catch (FileNotFoundException e) {
       //must catch
@@ -288,8 +283,7 @@ public class TestGiraffaFSNegative {
       new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaFileSystem.format(conf, true);
     GiraffaTestUtils.setGiraffaURI(conf);
-    test.grfs = (GiraffaFileSystem) FileSystem.get(conf);
+    grfs = (GiraffaFileSystem) FileSystem.get(conf);
     test.testRootDeletion();
-    test.after();
   }
 }

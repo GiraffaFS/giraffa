@@ -17,6 +17,23 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
+import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BYTES_PER_CHECKSUM_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BYTES_PER_CHECKSUM_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CHECKSUM_TYPE_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CHECKSUM_TYPE_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_WRITE_PACKET_SIZE_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_CLIENT_WRITE_PACKET_SIZE_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_ENCRYPT_DATA_TRANSFER_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_ENCRYPT_DATA_TRANSFER_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -42,32 +59,35 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.TableNotFoundException;
+import org.apache.hadoop.hbase.exceptions.TableNotFoundException;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
-import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
-import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
-import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
-import org.apache.hadoop.hdfs.protocol.FSConstants.UpgradeAction;
+import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
+import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
-import org.apache.hadoop.hdfs.server.common.UpgradeStatusReport;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.retry.Idempotent;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.DataChecksum;
 
  /**
   * NamespaceAgent is the proxy used by DFSClient to communicate with HBase
@@ -90,6 +110,7 @@ public class NamespaceAgent implements NamespaceService {
 
   private HBaseAdmin hbAdmin;
   private HTableInterface nsTable;
+  private FsServerDefaults serverDefaults;
 
   private static final Log LOG =
     LogFactory.getLog(NamespaceAgent.class.getName());
@@ -102,6 +123,29 @@ public class NamespaceAgent implements NamespaceService {
     this.hbAdmin = new HBaseAdmin(conf);
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    
+    // Get the checksum type from config
+    String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY,
+        DFS_CHECKSUM_TYPE_DEFAULT);
+    DataChecksum.Type checksumType;
+    try {
+       checksumType = DataChecksum.Type.valueOf(checksumTypeStr);
+    } catch (IllegalArgumentException iae) {
+       throw new IOException("Invalid checksum type in "
+          + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
+    }
+    
+    this.serverDefaults = new FsServerDefaults(
+        conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
+        conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),
+        conf.getInt(DFS_CLIENT_WRITE_PACKET_SIZE_KEY,
+            DFS_CLIENT_WRITE_PACKET_SIZE_DEFAULT),
+        (short) conf.getInt(DFS_REPLICATION_KEY, DFS_REPLICATION_DEFAULT),
+        conf.getInt(IO_FILE_BUFFER_SIZE_KEY, IO_FILE_BUFFER_SIZE_DEFAULT),
+        conf.getBoolean(DFS_ENCRYPT_DATA_TRANSFER_KEY,
+            DFS_ENCRYPT_DATA_TRANSFER_DEFAULT),
+        conf.getLong(FS_TRASH_INTERVAL_KEY, FS_TRASH_INTERVAL_DEFAULT),
+        checksumType);
 
     try {
       this.nsTable = new HTable(hbAdmin.getConfiguration(), tableName);
@@ -110,29 +154,30 @@ public class NamespaceAgent implements NamespaceService {
     }
   }
 
-  private NamespaceProtocol getRegionProxy(String src) throws IOException {
+  private ClientProtocol getRegionProxy(String src) throws IOException {    
     return getRegionProxy(RowKeyFactory.newInstance(src));
   }
 
-  NamespaceProtocol getRegionProxy(RowKey key) throws IOException {
-    return nsTable.coprocessorProxy(NamespaceProtocol.class, key.getKey());
-  }
+   ClientProtocol getRegionProxy(RowKey key) throws IOException {
+     CoprocessorRpcChannel coprocRpc = nsTable.coprocessorService(key.getKey());
+     return new GiraffaRpc(coprocRpc);
+   }
 
   @Override // ClientProtocol
-  public void abandonBlock(Block b, String src, String holder)
+  public void abandonBlock(ExtendedBlock b, String src, String holder)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.abandonBlock(b, src, holder);
   }
 
   @Override // ClientProtocol
   public LocatedBlock addBlock(
-      String src, String clientName, Block previous, DatanodeInfo[] excludeNodes)
+      String src, String clientName, ExtendedBlock previous, DatanodeInfo[] excludeNodes)
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     LocatedBlock blk = proxy.addBlock(src, clientName, previous, excludeNodes);
     if(blk == null)
       throw new FileNotFoundException("File does not exist: " + src);
@@ -154,10 +199,10 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public boolean complete(String src, String clientName, Block last)
+  public boolean complete(String src, String clientName, ExtendedBlock last)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     boolean res = proxy.complete(src, clientName, last);
     if(!res)
       throw new FileNotFoundException("File does not exist: " + src);
@@ -183,7 +228,7 @@ public class NamespaceAgent implements NamespaceService {
     if(new Path(src).getParent() == null)
       throw new IOException("Root cannot be a file.");
 
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.create(src, masked, clientName, createFlag, createParent,
         replication, blockSize);
   }
@@ -216,14 +261,8 @@ public class NamespaceAgent implements NamespaceService {
       throw new FileNotFoundException("Parent does not exist.");
     }
 
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     return proxy.delete(src, recursive);
-  }
-
-  @Override // ClientProtocol
-  public UpgradeStatusReport distributedUpgradeProgress(UpgradeAction action)
-      throws IOException {
-    throw new IOException("distributed upgrade is not supported");
   }
 
   @Override // ClientProtocol
@@ -292,7 +331,7 @@ public class NamespaceAgent implements NamespaceService {
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     LocatedBlocks lbs = proxy.getBlockLocations(src, offset, length);
     if(lbs == null)
       throw new FileNotFoundException("File does not exist: " + src);
@@ -303,7 +342,7 @@ public class NamespaceAgent implements NamespaceService {
   public ContentSummary getContentSummary(String path)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(path);
+    ClientProtocol proxy = getRegionProxy(path);
     ContentSummary summary = proxy.getContentSummary(path);
     return summary;
   }
@@ -323,7 +362,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // ClientProtocol
   public HdfsFileStatus getFileInfo(String src) throws AccessControlException,
       FileNotFoundException, UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     HdfsFileStatus fStatus = proxy.getFileInfo(src);
     return fStatus;
   }
@@ -344,7 +383,9 @@ public class NamespaceAgent implements NamespaceService {
   public DirectoryListing getListing(
       String src, byte[] startAfter, boolean needLocation)
       throws IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    if(startAfter == null)
+      startAfter = new byte[0];
+    ClientProtocol proxy = getRegionProxy(src);
     DirectoryListing files = proxy.getListing(src, startAfter, needLocation);
     return files;
   }
@@ -352,7 +393,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // ClientProtocol
   public long getPreferredBlockSize(String filename) throws IOException,
       UnresolvedLinkException {
-    NamespaceProtocol proxy = getRegionProxy(filename);
+    ClientProtocol proxy = getRegionProxy(filename);
     long blockSize = proxy.getPreferredBlockSize(filename);
     if(blockSize < 0)
       throw new FileNotFoundException("File does not exist: " + filename);
@@ -360,17 +401,8 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public long getProtocolVersion(String protocol, long clientVersion)
-      throws IOException {
-    if (protocol.equals(ClientProtocol.class.getName()))
-      return ClientProtocol.versionID;
-    else
-      throw new IOException("Unknown protocol: " + protocol);
-  }
-
-  @Override // ClientProtocol
   public FsServerDefaults getServerDefaults() throws IOException {
-    throw new IOException("getServerDefaults is not supported");
+    return this.serverDefaults;
   }
 
   @Override // ClientProtocol
@@ -389,7 +421,7 @@ public class NamespaceAgent implements NamespaceService {
       FileNotFoundException, NSQuotaExceededException,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
       IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     boolean created = proxy.mkdirs(src, masked, createParent);
     if(!createParent && !created)
       throw new FileNotFoundException("File does not exist: " + src);
@@ -413,7 +445,7 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public void rename(String src, String dst, Rename... options)
+  public void rename2(String src, String dst, Rename... options)
       throws AccessControlException, DSQuotaExceededException,
       FileAlreadyExistsException, FileNotFoundException,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
@@ -450,7 +482,7 @@ public class NamespaceAgent implements NamespaceService {
   public void setOwner(String src, String username, String groupname)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.setOwner(src, username, groupname);
   }
 
@@ -458,7 +490,7 @@ public class NamespaceAgent implements NamespaceService {
   public void setPermission(String src, FsPermission permission)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.setPermission(src, permission);
   }
 
@@ -466,7 +498,7 @@ public class NamespaceAgent implements NamespaceService {
   public void setQuota(String src, long namespaceQuota, long diskspaceQuota)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.setQuota(src, namespaceQuota, diskspaceQuota);
   }
 
@@ -475,7 +507,7 @@ public class NamespaceAgent implements NamespaceService {
       throws AccessControlException, DSQuotaExceededException,
       FileNotFoundException, SafeModeException, UnresolvedLinkException,
       IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     return proxy.setReplication(src, replication);
   }
 
@@ -488,19 +520,19 @@ public class NamespaceAgent implements NamespaceService {
   public void setTimes(String src, long mtime, long atime)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    NamespaceProtocol proxy = getRegionProxy(src);
+    ClientProtocol proxy = getRegionProxy(src);
     proxy.setTimes(src, mtime, atime);
   }
 
   @Override // ClientProtocol
-  public LocatedBlock updateBlockForPipeline(Block block, String clientName)
+  public LocatedBlock updateBlockForPipeline(ExtendedBlock block, String clientName)
       throws IOException {
     return null;
   }
 
   @Override // ClientProtocol
   public void updatePipeline(
-      String clientName, Block oldBlock, Block newBlock, DatanodeID[] newNodes)
+      String clientName, ExtendedBlock oldBlock, ExtendedBlock newBlock, DatanodeID[] newNodes)
       throws IOException {
   }
 
@@ -508,5 +540,36 @@ public class NamespaceAgent implements NamespaceService {
   public void close() throws IOException {
     nsTable.close();
     hbAdmin.close();
+  }
+
+  @Override
+  public LocatedBlock getAdditionalDatanode(String src, ExtendedBlock blk,
+      DatanodeInfo[] existings, DatanodeInfo[] excludes, int numAdditionalNodes,
+      String clientName) throws AccessControlException, FileNotFoundException,
+      SafeModeException, UnresolvedLinkException, IOException {
+    ClientProtocol proxy = getRegionProxy(src);
+    return proxy.getAdditionalDatanode(src, blk, existings, excludes, numAdditionalNodes, clientName);
+  }
+
+  @Override
+  public CorruptFileBlocks listCorruptFileBlocks(String arg0, String arg1)
+      throws IOException {
+    throw new IOException("corrupt file block listing is not supported");
+  }
+
+  @Override
+  public void setBalancerBandwidth(long arg0) throws IOException {
+    throw new IOException("bandwidth balancing is not supported");
+  }
+
+  @Override
+  @Idempotent
+  public long rollEdits() throws AccessControlException, IOException {
+    throw new IOException("rollEdits is not supported");
+  }
+
+  @Override
+  public DataEncryptionKey getDataEncryptionKey() throws IOException {
+    throw new IOException("data encryption is not supported");
   }
 }

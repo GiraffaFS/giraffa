@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.hadoop.hdfs.server.common.Util.now;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -38,8 +36,11 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -49,7 +50,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
+import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.io.EnumSetWritable;
 
 /**
@@ -122,8 +126,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   @Override // BaseRegionObserver
   public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put,
-      WALEdit edit, boolean writeToWAL) throws IOException {
-    List<KeyValue> kvs = put.getFamilyMap().get(FileField.getFileAttributes());
+                     WALEdit edit, Durability durability) throws IOException {
+    List<KeyValue> kvs = getKeyValues(put);
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
       return;
@@ -134,6 +138,17 @@ public class BlockManagementAgent extends BaseRegionObserver {
     } else if(blockAction.equals(BlockAction.DELETE)) {
       deleteBlocks(kvs);
     }
+  }
+
+  private List<KeyValue> getKeyValues(Put put) {
+    List<? extends Cell> cells =
+        put.getFamilyMap().get(FileField.getFileAttributes());
+    List<KeyValue> kvs = new ArrayList<KeyValue>(cells.size());
+    for(Cell cell : cells) {
+      kvs.add(KeyValueUtil.ensureKeyValue(cell));
+    }
+    put.getFamilyMap().put(FileField.getFileAttributes(), kvs);
+    return kvs;
   }
 
   private void deleteBlocks(List<KeyValue> kvs) {
@@ -210,6 +225,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
    * Calls allocateBlockFile to create a new block for the file if and only if
    * we are modifying the Block column in HBase via this put.
    * 
+   *
    * @param kvs
    * @throws IOException
    */
@@ -266,7 +282,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
     // assert tmpOut != null : "File create never returns null";
 
     // if previous block exists, get it
-    Block previous = null;
+    ExtendedBlock previous = null;
     if(!blocks.isEmpty()) {
       previous = blocks.get(blocks.size() - 1).getBlock();
       // Close file for the previous block
@@ -277,7 +293,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
     // add block and close previous
     LocatedBlock block = null;
     block = dfsClient.getNamenode().addBlock(
-        tmpFile.toString(), clientName, previous, null);
+        tmpFile.toString(), clientName, null, null);
     // Update block offset
     long offset = getFileSize(blocks);
     block = new LocatedBlock(block.getBlock(), block.getLocations(), offset);
@@ -288,7 +304,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
     return block;
   }
 
-  private void closeBlockFile(Block block) throws IOException {
+  private void closeBlockFile(ExtendedBlock block) throws IOException {
     boolean isClosed = false;
     while(!isClosed) {
       isClosed = hdfs.getClient().getNamenode().complete(
@@ -314,11 +330,11 @@ private void removeBlockAction(List<KeyValue> kvs) {
     return GRFA_BLOCK_FILE_PREFFIX + block.getBlockName();
   }
 
-  private String getGiraffaBlockPathName(Block block) {
+  private String getGiraffaBlockPathName(ExtendedBlock block) {
     return getGiraffaBlockPath(block).toUri().getPath();
   }
 
-  private Path getGiraffaBlockPath(Block block) {
+  private Path getGiraffaBlockPath(ExtendedBlock block) {
     return new Path(GRFA_BLOCKS_DIR,
         GRFA_BLOCK_FILE_PREFFIX + block.getBlockName());
   }
@@ -336,11 +352,12 @@ private void removeBlockAction(List<KeyValue> kvs) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       DataOutputStream out = new DataOutputStream(baos);
       for(LocatedBlock loc : blocks) {
-        loc.write(out);
+        PBHelper.convert(loc).writeDelimitedTo(out);
       }
       retVal = baos.toByteArray();
       out.close();
     } catch (IOException e) {
+      LOG.info("Error with serialization!", e);
       return null;
     }
     return retVal;
@@ -358,13 +375,19 @@ private void removeBlockAction(List<KeyValue> kvs) {
     try {
       in = new DataInputStream(new ByteArrayInputStream(blockArray));
       while(in.available() > 0) {
-        LocatedBlock loc = LocatedBlock.read(in);
+        LocatedBlock loc =
+            PBHelper.convert(HdfsProtos.LocatedBlockProto.parseDelimitedFrom(in));
         locs.add(loc);
       }
       in.close();
     } catch (IOException e) {
+      LOG.info("Error during deserialization!", e);
       return null;
     }
     return locs;
+  }
+  
+  private static long now(){
+    return System.currentTimeMillis();
   }
 }

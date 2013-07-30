@@ -19,4 +19,15 @@
     <value>org.apache.giraffa.GiraffaFileSystem</value>
     <description>The FileSystem for grfa: URI.</description>
   </property>
+   <property>
+    <name>hbase.coprocessor.region.classes</name>
+    <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
+    <description>A comma-separated list of Coprocessors that are loaded by
+    default. For any override coprocessor method from RegionObservor or
+    Coprocessor, these classes' implementation will be called
+    in order. After implement your own
+    Coprocessor, just put it in HBase's classpath and add the fully
+    qualified class name here.
+    </description>
+  </property>
 </configuration>

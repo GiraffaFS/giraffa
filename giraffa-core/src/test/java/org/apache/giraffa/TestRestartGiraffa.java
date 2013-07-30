@@ -63,7 +63,7 @@ public class TestRestartGiraffa {
 
   @Test
   public void testRestart() throws Exception {
-    DFSTestUtil fsUtil = new DFSTestUtil("TestRestartGiraffa", 10, 3, 1024);
+    DFSTestUtil fsUtil = new DFSTestUtil("TestRestartGiraffa", 10, 3, 1024, 0);
     fsUtil.createFiles(grfs, "testGiraffa");
     fsUtil.checkFiles(grfs, "testGiraffa");
     grfs.close();

@@ -27,12 +27,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.protocol.Block;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
+import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 
 public class INode {
   // HdfsFileStatus fields
@@ -210,7 +211,7 @@ public class INode {
     DataOutputStream out = new DataOutputStream(baos);
     try {
       for(LocatedBlock loc : blocks) {
-        loc.write(out);
+        PBHelper.convert(loc).writeDelimitedTo(out);
       }
       retVal = baos.toByteArray();
     } finally {
@@ -226,10 +227,10 @@ public class INode {
   }
 
   public void setQuota(long namespaceQuota, long diskspaceQuota) {
-    if (namespaceQuota != FSConstants.QUOTA_DONT_SET) {
+    if (namespaceQuota != HdfsConstants.QUOTA_DONT_SET) {
       this.nsQuota = namespaceQuota;
     }
-    if (diskspaceQuota != FSConstants.QUOTA_DONT_SET) {
+    if (diskspaceQuota != HdfsConstants.QUOTA_DONT_SET) {
       this.dsQuota = diskspaceQuota;
     }
   }
@@ -248,15 +249,20 @@ public class INode {
   }
 
   public void setOwner(String username, String groupname) {
-    this.owner = username;
-    this.group = groupname;
+    if(username != null) {
+      this.owner = username;
+    }
+    if(groupname != null) {
+      this.group = groupname;
+    }
   }
 
-  public void setLastBlock(Block last) {
+  public void setLastBlock(ExtendedBlock last) {
     for(LocatedBlock block : blocks) {
-      if(block.getBlock().getBlockId() == last.getBlockId()) {
-        block.getBlock().set(
-            last.getBlockId(), last.getNumBytes(), last.getGenerationStamp());
+      ExtendedBlock eb = block.getBlock();
+      if(eb.getBlockId() == last.getBlockId()) {
+        eb.setNumBytes(last.getNumBytes());
+        eb.setGenerationStamp(last.getGenerationStamp());
         return;
       }
     }

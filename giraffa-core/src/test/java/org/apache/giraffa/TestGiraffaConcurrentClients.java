@@ -79,7 +79,7 @@ public class TestGiraffaConcurrentClients {
         Long randLong = new Random().nextLong();
         topDir = topDir + randLong + "/";
       }
-      DFSTestUtil fsUtil = new DFSTestUtil("test", 100, 5, 1024);
+      DFSTestUtil fsUtil = new DFSTestUtil("test", 100, 5, 1024, 0);
       try {
         fsUtil.createFiles(grfa, topDir);
         completed = fsUtil.checkFiles(grfa, topDir);

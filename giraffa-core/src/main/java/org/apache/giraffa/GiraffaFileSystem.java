@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.GiraffaClient;
@@ -61,16 +62,30 @@ public class GiraffaFileSystem extends FileSystem {
     throw new IOException("append: Implement me. It is not easy.");
   }
 
-  @Override // FileSystem
+  @Override
   public FSDataOutputStream create(Path f, FsPermission permission,
-      boolean overwrite, int bufferSize, short replication, long blockSize,
-      Progressable progress) throws IOException {
+                                   EnumSet<CreateFlag> flags, int bufferSize,
+                                   short replication, long blockSize,
+                                   Progressable progress,
+                                   Options.ChecksumOpt checksumOpt)
+      throws IOException {
     return new FSDataOutputStream(
-        grfaClient.create(getPathName(f), permission,
-            overwrite ? EnumSet.of(CreateFlag.OVERWRITE) :
-                        EnumSet.of(CreateFlag.CREATE),
-                replication, blockSize, progress, bufferSize),
-                statistics);
+        grfaClient.create(getPathName(f), permission, flags, replication,
+            blockSize, progress, bufferSize, checksumOpt), statistics);
+  }
+
+  @Override
+  public FSDataOutputStream create(Path f, FsPermission permission,
+                                   boolean overwrite, int bufferSize,
+                                   short replication, long blockSize,
+                                   Progressable progressable)
+      throws IOException {
+    return create(f, permission,
+        overwrite ? EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE)
+            : EnumSet.of(CreateFlag.CREATE), bufferSize, replication,
+        blockSize, progressable, new Options.ChecksumOpt(
+            getServerDefaults(f).getChecksumType(),
+            getServerDefaults(f).getBytesPerChecksum()));
   }
 
   @Override // FileSystem
@@ -136,7 +151,7 @@ public class GiraffaFileSystem extends FileSystem {
         hdfsStatus.getPermission(), hdfsStatus.getOwner(), hdfsStatus.getGroup(),
         (hdfsStatus.isSymlink() ? new Path(hdfsStatus.getSymlink()) : null),
         (hdfsStatus.getFullPath(src)).makeQualified(
-                getUri(), getWorkingDirectory())); // fully-qualify path
+            getUri(), getWorkingDirectory())); // fully-qualify path
   }
 
   URI getHBaseUri() {
@@ -202,7 +217,13 @@ public class GiraffaFileSystem extends FileSystem {
   @Override // FileSystem
   public Path makeQualified(Path path) {
     checkPath(path);
-    return path.makeQualified(this.getUri(), this.getWorkingDirectory());
+    Path newPath = null;
+    if(path.toUri().toString().equals("")){
+      newPath = path;
+    }else {
+      newPath = new Path(path.toUri().toString());
+    }
+    return newPath.makeQualified(this.getUri(), this.getWorkingDirectory());
   }
 
   @Override // FileSystem
@@ -250,6 +271,17 @@ public class GiraffaFileSystem extends FileSystem {
 
   void setHDFSUri(URI hDFSUri) {
     hdfsUri = hDFSUri;
+  }
+  
+  @Override // FileSystem
+  public boolean setReplication(Path p, short replication) throws IOException {
+    return grfaClient.setReplication(getPathName(p), replication);
+  }
+  
+  @Override // FileSystem
+  public void setOwner(Path p, String username, String groupname)
+      throws IOException {
+    grfaClient.setOwner(getPathName(p), username, groupname);
   }
 
   @Override // FileSystem

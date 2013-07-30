@@ -17,17 +17,17 @@
  */
 package org.apache.giraffa;
 
-import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URI;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.cli.CLITestHelper;
-import org.apache.hadoop.cli.util.CLICommands;
+import org.apache.hadoop.cli.CLITestHelperDFS;
+import org.apache.hadoop.cli.util.CLICommand;
+import org.apache.hadoop.cli.util.CLICommandDFSAdmin;
 import org.apache.hadoop.cli.util.CLITestData;
-import org.apache.hadoop.cli.util.CLITestData.TestCmd;
+import org.apache.hadoop.cli.util.FSCmdExecutor;
 import org.apache.hadoop.cli.util.CommandExecutor.Result;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
@@ -48,12 +48,12 @@ import static org.junit.Assert.assertTrue;
  * This test creates a TestGRFAConf.xml file based on TestHDFSConf.xml
  * inside the test-data directory.
  */
-public class TestGiraffaCLI extends CLITestHelper {
+public class TestGiraffaCLI extends CLITestHelperDFS {
   private static MiniHBaseCluster cluster;
   private static final String TEST_FILES_DIR = "src/test/resources";
   private static final String TEST_CONFIG_FILE = TEST_FILES_DIR+"/testHDFSConf.xml";
   private static final String GIRAFFA_TEST_URI = "grfa://localhost:9000";
-  private static final int PASSING_PERCENTAGE = 77;
+  private static final int PASSING_PERCENTAGE = 75;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
 
@@ -65,7 +65,7 @@ public class TestGiraffaCLI extends CLITestHelper {
     // delete the old test cache and re-create it
     File testCacheDir = new File(TEST_CACHE_DATA_DIR);
     if(testCacheDir.exists())
-      Files.deleteRecursively(testCacheDir);
+      FileUtils.deleteDirectory(testCacheDir);
     assertTrue("Failed to make: "+TEST_CACHE_DATA_DIR, testCacheDir.mkdirs());
     clitestDataDir = testCacheDir.toURI().toString().replace(' ', '+');
 
@@ -76,6 +76,7 @@ public class TestGiraffaCLI extends CLITestHelper {
     String content = IOUtils.toString(new FileInputStream(hdfsConfig));
     content = content.replaceAll("hdfs", "grfa");
     content = content.replaceAll("NAMNEODE", "NAMENODE");
+    content = content.replaceAll("supergroup", "[a-z]*");
     IOUtils.write(content, new FileOutputStream(grfaConfig));
 
     // set up CLITestHelper needed variables
@@ -131,16 +132,21 @@ public class TestGiraffaCLI extends CLITestHelper {
   }
 
   @Override
-  protected Result execute(TestCmd cmd) throws Exception {
-    switch(cmd.getType()) {
-    case DFSADMIN:
-        //we do not deal with DFSADMIN commands so we convert to empty FS command.
-        return new CLICommands.FSCmdExecutor(GIRAFFA_TEST_URI, new GiraffaAdmin(conf))
-            .executeCommand(cmd.getCmd());
-    default: 
-        return new CLICommands.FSCmdExecutor(GIRAFFA_TEST_URI, new FsShell(conf))
-            .executeCommand(cmd.getCmd());
+  protected Result execute(CLICommand cmd) throws Exception {
+    if(cmd.getType() instanceof CLICommandDFSAdmin) {
+      //we do not deal with DFSADMIN commands so we convert to empty FS command.
+      return new FSCmdExecutor(GIRAFFA_TEST_URI, new GiraffaAdmin(conf))
+          .executeCommand(cmd.getCmd());
     }
+    else {
+      return new FSCmdExecutor(GIRAFFA_TEST_URI, new FsShell(conf))
+          .executeCommand(cmd.getCmd());
+    }
+  }
+  
+  @Override
+  protected String getTestFile() {
+    return new File(TEST_CACHE_DATA_DIR+"/testGRFAConf.xml").getName();
   }
 
   @Test

@@ -49,49 +49,67 @@
             <version>${hadoop.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.mortbay.jetty</groupId>
-                    <artifactId>jsp-2.1-jetty</artifactId>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-compiler</artifactId>
+                    <groupId>org.apache.zookeeper</groupId>
+                    <artifactId>zookeeper</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
 
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common-test</artifactId>
+            <artifactId>hadoop-minicluster</artifactId>
             <version>${hadoop.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-hdfs-test</artifactId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-auth</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-annotations</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
             <scope>test</scope>
+            <type>test-jar</type>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+
+
 
         <!-- Hbase dependencies -->
 
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase</artifactId>
-            <version>${hbase.version}</version>
-        </dependency>
 
-        <dependency>
-            <groupId>org.apache.hbase</groupId>
-            <artifactId>hbase</artifactId>
-            <version>${hbase.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
 
 
         <!-- Giraffa Web UI dependencies -->
@@ -132,6 +150,119 @@
             <version>${datatables.version}</version>
         </dependency>
 
+        <dependency>
+        	<groupId>junit</groupId>
+        	<artifactId>junit</artifactId>
+        	<version>4.8.2</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-common</artifactId>
+        	<version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-common</artifactId>
+        	<version>${hbase.version}</version>
+        	<scope>test</scope>
+        	<type>test-jar</type>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-client</artifactId>
+        	<version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-client</artifactId>
+        	<version>${hbase.version}</version>
+        	<scope>test</scope>
+        	<type>test-jar</type>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-protocol</artifactId>
+        	<version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-protocol</artifactId>
+        	<version>${hbase.version}</version>
+        	<scope>test</scope>
+        	<type>test-jar</type>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-server</artifactId>
+        	<version>${hbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-server</artifactId>
+        	<version>${hbase.version}</version>
+        	<scope>test</scope>
+        	<type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-hadoop-compat</artifactId>
+            <version>${hbase.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-hadoop-compat</artifactId>
+            <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-hadoop2-compat</artifactId>
+        	<version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-hadoop2-compat</artifactId>
+            <version>${hbase.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-it</artifactId>
+        	<version>${hbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+        	<groupId>org.apache.hbase</groupId>
+        	<artifactId>hbase-it</artifactId>
+        	<version>${hbase.version}</version>
+        	<scope>test</scope>
+        	<type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>

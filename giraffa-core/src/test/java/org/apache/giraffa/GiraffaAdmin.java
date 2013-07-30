@@ -20,14 +20,13 @@ package org.apache.giraffa;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.shell.Command;
 import org.apache.hadoop.fs.shell.CommandFormat;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.ToolRunner;
@@ -35,7 +34,6 @@ import org.apache.hadoop.util.ToolRunner;
 /**
  * This class provides some administrative access.
  */
-@InterfaceAudience.Private
 public class GiraffaAdmin extends FsShell {
 
   /**
@@ -68,7 +66,7 @@ public class GiraffaAdmin extends FsShell {
     /** Constructor */
     ClearQuotaCommand(String[] args, int pos, FileSystem fs) {
       super(fs);
-      CommandFormat c = new CommandFormat(NAME, 1, Integer.MAX_VALUE);
+      CommandFormat c = new CommandFormat(1, Integer.MAX_VALUE);
       List<String> parameters = c.parse(args, pos);
       this.args = parameters.toArray(new String[parameters.size()]);
     }
@@ -89,7 +87,7 @@ public class GiraffaAdmin extends FsShell {
 
     @Override
     public void run(Path path) throws IOException {
-      fs.setQuota(path, FSConstants.QUOTA_RESET, FSConstants.QUOTA_DONT_SET);
+      fs.setQuota(path, HdfsConstants.QUOTA_RESET, HdfsConstants.QUOTA_DONT_SET);
     }
   }
   
@@ -99,21 +97,22 @@ public class GiraffaAdmin extends FsShell {
     private static final String USAGE =
       "-"+NAME+" <quota> <dirname>...<dirname>";
     private static final String DESCRIPTION = 
-      "-setQuota <quota> <dirname>...<dirname>: " +
-      "Set the quota <quota> for each directory <dirName>.\n" + 
-      "\t\tThe directory quota is a long integer that puts a hard limit\n" +
-      "\t\ton the number of names in the directory tree\n" +
-      "\t\tFor each directory, attempt to set the quota. An error will be reported if\n" +
-      "\t\t1. N is not a positive integer, or\n" +
-      "\t\t2. user is not an administrator, or\n" +
-      "\t\t3. the directory does not exist or is a file, or\n";
+        "-setQuota <quota> <dirname>...<dirname>: " +
+        "Set the quota <quota> for each directory <dirName>.\n" + 
+        "\t\tThe directory quota is a long integer that puts a hard limit\n" +
+        "\t\ton the number of names in the directory tree\n" +
+        "\t\tFor each directory, attempt to set the quota. An error will be reported if\n" +
+        "\t\t1. N is not a positive integer, or\n" +
+        "\t\t2. User is not an administrator, or\n" +
+        "\t\t3. The directory does not exist or is a file.\n" +
+        "\t\tNote: A quota of 1 would force the directory to remain empty.\n";
 
     private final long quota; // the quota to be set
     
     /** Constructor */
     SetQuotaCommand(String[] args, int pos, FileSystem fs) {
       super(fs);
-      CommandFormat c = new CommandFormat(NAME, 2, Integer.MAX_VALUE);
+      CommandFormat c = new CommandFormat(2, Integer.MAX_VALUE);
       List<String> parameters = c.parse(args, pos);
       this.quota = Long.parseLong(parameters.remove(0));
       this.args = parameters.toArray(new String[parameters.size()]);
@@ -135,7 +134,7 @@ public class GiraffaAdmin extends FsShell {
 
     @Override
     public void run(Path path) throws IOException {
-      fs.setQuota(path, quota, FSConstants.QUOTA_DONT_SET);
+      fs.setQuota(path, quota, HdfsConstants.QUOTA_DONT_SET);
     }
   }
   
@@ -153,7 +152,7 @@ public class GiraffaAdmin extends FsShell {
     /** Constructor */
     ClearSpaceQuotaCommand(String[] args, int pos, FileSystem fs) {
       super(fs);
-      CommandFormat c = new CommandFormat(NAME, 1, Integer.MAX_VALUE);
+      CommandFormat c = new CommandFormat(1, Integer.MAX_VALUE);
       List<String> parameters = c.parse(args, pos);
       this.args = parameters.toArray(new String[parameters.size()]);
     }
@@ -174,7 +173,7 @@ public class GiraffaAdmin extends FsShell {
 
     @Override
     public void run(Path path) throws IOException {
-      fs.setQuota(path, FSConstants.QUOTA_DONT_SET, FSConstants.QUOTA_RESET);
+      fs.setQuota(path, HdfsConstants.QUOTA_DONT_SET, HdfsConstants.QUOTA_RESET);
     }
   }
   
@@ -201,7 +200,7 @@ public class GiraffaAdmin extends FsShell {
     /** Constructor */
     SetSpaceQuotaCommand(String[] args, int pos, FileSystem fs) {
       super(fs);
-      CommandFormat c = new CommandFormat(NAME, 2, Integer.MAX_VALUE);
+      CommandFormat c = new CommandFormat(2, Integer.MAX_VALUE);
       List<String> parameters = c.parse(args, pos);
       String str = parameters.remove(0).trim();
       quota = StringUtils.TraditionalBinaryPrefix.string2long(str);
@@ -224,7 +223,7 @@ public class GiraffaAdmin extends FsShell {
 
     @Override
     public void run(Path path) throws IOException {
-      fs.setQuota(path, FSConstants.QUOTA_DONT_SET, quota);
+      fs.setQuota(path, HdfsConstants.QUOTA_DONT_SET, quota);
     }
   }
   
@@ -279,16 +278,18 @@ public class GiraffaAdmin extends FsShell {
     "Set/Unset/Check flag to attempt restore of failed storage replicas if they become available.\n" +
     "\t\tRequires superuser permissions.\n";
     
-    String refreshNodes = "-refreshNodes: \tUpdates the set of hosts allowed " +
-                          "to connect to namenode.\n\n" +
-      "\t\tRe-reads the config file to update values defined by \n" +
-      "\t\tdfs.hosts and dfs.host.exclude and reads the \n" +
-      "\t\tentires (hostnames) in those files.\n\n" +
-      "\t\tEach entry not defined in dfs.hosts but in \n" + 
-      "\t\tdfs.hosts.exclude is decommissioned. Each entry defined \n" +
-      "\t\tin dfs.hosts and also in dfs.host.exclude is stopped from \n" +
-      "\t\tdecommissioning if it has aleady been marked for decommission.\n" + 
-      "\t\tEntires not present in both the lists are decommissioned.\n";
+    String refreshNodes = "-refreshNodes: \tUpdates the namenode with the " +
+            "set of datanodes allowed to connect to the namenode.\n\n" +
+            "\t\tNamenode re-reads datanode hostnames from the file defined by \n" +
+            "\t\tdfs.hosts, dfs.hosts.exclude configuration parameters.\n" +
+            "\t\tHosts defined in dfs.hosts are the datanodes that are part of \n" +
+            "\t\tthe cluster. If there are entries in dfs.hosts, only the hosts \n" +
+            "\t\tin it are allowed to register with the namenode.\n\n" +
+            "\t\tEntries in dfs.hosts.exclude are datanodes that need to be \n" +
+            "\t\tdecommissioned. Datanodes complete decommissioning when \n" + 
+            "\t\tall the replicas from them are replicated to other datanodes.\n" +
+            "\t\tDecommissioned nodes are not automatically shutdown and \n" +
+            "\t\tare not chosen for writing new replicas.\n";
 
     String finalizeUpgrade = "-finalizeUpgrade: Finalize upgrade of HDFS.\n" +
       "\t\tDatanodes delete their previous version working directories,\n" +
@@ -548,6 +549,7 @@ public class GiraffaAdmin extends FsShell {
 
     exitCode = 0;
     try {
+      FileSystem fs = this.getFS();
       if (ClearQuotaCommand.matches(cmd)) {
         exitCode = new ClearQuotaCommand(argv, i, fs).runAll();
       } else if (SetQuotaCommand.matches(cmd)) {

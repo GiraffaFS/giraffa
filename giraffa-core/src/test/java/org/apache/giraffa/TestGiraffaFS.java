@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -44,7 +43,7 @@ public class TestGiraffaFS {
   private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
-  GiraffaFileSystem grfs;
+  static GiraffaFileSystem grfs;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -62,13 +61,9 @@ public class TestGiraffaFS {
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 
-  @After
-  public void after() throws IOException {
-    if(grfs != null) grfs.close();
-  }
-
   @AfterClass
   public static void afterClass() throws IOException {
+    if(grfs != null) grfs.close();
     cluster.shutdown();
   }
 
@@ -185,7 +180,7 @@ public class TestGiraffaFS {
     grfs.mkdirs(new Path("folder2"));
 
     System.out.println("SETTING PERMISSION OF \"folder2\" TO 755");
-    grfs.setPermission(new Path("folder2"), new FsPermission((short) 755));
+    grfs.setPermission(new Path("folder2"), new FsPermission((short) 0755));
 
     System.out.println("SETTING TIMES OF \"folder2\" TO M:25, A:30");
     grfs.setTimes(new Path("folder2"), 25, 30);
@@ -195,24 +190,25 @@ public class TestGiraffaFS {
     assertEquals(1, files.length);
     assertFalse(0 == files[0].getAccessTime());
     assertFalse(0 == files[0].getModificationTime());
+    assertEquals(0755, files[0].getPermission().toShort());
   }
 
   @Test
   public void testFileAttributes() throws IOException {
-    grfs.create(new Path("folder2"));
+    grfs.create(new Path("file2"));
 
-    System.out.println("SETTING PERMISSION OF \"folder2\" TO 755");
-    grfs.setPermission(new Path("folder2"), new FsPermission((short) 755));
+    System.out.println("SETTING PERMISSION OF \"file2\" TO 755");
+    grfs.setPermission(new Path("file2"), new FsPermission((short) 0755));
 
-    System.out.println("SETTING TIMES OF \"folder2\" TO M:25, A:30");
-    grfs.setTimes(new Path("folder2"), 25, 30);
+    System.out.println("SETTING TIMES OF \"file2\" TO M:25, A:30");
+    grfs.setTimes(new Path("file2"), 25, 30);
 
     FileStatus[] files = grfs.listStatus(new Path("."));
     printFileStatus(files);
     assertEquals(1, files.length);
     assertEquals(30, files[0].getAccessTime());
     assertEquals(25, files[0].getModificationTime());
-    assertEquals(755, files[0].getPermission().toShort());
+    assertEquals(0644, files[0].getPermission().toShort());
   }
 
   @Test
@@ -233,8 +229,7 @@ public class TestGiraffaFS {
       new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaFileSystem.format(conf, true);
     GiraffaTestUtils.setGiraffaURI(conf);
-    test.grfs = (GiraffaFileSystem) FileSystem.get(conf);
+    grfs = (GiraffaFileSystem) FileSystem.get(conf);
     test.testFileCreation();
-    test.after();
   }
 }

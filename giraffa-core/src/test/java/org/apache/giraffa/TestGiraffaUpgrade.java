@@ -19,7 +19,6 @@ package org.apache.giraffa;
 
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
-import static org.apache.hadoop.hdfs.server.common.Util.now;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -47,10 +46,12 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.hdfs.protocolPB.PBHelper;
+import org.apache.hadoop.hdfs.server.namenode.NNStorage;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
+import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
 import org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -101,13 +102,13 @@ public class TestGiraffaUpgrade {
 
   @Test
   public void testUpgrade() throws Exception {
-    String namespaceDir = generateFsImage();
+    String imageFile = generateFsImage();
 
     // OIV args: -i fsimage -o fsimage.txt -p Indented
     // we use Indented processor because it outputs blockIDs
     String[] args = new String[6];
     args[0] = "-i";
-    args[1] = namespaceDir + "/current/fsimage";
+    args[1] = imageFile;
     args[2] = "-o";
     args[3] = TEST_IMAGE_FILE_OUT;
     args[4] = "-p";
@@ -132,13 +133,15 @@ public class TestGiraffaUpgrade {
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
     NameNode nn = dfsCluster.getNameNode();
     FileSystem dfs = dfsCluster.getFileSystem();
-    fsUtil = new DFSTestUtil("generateFsImage", 100, 5, 4096);
+    fsUtil = new DFSTestUtil("generateFsImage", 100, 5, 4096, 0);
     fsUtil.createFiles(dfs, "generateFsImage");
-    nn.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_ENTER);
-    nn.saveNamespace();
-    nn.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_LEAVE);
-    Collection<URI> namespaceDirs = dfsCluster.getNameDirs();
-    return namespaceDirs.iterator().next().getRawPath();
+    NameNodeAdapter.enterSafeMode(nn, false);
+    NameNodeAdapter.saveNamespace(nn);
+    NameNodeAdapter.leaveSafeMode(nn);
+    Collection<URI> namespaceDirs = dfsCluster.getNameDirs(0);
+    String namespaceDir = namespaceDirs.iterator().next().getRawPath();
+    long txid = nn.getNamesystem().getFSImage().getMostRecentCheckpointTxId();
+    return namespaceDir + "/current/" + NNStorage.getImageFileName(txid);
   }
 
   private boolean parseIndentedFsImageOut(BufferedReader br)
@@ -204,7 +207,7 @@ public class TestGiraffaUpgrade {
       HTable table = new HTable(cluster.getConfiguration(),
           GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
 
-      long ts = now();
+      long ts = System.currentTimeMillis();
       RowKey key = new FullPathRowKey(path);
       Put put = new Put(key.getKey(), ts);
       put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
@@ -259,7 +262,7 @@ public class TestGiraffaUpgrade {
     DataOutputStream out = new DataOutputStream(baos);
     try {
       for(LocatedBlock loc : blocks) {
-        loc.write(out);
+        PBHelper.convert(loc).writeDelimitedTo(out);
       }
       retVal = baos.toByteArray();
     } finally {
@@ -285,8 +288,8 @@ public class TestGiraffaUpgrade {
     // PJJ: We need to replace LocatedBlocks in Giraffa with Blocks & Locations.
     // This is just a work around for now to make it work.
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
-    LocatedBlocks lbs =
-        dfsCluster.getNameNode().getBlockLocations(path, 0, totalLength);
+    LocatedBlocks lbs = NameNodeAdapter.getBlockLocations(
+        dfsCluster.getNameNode(), path, 0, totalLength);
     blocks.addAll(lbs.getLocatedBlocks());
     return totalLength;
   }

@@ -19,7 +19,10 @@ package org.apache.giraffa;
 
 import java.io.IOException;
 
+import org.apache.giraffa.hbase.NamespaceProtocol;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+
+import java.io.Closeable;
 
 /**
  * {@link NamespaceService} is a common interface that provides access
@@ -37,7 +40,7 @@ import org.apache.hadoop.hdfs.protocol.ClientProtocol;
  * {@link org.apache.giraffa.hbase.NamespaceAgent} is the default implementation of
  * {@link NamespaceService} for HBase.
  */
-public interface NamespaceService extends ClientProtocol {
+public interface NamespaceService extends NamespaceProtocol, Closeable {
   
   public void initialize(GiraffaConfiguration conf) throws IOException;
 

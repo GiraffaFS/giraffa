@@ -100,26 +100,6 @@ public class TestGiraffaFileStatus {
   }
 
   @Test
-  public void testNotLocatedFileStatus() throws IOException {
-    Path file = new Path("/fileM");
-    FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);
-    for(int i = 0; i < 12345; i++) {
-      out.write('M');
-    }
-    out.close();
-
-    DirectoryListing listing = grfaClient.listPaths("/fileM", null, false);
-    assertTrue("DirectoryListing.getPartialListing() returned empty result.",
-            listing.getPartialListing().length > 0);
-    HdfsFileStatus status = listing.getPartialListing()[0];
-
-    assertFalse("Returned FileStatus was HdfsLocatedFileStatus.",
-        status instanceof HdfsLocatedFileStatus);
-
-    assertTrue(grfs.delete(file, false));
-  }
-
-  @Test
   public void testUnderConstructionLocatedFileStatus() throws IOException, InterruptedException {
     Path file = new Path("/fileB");
     FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);

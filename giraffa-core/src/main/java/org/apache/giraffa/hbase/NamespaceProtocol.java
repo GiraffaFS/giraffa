@@ -10,13 +10,12 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
-import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
+import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
@@ -26,8 +25,7 @@ import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.security.AccessControlException;
 
-public interface NamespaceProtocol extends 
-                                  ClientProtocol, CoprocessorProtocol {
+public interface NamespaceProtocol extends ClientProtocol {
   public static final long VERSION = 0L;
 
   // These are overrides of ClientProtocol, which are necessary due to
@@ -66,26 +64,21 @@ public interface NamespaceProtocol extends
       UnresolvedLinkException, IOException;
 
   @Override // ClientProtocol
-  public void abandonBlock(Block b, String src, String holder)
+  public void abandonBlock(ExtendedBlock b, String src, String holder)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException;
 
   @Override // ClientProtocol
   public LocatedBlock addBlock(String src, String clientName,
-      @Nullable Block previous, @Nullable DatanodeInfo[] excludeNodes)
+      @Nullable ExtendedBlock previous, @Nullable DatanodeInfo[] excludeNodes)
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException;
 
   @Override // ClientProtocol
-  public boolean complete(String src, String clientName, Block last)
+  public boolean complete(String src, String clientName, ExtendedBlock last)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException;
-
-  @Override // ClientProtocol
-  @Deprecated
-  public boolean delete(String src) 
-      throws IOException, UnresolvedLinkException;
 
   @Override // ClientProtocol
   public boolean delete(String src, boolean recursive)
