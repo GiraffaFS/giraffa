@@ -159,6 +159,12 @@
         	<groupId>org.apache.hbase</groupId>
         	<artifactId>hbase-common</artifactId>
         	<version>${hbase.version}</version>
+        	<exclusions>
+        		<exclusion>
+        			<groupId>org.apache.hadoop</groupId>
+        			<artifactId>hadoop-core</artifactId>
+        		</exclusion>
+        	</exclusions>
         </dependency>
         <dependency>
         	<groupId>org.apache.hbase</groupId>
@@ -171,6 +177,12 @@
         	<groupId>org.apache.hbase</groupId>
         	<artifactId>hbase-client</artifactId>
         	<version>${hbase.version}</version>
+        	<exclusions>
+        		<exclusion>
+        			<groupId>org.apache.hadoop</groupId>
+        			<artifactId>hadoop-core</artifactId>
+        		</exclusion>
+        	</exclusions>
         </dependency>
         <dependency>
         	<groupId>org.apache.hbase</groupId>
@@ -199,6 +211,10 @@
                 <exclusion>
                     <groupId>org.apache.hbase</groupId>
                     <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+                <exclusion>
+                	<groupId>org.apache.hadoop</groupId>
+                	<artifactId>hadoop-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -247,6 +263,10 @@
                 <exclusion>
                     <groupId>org.apache.hbase</groupId>
                     <artifactId>hbase-hadoop1-compat</artifactId>
+                </exclusion>
+                <exclusion>
+                	<groupId>org.apache.hadoop</groupId>
+                	<artifactId>hadoop-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

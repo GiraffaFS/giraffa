@@ -126,12 +126,20 @@ if [ "$HADOOP_HOME" = "" ]; then
     HADOOP_HOME=$GIRAFFA_HOME/../hadoop
   fi
 fi
-HADOOP_CONF_DIR="$HADOOP_HOME/conf"
+HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
 
 if [ -d "${HADOOP_HOME}" ]; then
-  for f in $HADOOP_HOME/hadoop-*.jar; do
-    # echo $f
-    HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
+  for d in $HADOOP_HOME/share/hadoop/*; do
+    if [ -d "$d" ]; then
+      for f in $d/hadoop-*.jar; do
+        HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
+      done
+      if [ -d "$d/lib" ]; then
+        for f in $d/lib/hadoop-*.jar; do
+          HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
+        done
+      fi
+    fi
   done
 fi
 
@@ -151,7 +159,7 @@ fi
 HBASE_CONF_DIR="$HBASE_HOME/conf"
 
 if [ -d "${HBASE_HOME}" ]; then
-  for f in ${HBASE_HOME}/hbase-*.jar; do
+  for f in ${HBASE_HOME}/lib/hbase-*.jar; do
     # echo $f
     HBASE_CLASSPATH=${HBASE_CLASSPATH}:$f;
   done

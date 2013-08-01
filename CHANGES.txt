@@ -1,6 +1,6 @@
 Giraffa Change Log
 
-Release 0.0.1 - Unreleased
+Release 0.0.2 - Unreleased
 
   INCOMPATIBLE CHANGES
 
@@ -40,6 +40,8 @@ Release 0.0.1 - Unreleased
               test resources. (Plamen)
     Issue 70: Remove grfa.jar dependency. (Plamen)
     Issue 55: Upgrade to Hadoop 2. (Milan)
+    Issue 51: Make scripts work for custom specified hadoop and hbase home
+              distros. (Milan)
 
   DOCUMENTATION
 

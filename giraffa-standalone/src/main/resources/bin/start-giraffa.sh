@@ -46,18 +46,18 @@ if [ $# -ge 1 ]; then
 fi
 
 # start hdfs
-# "$HADOOP_HOME"/bin/start-dfs.sh $nameStartOpt
+# "$HADOOP_HOME"/sbin/start-dfs.sh $nameStartOpt
 
 echo "HADOOP_HOME = " $HADOOP_HOME
 
 cd "$HADOOP_HOME" 
-. "$HADOOP_HOME"/bin/hdfs-config.sh
+. "$HADOOP_HOME"/libexec/hdfs-config.sh
 
 echo "starting namenode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh start namenode $nameStartOpt
+"$HADOOP_HOME"/sbin/hadoop-daemon.sh start namenode $nameStartOpt
 
 echo "starting datanode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh start datanode $dataStartOpt
+"$HADOOP_HOME"/sbin/hadoop-daemon.sh start datanode $dataStartOpt
 
 # start hbase
 echo "HBASE_HOME = " $HBASE_HOME

@@ -29,18 +29,18 @@ bin=`cd "$bin"; pwd`
 # get arguments
 
 # stop hdfs
-# "$HADOOP_HOME"/bin/stop-dfs.sh
+# "$HADOOP_HOME"/sbin/stop-dfs.sh
 
 echo "HADOOP_HOME = " $HADOOP_HOME
 
 cd "$HADOOP_HOME" 
-. "$HADOOP_HOME"/bin/hdfs-config.sh
+. "$HADOOP_HOME"/libexec/hdfs-config.sh
 
 echo "stopping namenode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh --script "$bin"/hdfs stop namenode
+"$HADOOP_HOME"/sbin/hadoop-daemon.sh --script "$bin"/hdfs stop namenode
 
 echo "stopping datanode"
-"$HADOOP_HOME"/bin/hadoop-daemon.sh --script "$bin"/hdfs stop datanode
+"$HADOOP_HOME"/sbin/hadoop-daemon.sh --script "$bin"/hdfs stop datanode
 
 # start hbase
 echo "stopping hbase"
