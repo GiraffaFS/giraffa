@@ -40,7 +40,7 @@ Release 0.0.2 - Unreleased
               test resources. (Plamen)
     Issue 70: Remove grfa.jar dependency. (Plamen)
     Issue 55: Upgrade to Hadoop 2. (Milan)
-    Issue 51: Make scripts work for custom specified hadoop and hbase home
+    Issue 4:  Make scripts work for custom specified hadoop and hbase home
               distros. (Milan)
 
   DOCUMENTATION
@@ -84,3 +84,4 @@ Release 0.0.2 - Unreleased
     Issue 61: Incorrect number of blocks returned in
               TestGiraffaFileStatus.testUnderConstructionLocatedFileStatus().
               (Plamen)
+    Issue 51: FullPathRowKey should not use Bytes. (Milan)

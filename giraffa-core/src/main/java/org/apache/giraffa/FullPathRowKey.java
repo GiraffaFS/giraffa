@@ -20,8 +20,6 @@ package org.apache.giraffa;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
 /**
  * Implementation of a row key based on the file's full path.
  * The key of the row corresponding to a file is the file's full path in the
@@ -43,7 +41,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
   private void initialize(short d, String src, byte[] bytes) {
     // Strip off all URI components: should be pure file path
     this.path = src;
-    this.depth = (short) d;
+    this.depth = d;
     this.bytes = bytes;  // not generated yet
   }
 
@@ -58,11 +56,11 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public void set(String src, byte[] bytes) throws IOException {
-    initialize(Bytes.toShort(bytes), src, bytes);
-    assert Bytes.compareTo(Bytes.toBytes(src), 0, Bytes.toBytes(src).length,
-        bytes, 2, bytes.length-2) == 0 :
-          "Path and key don't match path = " + src +
-          " key = " + Bytes.toString(bytes, 2, bytes.length-2);
+    initialize(RowKeyBytes.toShort(bytes), src, bytes);
+    assert RowKeyBytes.compareTo(RowKeyBytes.toBytes(src), 0,
+        RowKeyBytes.toBytes(src).length, bytes, 2, bytes.length-2) == 0 : 
+            "Path and key don't match path = " + src + " key = " +
+                RowKeyBytes.toString(bytes, 2, bytes.length-2);
   }
 
   public static final String SEPARATOR = "/";
@@ -89,23 +87,24 @@ public class FullPathRowKey extends RowKey implements Serializable {
   public byte[] getKey() {
     if(bytes == null)
       bytes = generateKey();
-    return bytes == null ? null : bytes.clone();
+    return bytes.clone();
   }
 
   @Override // RowKey
   public byte[] generateKey() {
-    return Bytes.add(Bytes.toBytes(depth), RowKeyBytes.toBytes(path));
+    return RowKeyBytes.add(RowKeyBytes.toBytes(depth),
+        RowKeyBytes.toBytes(path));
   }
 
   @Override // RowKey
   public byte[] getStartListingKey(byte[] startAfter) {
     byte[] start = directoryStartKey();
-    return startAfter.length == 0 ? start : Bytes.add(start, startAfter);
+    return startAfter.length == 0 ? start : RowKeyBytes.add(start, startAfter);
   }
 
   @Override // RowKey
   public byte[] getStopListingKey() {
-    return Bytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
+    return RowKeyBytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
   }
 
   private byte[] directoryStartKey() {

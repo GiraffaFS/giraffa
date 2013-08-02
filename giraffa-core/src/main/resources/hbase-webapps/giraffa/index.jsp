@@ -6,7 +6,7 @@
 <%@ page import="org.apache.hadoop.conf.Configuration" %>
 <%@ page import="org.apache.giraffa.GiraffaConfiguration" %>
 <%@ page import="org.apache.hadoop.hbase.io.ImmutableBytesWritable" %>
-<%@ page import="org.apache.hadoop.hbase.util.Bytes" %>
+<%@ page import="org.apache.giraffa.RowKeyBytes" %>
 <%@ page import="org.apache.hadoop.hbase.HTableDescriptor" %>
 <%@ page import="java.util.*" %>
 <%@ page import="org.apache.hadoop.hbase.HColumnDescriptor" %>
@@ -29,11 +29,11 @@
     HTableDescriptor giraffaHTableDescriptor = hBaseAdmin.getTableDescriptor(tableName.getBytes());
 
     SortedMap<String, Object> giraffaHTableDetails = new TreeMap<String, Object>();
-    giraffaHTableDetails.put("Table Name", Bytes.toString(giraffaHTableDescriptor.getName()));
+    giraffaHTableDetails.put("Table Name", RowKeyBytes.toString(giraffaHTableDescriptor.getName()));
     for (Map.Entry<ImmutableBytesWritable, ImmutableBytesWritable> e:
             giraffaHTableDescriptor.getValues().entrySet()) {
-        String key = Bytes.toString(e.getKey().get());
-        String value = Bytes.toString(e.getValue().get());
+        String key = RowKeyBytes.toString(e.getKey().get());
+        String value = RowKeyBytes.toString(e.getValue().get());
         if (key == null) {
             continue;
         }
@@ -44,7 +44,7 @@
                 continue;
             }
         }
-        giraffaHTableDetails.put(Bytes.toString(e.getKey().get()), Bytes.toString(e.getValue().get()));
+        giraffaHTableDetails.put(RowKeyBytes.toString(e.getKey().get()), RowKeyBytes.toString(e.getValue().get()));
     }
 
     HashMap<String, Map<String, String>> giraffaHTableFamilies = new HashMap<String, Map<String, String>>();
@@ -52,9 +52,9 @@
         SortedMap<String, String> columnDescriptorValues = new TreeMap<String, String>();
         for (Map.Entry<ImmutableBytesWritable, ImmutableBytesWritable> e:
                 columnDescriptor.getValues().entrySet()) {
-            columnDescriptorValues.put(Bytes.toString(e.getKey().get()), Bytes.toString(e.getValue().get()));
+            columnDescriptorValues.put(RowKeyBytes.toString(e.getKey().get()), RowKeyBytes.toString(e.getValue().get()));
         }
-        giraffaHTableFamilies.put(Bytes.toString(columnDescriptor.getName()), columnDescriptorValues);
+        giraffaHTableFamilies.put(RowKeyBytes.toString(columnDescriptor.getName()), columnDescriptorValues);
     }
 
     request.setAttribute("giraffaHTableFamilies", giraffaHTableFamilies);
