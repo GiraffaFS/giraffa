@@ -142,7 +142,8 @@ public class GiraffaHbaseServlet extends HttpServlet {
           } else if (entry == FileField.BLOCK) {
             List<LocatedBlockDescriptor> locatedBlockResult =
                 new ArrayList<LocatedBlockDescriptor>();
-            List<LocatedBlock> blockArrayList = NamespaceProtocolImpl.getBlocks(r);
+            List<LocatedBlock> blockArrayList =
+                NamespaceProtocolImpl.getLocatedBlocks(r);
             long blockCounter = 0;
             for (LocatedBlock locatedBlock : blockArrayList) {
               if (blockCounter >= BLOCK_RESULT_LIMIT) {

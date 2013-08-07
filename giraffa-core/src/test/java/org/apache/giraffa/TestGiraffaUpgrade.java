@@ -21,8 +21,6 @@ import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -46,9 +44,9 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.hdfs.server.namenode.NNStorage;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
@@ -161,11 +159,12 @@ public class TestGiraffaUpgrade {
         long blockSize =
             Long.parseLong(br.readLine().replace("      BLOCK_SIZE = ", "").trim());
         int numOfBlocks = getNumberOfBlocks(br);
-        List<LocatedBlock> blocks = new ArrayList<LocatedBlock>(1);
+        List<UnlocatedBlock> blocks = new ArrayList<UnlocatedBlock>(1);
+        List<DatanodeInfo[]> locations = new ArrayList<DatanodeInfo[]>(1);
         boolean isDirectory = false;
         long length = 0;
         if(numOfBlocks != -1) {
-          length = parseBlocks(numOfBlocks, blocks, br, path);
+          length = parseBlocks(numOfBlocks, blocks, locations, br, path);
         } else {
           isDirectory = true;
         }
@@ -192,17 +191,18 @@ public class TestGiraffaUpgrade {
 
         // COMMIT IT!
         commitToHBase(path, replication, modTime, accessTime, blockSize, blocks,
-            isDirectory, nsQuota, dsQuota, userName, groupName, perm, length);
+            locations, isDirectory, nsQuota, dsQuota, userName, groupName, perm,
+            length);
       }
     }
     return true;
   }
 
   private void commitToHBase(String path, short replication, Date modTime,
-                             Date accessTime, long blockSize,
-                             List<LocatedBlock> blocks, boolean directory,
-                             long nsQuota, long dsQuota, String userName,
-                             String groupName, FsPermission perm, long length) {
+      Date accessTime, long blockSize, List<UnlocatedBlock> blocks,
+      List<DatanodeInfo[]> locations, boolean directory, long nsQuota,
+      long dsQuota,String userName, String groupName, FsPermission perm,
+      long length) {
     try {
       HTable table = new HTable(cluster.getConfiguration(),
           GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
@@ -238,7 +238,9 @@ public class TestGiraffaUpgrade {
             Bytes.toBytes(directory));
       else
         put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
-            getBlocksBytes(blocks))
+            GiraffaPBHelper.unlocatedBlocksToBytes(blocks))
+            .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
+                GiraffaPBHelper.blockLocationsToBytes(locations))
             .add(FileField.getFileAttributes(), FileField.getState(), ts,
                 Bytes.toBytes(GiraffaConstants.FileState.CLOSED.toString()));
 
@@ -254,25 +256,9 @@ public class TestGiraffaUpgrade {
     }
   }
 
-  private byte[] getBlocksBytes(List<LocatedBlock> blocks) throws IOException {
-    if(blocks == null) return null;
-    byte[] retVal = null;
-
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(baos);
-    try {
-      for(LocatedBlock loc : blocks) {
-        PBHelper.convert(loc).writeDelimitedTo(out);
-      }
-      retVal = baos.toByteArray();
-    } finally {
-      out.close();
-    }
-    return retVal;
-  }
-
-  private long parseBlocks(int numOfBlocks, List<LocatedBlock> blocks,
-                           BufferedReader br, String path) throws IOException {
+  private long parseBlocks(int numOfBlocks, List<UnlocatedBlock> blocks,
+      List<DatanodeInfo[]> locations, BufferedReader br, String path)
+          throws IOException {
     long totalLength = 0;
     for(int i = 0; i < numOfBlocks; i++) {
       String blockLine = br.readLine();
@@ -285,12 +271,16 @@ public class TestGiraffaUpgrade {
           Long.parseLong(br.readLine().replace("          GENERATION_STAMP = ", "").trim());
       totalLength += blockLength;
     }
-    // PJJ: We need to replace LocatedBlocks in Giraffa with Blocks & Locations.
+    // PJJ: Block locations need to be fetched differently
     // This is just a work around for now to make it work.
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
     LocatedBlocks lbs = NameNodeAdapter.getBlockLocations(
         dfsCluster.getNameNode(), path, 0, totalLength);
-    blocks.addAll(lbs.getLocatedBlocks());
+    for(LocatedBlock lb : lbs.getLocatedBlocks()) {
+      blocks.add(new UnlocatedBlock(lb));
+      locations.add(lb.getLocations());
+    }
+    
     return totalLength;
   }
 

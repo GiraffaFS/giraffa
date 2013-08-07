@@ -1,0 +1,14 @@
+option java_package = "org.apache.giraffa";
+option java_outer_classname = "GiraffaProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+package org.apache.giraffa;
+
+import "hdfs.proto";
+
+message UnlocatedBlockProto {
+  required ExtendedBlockProto b  = 1;
+  required uint64 offset = 2;
+  required bool corrupt = 3;
+  required BlockTokenIdentifierProto blockToken = 4;
+}

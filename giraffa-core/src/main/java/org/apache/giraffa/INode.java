@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +25,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 
 public class INode {
   // HdfsFileStatus fields
@@ -53,7 +51,8 @@ public class INode {
 
   // Giraffa INode fields
   private final RowKey key;
-  private List<LocatedBlock> blocks;
+  private List<UnlocatedBlock> blocks;
+  private List<DatanodeInfo[]> locations;
   private FileState fileState;
 
   public static final Log LOG = LogFactory.getLog(INode.class.getName());
@@ -64,7 +63,8 @@ public class INode {
   public INode(long length, boolean directory, short replication, long blockSize,
       long mtime, long atime, FsPermission perms, String owner, String group,
       byte[] symlink, RowKey key, long dsQuota, long nsQuota,
-      FileState state, List<LocatedBlock> blocks)
+      FileState state, List<UnlocatedBlock> blocks,
+      List<DatanodeInfo[]> locations)
   throws IOException {
     this.length = length;
     this.isdir = directory;
@@ -81,7 +81,9 @@ public class INode {
     this.dsQuota = dsQuota;
     if(! isDir()) {
       this.fileState = (state == null ? FileState.UNDER_CONSTRUCTION : state);
-      this.blocks = (blocks == null? new ArrayList<LocatedBlock>() : blocks);
+      this.blocks = (blocks == null ? new ArrayList<UnlocatedBlock>() : blocks);
+      this.locations = (locations == null ?
+          new ArrayList<DatanodeInfo[]>() : locations);
     }
   }
 
@@ -92,11 +94,13 @@ public class INode {
   }
 
   public HdfsFileStatus getLocatedFileStatus() {
-    LocatedBlock lastBlock = blocks.get(blocks.size()-1);
+    List<LocatedBlock> locatedBlocksList =
+        UnlocatedBlock.toLocatedBlocks(blocks, locations);
+    LocatedBlock lastBlock = locatedBlocksList.get(locatedBlocksList.size()-1);
     boolean isUnderConstruction = (fileState == FileState.UNDER_CONSTRUCTION);
     boolean isLastBlockComplete = (fileState == FileState.CLOSED);
     LocatedBlocks locatedBlocks = new LocatedBlocks(length, isUnderConstruction,
-    blocks, lastBlock, isLastBlockComplete);
+        locatedBlocksList, lastBlock, isLastBlockComplete);
     return new HdfsLocatedFileStatus(length, isdir, block_replication,
             blocksize, modification_time, access_time, permission,
             owner, group, symlink, RowKeyBytes.toBytes(key.getPath()),
@@ -187,8 +191,12 @@ public class INode {
     return symlink == null ? null : symlink.clone();
   }
 
-  public List<LocatedBlock> getBlocks() {
+  public List<UnlocatedBlock> getBlocks() {
     return blocks;
+  }
+  
+  public List<DatanodeInfo[]> getLocations() {
+    return locations;
   }
 
   public FileState getFileState() {
@@ -204,22 +212,15 @@ public class INode {
   public byte[] getBlocksBytes() throws IOException {
     if(isDir())
       return null;
-
-    byte[] retVal = null;
-
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(baos);
-    try {
-      for(LocatedBlock loc : blocks) {
-        PBHelper.convert(loc).writeDelimitedTo(out);
-      }
-      retVal = baos.toByteArray();
-    } finally {
-      try {
-        out.close();
-      } catch (IOException ignored) {}
-    }
-    return retVal;
+    else
+      return GiraffaPBHelper.unlocatedBlocksToBytes(blocks);
+  }
+  
+  public byte[] getLocationsBytes() throws IOException {
+    if(isDir())
+      return null;
+    else
+      return GiraffaPBHelper.blockLocationsToBytes(locations);
   }
 
   public void setPermission(FsPermission newPermission) {
@@ -258,7 +259,7 @@ public class INode {
   }
 
   public void setLastBlock(ExtendedBlock last) {
-    for(LocatedBlock block : blocks) {
+    for(UnlocatedBlock block : blocks) {
       ExtendedBlock eb = block.getBlock();
       if(eb.getBlockId() == last.getBlockId()) {
         eb.setNumBytes(last.getNumBytes());

@@ -7,6 +7,13 @@ package org.apache.giraffa.hbase;
 import "hdfs.proto";
 import "ClientNamenodeProtocol.proto";
 
+message UnlocatedBlockProto {
+  required ExtendedBlockProto b  = 1;
+  required uint64 offset = 2;
+  required bool corrupt = 3;
+  required BlockTokenIdentifierProto blockToken = 4;
+}
+
 /**
  * The ClientNamenodeProtocol Service defines the interface between a client
  * (as running inside a MR Task) and the Namenode.

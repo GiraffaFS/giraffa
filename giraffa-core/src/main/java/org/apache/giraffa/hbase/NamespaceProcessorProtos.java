@@ -8,6 +8,795 @@ public final class NamespaceProcessorProtos {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
   }
+  public interface UnlocatedBlockProtoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+    
+    // required .ExtendedBlockProto b = 1;
+    boolean hasB();
+    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB();
+    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder();
+    
+    // required uint64 offset = 2;
+    boolean hasOffset();
+    long getOffset();
+    
+    // required bool corrupt = 3;
+    boolean hasCorrupt();
+    boolean getCorrupt();
+    
+    // required .BlockTokenIdentifierProto blockToken = 4;
+    boolean hasBlockToken();
+    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken();
+    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder();
+  }
+  public static final class UnlocatedBlockProto extends
+      com.google.protobuf.GeneratedMessage
+      implements UnlocatedBlockProtoOrBuilder {
+    // Use UnlocatedBlockProto.newBuilder() to construct.
+    private UnlocatedBlockProto(Builder builder) {
+      super(builder);
+    }
+    private UnlocatedBlockProto(boolean noInit) {}
+    
+    private static final UnlocatedBlockProto defaultInstance;
+    public static UnlocatedBlockProto getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public UnlocatedBlockProto getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.apache.giraffa.hbase.NamespaceProcessorProtos.internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_descriptor;
+    }
+    
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.apache.giraffa.hbase.NamespaceProcessorProtos.internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_fieldAccessorTable;
+    }
+    
+    private int bitField0_;
+    // required .ExtendedBlockProto b = 1;
+    public static final int B_FIELD_NUMBER = 1;
+    private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_;
+    public boolean hasB() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB() {
+      return b_;
+    }
+    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder() {
+      return b_;
+    }
+    
+    // required uint64 offset = 2;
+    public static final int OFFSET_FIELD_NUMBER = 2;
+    private long offset_;
+    public boolean hasOffset() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    public long getOffset() {
+      return offset_;
+    }
+    
+    // required bool corrupt = 3;
+    public static final int CORRUPT_FIELD_NUMBER = 3;
+    private boolean corrupt_;
+    public boolean hasCorrupt() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    public boolean getCorrupt() {
+      return corrupt_;
+    }
+    
+    // required .BlockTokenIdentifierProto blockToken = 4;
+    public static final int BLOCKTOKEN_FIELD_NUMBER = 4;
+    private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto blockToken_;
+    public boolean hasBlockToken() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken() {
+      return blockToken_;
+    }
+    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder() {
+      return blockToken_;
+    }
+    
+    private void initFields() {
+      b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
+      offset_ = 0L;
+      corrupt_ = false;
+      blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+      
+      if (!hasB()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasOffset()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasCorrupt()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasBlockToken()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!getB().isInitialized()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!getBlockToken().isInitialized()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+    
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeMessage(1, b_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeUInt64(2, offset_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBool(3, corrupt_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeMessage(4, blockToken_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+    
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+    
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(1, b_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt64Size(2, offset_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(3, corrupt_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(4, blockToken_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+    
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+    
+    @java.lang.Override
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto)) {
+        return super.equals(obj);
+      }
+      org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto other = (org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto) obj;
+      
+      boolean result = true;
+      result = result && (hasB() == other.hasB());
+      if (hasB()) {
+        result = result && getB()
+            .equals(other.getB());
+      }
+      result = result && (hasOffset() == other.hasOffset());
+      if (hasOffset()) {
+        result = result && (getOffset()
+            == other.getOffset());
+      }
+      result = result && (hasCorrupt() == other.hasCorrupt());
+      if (hasCorrupt()) {
+        result = result && (getCorrupt()
+            == other.getCorrupt());
+      }
+      result = result && (hasBlockToken() == other.hasBlockToken());
+      if (hasBlockToken()) {
+        result = result && getBlockToken()
+            .equals(other.getBlockToken());
+      }
+      result = result &&
+          getUnknownFields().equals(other.getUnknownFields());
+      return result;
+    }
+    
+    @java.lang.Override
+    public int hashCode() {
+      int hash = 41;
+      hash = (19 * hash) + getDescriptorForType().hashCode();
+      if (hasB()) {
+        hash = (37 * hash) + B_FIELD_NUMBER;
+        hash = (53 * hash) + getB().hashCode();
+      }
+      if (hasOffset()) {
+        hash = (37 * hash) + OFFSET_FIELD_NUMBER;
+        hash = (53 * hash) + hashLong(getOffset());
+      }
+      if (hasCorrupt()) {
+        hash = (37 * hash) + CORRUPT_FIELD_NUMBER;
+        hash = (53 * hash) + hashBoolean(getCorrupt());
+      }
+      if (hasBlockToken()) {
+        hash = (37 * hash) + BLOCKTOKEN_FIELD_NUMBER;
+        hash = (53 * hash) + getBlockToken().hashCode();
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      return hash;
+    }
+    
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+    
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProtoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.apache.giraffa.hbase.NamespaceProcessorProtos.internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_descriptor;
+      }
+      
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.apache.giraffa.hbase.NamespaceProcessorProtos.internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_fieldAccessorTable;
+      }
+      
+      // Construct using org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+      
+      private Builder(BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          getBFieldBuilder();
+          getBlockTokenFieldBuilder();
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+      
+      public Builder clear() {
+        super.clear();
+        if (bBuilder_ == null) {
+          b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
+        } else {
+          bBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000001);
+        offset_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000002);
+        corrupt_ = false;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        if (blockTokenBuilder_ == null) {
+          blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+        } else {
+          blockTokenBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000008);
+        return this;
+      }
+      
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+      
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.getDescriptor();
+      }
+      
+      public org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto getDefaultInstanceForType() {
+        return org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.getDefaultInstance();
+      }
+      
+      public org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto build() {
+        org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+      
+      private org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto buildParsed()
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return result;
+      }
+      
+      public org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto buildPartial() {
+        org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto result = new org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        if (bBuilder_ == null) {
+          result.b_ = b_;
+        } else {
+          result.b_ = bBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.offset_ = offset_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.corrupt_ = corrupt_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        if (blockTokenBuilder_ == null) {
+          result.blockToken_ = blockToken_;
+        } else {
+          result.blockToken_ = blockTokenBuilder_.build();
+        }
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+      
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto) {
+          return mergeFrom((org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+      
+      public Builder mergeFrom(org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto other) {
+        if (other == org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.getDefaultInstance()) return this;
+        if (other.hasB()) {
+          mergeB(other.getB());
+        }
+        if (other.hasOffset()) {
+          setOffset(other.getOffset());
+        }
+        if (other.hasCorrupt()) {
+          setCorrupt(other.getCorrupt());
+        }
+        if (other.hasBlockToken()) {
+          mergeBlockToken(other.getBlockToken());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+      
+      public final boolean isInitialized() {
+        if (!hasB()) {
+          
+          return false;
+        }
+        if (!hasOffset()) {
+          
+          return false;
+        }
+        if (!hasCorrupt()) {
+          
+          return false;
+        }
+        if (!hasBlockToken()) {
+          
+          return false;
+        }
+        if (!getB().isInitialized()) {
+          
+          return false;
+        }
+        if (!getBlockToken().isInitialized()) {
+          
+          return false;
+        }
+        return true;
+      }
+      
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder(
+            this.getUnknownFields());
+        while (true) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              this.setUnknownFields(unknownFields.build());
+              onChanged();
+              return this;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                this.setUnknownFields(unknownFields.build());
+                onChanged();
+                return this;
+              }
+              break;
+            }
+            case 10: {
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder subBuilder = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.newBuilder();
+              if (hasB()) {
+                subBuilder.mergeFrom(getB());
+              }
+              input.readMessage(subBuilder, extensionRegistry);
+              setB(subBuilder.buildPartial());
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              offset_ = input.readUInt64();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              corrupt_ = input.readBool();
+              break;
+            }
+            case 34: {
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder subBuilder = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.newBuilder();
+              if (hasBlockToken()) {
+                subBuilder.mergeFrom(getBlockToken());
+              }
+              input.readMessage(subBuilder, extensionRegistry);
+              setBlockToken(subBuilder.buildPartial());
+              break;
+            }
+          }
+        }
+      }
+      
+      private int bitField0_;
+      
+      // required .ExtendedBlockProto b = 1;
+      private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder> bBuilder_;
+      public boolean hasB() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB() {
+        if (bBuilder_ == null) {
+          return b_;
+        } else {
+          return bBuilder_.getMessage();
+        }
+      }
+      public Builder setB(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto value) {
+        if (bBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          b_ = value;
+          onChanged();
+        } else {
+          bBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      public Builder setB(
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder builderForValue) {
+        if (bBuilder_ == null) {
+          b_ = builderForValue.build();
+          onChanged();
+        } else {
+          bBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      public Builder mergeB(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto value) {
+        if (bBuilder_ == null) {
+          if (((bitField0_ & 0x00000001) == 0x00000001) &&
+              b_ != org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance()) {
+            b_ =
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.newBuilder(b_).mergeFrom(value).buildPartial();
+          } else {
+            b_ = value;
+          }
+          onChanged();
+        } else {
+          bBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000001;
+        return this;
+      }
+      public Builder clearB() {
+        if (bBuilder_ == null) {
+          b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
+          onChanged();
+        } else {
+          bBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder getBBuilder() {
+        bitField0_ |= 0x00000001;
+        onChanged();
+        return getBFieldBuilder().getBuilder();
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder() {
+        if (bBuilder_ != null) {
+          return bBuilder_.getMessageOrBuilder();
+        } else {
+          return b_;
+        }
+      }
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder> 
+          getBFieldBuilder() {
+        if (bBuilder_ == null) {
+          bBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder>(
+                  b_,
+                  getParentForChildren(),
+                  isClean());
+          b_ = null;
+        }
+        return bBuilder_;
+      }
+      
+      // required uint64 offset = 2;
+      private long offset_ ;
+      public boolean hasOffset() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      public long getOffset() {
+        return offset_;
+      }
+      public Builder setOffset(long value) {
+        bitField0_ |= 0x00000002;
+        offset_ = value;
+        onChanged();
+        return this;
+      }
+      public Builder clearOffset() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        offset_ = 0L;
+        onChanged();
+        return this;
+      }
+      
+      // required bool corrupt = 3;
+      private boolean corrupt_ ;
+      public boolean hasCorrupt() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      public boolean getCorrupt() {
+        return corrupt_;
+      }
+      public Builder setCorrupt(boolean value) {
+        bitField0_ |= 0x00000004;
+        corrupt_ = value;
+        onChanged();
+        return this;
+      }
+      public Builder clearCorrupt() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        corrupt_ = false;
+        onChanged();
+        return this;
+      }
+      
+      // required .BlockTokenIdentifierProto blockToken = 4;
+      private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder> blockTokenBuilder_;
+      public boolean hasBlockToken() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken() {
+        if (blockTokenBuilder_ == null) {
+          return blockToken_;
+        } else {
+          return blockTokenBuilder_.getMessage();
+        }
+      }
+      public Builder setBlockToken(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto value) {
+        if (blockTokenBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          blockToken_ = value;
+          onChanged();
+        } else {
+          blockTokenBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      public Builder setBlockToken(
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder builderForValue) {
+        if (blockTokenBuilder_ == null) {
+          blockToken_ = builderForValue.build();
+          onChanged();
+        } else {
+          blockTokenBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      public Builder mergeBlockToken(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto value) {
+        if (blockTokenBuilder_ == null) {
+          if (((bitField0_ & 0x00000008) == 0x00000008) &&
+              blockToken_ != org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance()) {
+            blockToken_ =
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.newBuilder(blockToken_).mergeFrom(value).buildPartial();
+          } else {
+            blockToken_ = value;
+          }
+          onChanged();
+        } else {
+          blockTokenBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000008;
+        return this;
+      }
+      public Builder clearBlockToken() {
+        if (blockTokenBuilder_ == null) {
+          blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+          onChanged();
+        } else {
+          blockTokenBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000008);
+        return this;
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder getBlockTokenBuilder() {
+        bitField0_ |= 0x00000008;
+        onChanged();
+        return getBlockTokenFieldBuilder().getBuilder();
+      }
+      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder() {
+        if (blockTokenBuilder_ != null) {
+          return blockTokenBuilder_.getMessageOrBuilder();
+        } else {
+          return blockToken_;
+        }
+      }
+      private com.google.protobuf.SingleFieldBuilder<
+          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder> 
+          getBlockTokenFieldBuilder() {
+        if (blockTokenBuilder_ == null) {
+          blockTokenBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder>(
+                  blockToken_,
+                  getParentForChildren(),
+                  isClean());
+          blockToken_ = null;
+        }
+        return blockTokenBuilder_;
+      }
+      
+      // @@protoc_insertion_point(builder_scope:org.apache.giraffa.hbase.UnlocatedBlockProto)
+    }
+    
+    static {
+      defaultInstance = new UnlocatedBlockProto(true);
+      defaultInstance.initFields();
+    }
+    
+    // @@protoc_insertion_point(class_scope:org.apache.giraffa.hbase.UnlocatedBlockProto)
+  }
+  
   public static abstract class NamespaceProcessor
       implements com.google.protobuf.Service {
     protected NamespaceProcessor() {}
@@ -3154,6 +3943,11 @@ public final class NamespaceProcessorProtos {
     }
   }
   
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_fieldAccessorTable;
   
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -3165,99 +3959,111 @@ public final class NamespaceProcessorProtos {
     java.lang.String[] descriptorData = {
       "\n\030NamespaceProcessor.proto\022\030org.apache.g" +
       "iraffa.hbase\032\nhdfs.proto\032\034ClientNamenode" +
-      "Protocol.proto2\311\032\n\022NamespaceProcessor\022T\n" +
-      "\021getBlockLocations\022\036.GetBlockLocationsRe" +
-      "questProto\032\037.GetBlockLocationsResponsePr" +
-      "oto\022T\n\021getServerDefaults\022\036.GetServerDefa" +
-      "ultsRequestProto\032\037.GetServerDefaultsResp" +
-      "onseProto\0223\n\006create\022\023.CreateRequestProto" +
-      "\032\024.CreateResponseProto\0223\n\006append\022\023.Appen" +
-      "dRequestProto\032\024.AppendResponseProto\022K\n\016s",
-      "etReplication\022\033.SetReplicationRequestPro" +
-      "to\032\034.SetReplicationResponseProto\022H\n\rsetP" +
-      "ermission\022\032.SetPermissionRequestProto\032\033." +
-      "SetPermissionResponseProto\0229\n\010setOwner\022\025" +
-      ".SetOwnerRequestProto\032\026.SetOwnerResponse" +
-      "Proto\022E\n\014abandonBlock\022\031.AbandonBlockRequ" +
-      "estProto\032\032.AbandonBlockResponseProto\0229\n\010" +
-      "addBlock\022\025.AddBlockRequestProto\032\026.AddBlo" +
-      "ckResponseProto\022`\n\025getAdditionalDatanode" +
-      "\022\".GetAdditionalDatanodeRequestProto\032#.G",
-      "etAdditionalDatanodeResponseProto\0229\n\010com" +
-      "plete\022\025.CompleteRequestProto\032\026.CompleteR" +
-      "esponseProto\022N\n\017reportBadBlocks\022\034.Report" +
-      "BadBlocksRequestProto\032\035.ReportBadBlocksR" +
-      "esponseProto\0223\n\006concat\022\023.ConcatRequestPr" +
-      "oto\032\024.ConcatResponseProto\0223\n\006rename\022\023.Re" +
-      "nameRequestProto\032\024.RenameResponseProto\0226" +
-      "\n\007rename2\022\024.Rename2RequestProto\032\025.Rename" +
-      "2ResponseProto\0223\n\006delete\022\023.DeleteRequest" +
-      "Proto\032\024.DeleteResponseProto\0223\n\006mkdirs\022\023.",
-      "MkdirsRequestProto\032\024.MkdirsResponseProto" +
-      "\022?\n\ngetListing\022\027.GetListingRequestProto\032" +
-      "\030.GetListingResponseProto\022?\n\nrenewLease\022" +
-      "\027.RenewLeaseRequestProto\032\030.RenewLeaseRes" +
-      "ponseProto\022E\n\014recoverLease\022\031.RecoverLeas" +
-      "eRequestProto\032\032.RecoverLeaseResponseProt" +
-      "o\022@\n\ngetFsStats\022\030.GetFsStatusRequestProt" +
-      "o\032\030.GetFsStatsResponseProto\022T\n\021getDatano" +
-      "deReport\022\036.GetDatanodeReportRequestProto" +
-      "\032\037.GetDatanodeReportResponseProto\022`\n\025get",
-      "PreferredBlockSize\022\".GetPreferredBlockSi" +
-      "zeRequestProto\032#.GetPreferredBlockSizeRe" +
-      "sponseProto\022B\n\013setSafeMode\022\030.SetSafeMode" +
-      "RequestProto\032\031.SetSafeModeResponseProto\022" +
-      "H\n\rsaveNamespace\022\032.SaveNamespaceRequestP" +
-      "roto\032\033.SaveNamespaceResponseProto\022<\n\trol" +
-      "lEdits\022\026.RollEditsRequestProto\032\027.RollEdi" +
-      "tsResponseProto\022]\n\024restoreFailedStorage\022" +
-      "!.RestoreFailedStorageRequestProto\032\".Res" +
-      "toreFailedStorageResponseProto\022E\n\014refres",
-      "hNodes\022\031.RefreshNodesRequestProto\032\032.Refr" +
-      "eshNodesResponseProto\022N\n\017finalizeUpgrade" +
-      "\022\034.FinalizeUpgradeRequestProto\032\035.Finaliz" +
-      "eUpgradeResponseProto\022`\n\025listCorruptFile" +
-      "Blocks\022\".ListCorruptFileBlocksRequestPro" +
-      "to\032#.ListCorruptFileBlocksResponseProto\022" +
-      "9\n\010metaSave\022\025.MetaSaveRequestProto\032\026.Met" +
-      "aSaveResponseProto\022B\n\013getFileInfo\022\030.GetF" +
-      "ileInfoRequestProto\032\031.GetFileInfoRespons" +
-      "eProto\022N\n\017getFileLinkInfo\022\034.GetFileLinkI",
-      "nfoRequestProto\032\035.GetFileLinkInfoRespons" +
-      "eProto\022T\n\021getContentSummary\022\036.GetContent" +
-      "SummaryRequestProto\032\037.GetContentSummaryR" +
-      "esponseProto\0229\n\010setQuota\022\025.SetQuotaReque" +
-      "stProto\032\026.SetQuotaResponseProto\0220\n\005fsync" +
-      "\022\022.FsyncRequestProto\032\023.FsyncResponseProt" +
-      "o\0229\n\010setTimes\022\025.SetTimesRequestProto\032\026.S" +
-      "etTimesResponseProto\022H\n\rcreateSymlink\022\032." +
-      "CreateSymlinkRequestProto\032\033.CreateSymlin" +
-      "kResponseProto\022H\n\rgetLinkTarget\022\032.GetLin",
-      "kTargetRequestProto\032\033.GetLinkTargetRespo" +
-      "nseProto\022c\n\026updateBlockForPipeline\022#.Upd" +
-      "ateBlockForPipelineRequestProto\032$.Update" +
-      "BlockForPipelineResponseProto\022K\n\016updateP" +
-      "ipeline\022\033.UpdatePipelineRequestProto\032\034.U" +
-      "pdatePipelineResponseProto\022W\n\022getDelegat" +
-      "ionToken\022\037.GetDelegationTokenRequestProt" +
-      "o\032 .GetDelegationTokenResponseProto\022]\n\024r" +
-      "enewDelegationToken\022!.RenewDelegationTok" +
-      "enRequestProto\032\".RenewDelegationTokenRes",
-      "ponseProto\022`\n\025cancelDelegationToken\022\".Ca" +
-      "ncelDelegationTokenRequestProto\032#.Cancel" +
-      "DelegationTokenResponseProto\022]\n\024setBalan" +
-      "cerBandwidth\022!.SetBalancerBandwidthReque" +
-      "stProto\032\".SetBalancerBandwidthResponsePr" +
-      "oto\022]\n\024getDataEncryptionKey\022!.GetDataEnc" +
-      "ryptionKeyRequestProto\032\".GetDataEncrypti" +
-      "onKeyResponseProtoB:\n\030org.apache.giraffa" +
-      ".hbaseB\030NamespaceProcessorProtos\210\001\001\240\001\001"
+      "Protocol.proto\"\206\001\n\023UnlocatedBlockProto\022\036" +
+      "\n\001b\030\001 \002(\0132\023.ExtendedBlockProto\022\016\n\006offset" +
+      "\030\002 \002(\004\022\017\n\007corrupt\030\003 \002(\010\022.\n\nblockToken\030\004 " +
+      "\002(\0132\032.BlockTokenIdentifierProto2\311\032\n\022Name" +
+      "spaceProcessor\022T\n\021getBlockLocations\022\036.Ge" +
+      "tBlockLocationsRequestProto\032\037.GetBlockLo" +
+      "cationsResponseProto\022T\n\021getServerDefault" +
+      "s\022\036.GetServerDefaultsRequestProto\032\037.GetS",
+      "erverDefaultsResponseProto\0223\n\006create\022\023.C" +
+      "reateRequestProto\032\024.CreateResponseProto\022" +
+      "3\n\006append\022\023.AppendRequestProto\032\024.AppendR" +
+      "esponseProto\022K\n\016setReplication\022\033.SetRepl" +
+      "icationRequestProto\032\034.SetReplicationResp" +
+      "onseProto\022H\n\rsetPermission\022\032.SetPermissi" +
+      "onRequestProto\032\033.SetPermissionResponsePr" +
+      "oto\0229\n\010setOwner\022\025.SetOwnerRequestProto\032\026" +
+      ".SetOwnerResponseProto\022E\n\014abandonBlock\022\031" +
+      ".AbandonBlockRequestProto\032\032.AbandonBlock",
+      "ResponseProto\0229\n\010addBlock\022\025.AddBlockRequ" +
+      "estProto\032\026.AddBlockResponseProto\022`\n\025getA" +
+      "dditionalDatanode\022\".GetAdditionalDatanod" +
+      "eRequestProto\032#.GetAdditionalDatanodeRes" +
+      "ponseProto\0229\n\010complete\022\025.CompleteRequest" +
+      "Proto\032\026.CompleteResponseProto\022N\n\017reportB" +
+      "adBlocks\022\034.ReportBadBlocksRequestProto\032\035" +
+      ".ReportBadBlocksResponseProto\0223\n\006concat\022" +
+      "\023.ConcatRequestProto\032\024.ConcatResponsePro" +
+      "to\0223\n\006rename\022\023.RenameRequestProto\032\024.Rena",
+      "meResponseProto\0226\n\007rename2\022\024.Rename2Requ" +
+      "estProto\032\025.Rename2ResponseProto\0223\n\006delet" +
+      "e\022\023.DeleteRequestProto\032\024.DeleteResponseP" +
+      "roto\0223\n\006mkdirs\022\023.MkdirsRequestProto\032\024.Mk" +
+      "dirsResponseProto\022?\n\ngetListing\022\027.GetLis" +
+      "tingRequestProto\032\030.GetListingResponsePro" +
+      "to\022?\n\nrenewLease\022\027.RenewLeaseRequestProt" +
+      "o\032\030.RenewLeaseResponseProto\022E\n\014recoverLe" +
+      "ase\022\031.RecoverLeaseRequestProto\032\032.Recover" +
+      "LeaseResponseProto\022@\n\ngetFsStats\022\030.GetFs",
+      "StatusRequestProto\032\030.GetFsStatsResponseP" +
+      "roto\022T\n\021getDatanodeReport\022\036.GetDatanodeR" +
+      "eportRequestProto\032\037.GetDatanodeReportRes" +
+      "ponseProto\022`\n\025getPreferredBlockSize\022\".Ge" +
+      "tPreferredBlockSizeRequestProto\032#.GetPre" +
+      "ferredBlockSizeResponseProto\022B\n\013setSafeM" +
+      "ode\022\030.SetSafeModeRequestProto\032\031.SetSafeM" +
+      "odeResponseProto\022H\n\rsaveNamespace\022\032.Save" +
+      "NamespaceRequestProto\032\033.SaveNamespaceRes" +
+      "ponseProto\022<\n\trollEdits\022\026.RollEditsReque",
+      "stProto\032\027.RollEditsResponseProto\022]\n\024rest" +
+      "oreFailedStorage\022!.RestoreFailedStorageR" +
+      "equestProto\032\".RestoreFailedStorageRespon" +
+      "seProto\022E\n\014refreshNodes\022\031.RefreshNodesRe" +
+      "questProto\032\032.RefreshNodesResponseProto\022N" +
+      "\n\017finalizeUpgrade\022\034.FinalizeUpgradeReque" +
+      "stProto\032\035.FinalizeUpgradeResponseProto\022`" +
+      "\n\025listCorruptFileBlocks\022\".ListCorruptFil" +
+      "eBlocksRequestProto\032#.ListCorruptFileBlo" +
+      "cksResponseProto\0229\n\010metaSave\022\025.MetaSaveR",
+      "equestProto\032\026.MetaSaveResponseProto\022B\n\013g" +
+      "etFileInfo\022\030.GetFileInfoRequestProto\032\031.G" +
+      "etFileInfoResponseProto\022N\n\017getFileLinkIn" +
+      "fo\022\034.GetFileLinkInfoRequestProto\032\035.GetFi" +
+      "leLinkInfoResponseProto\022T\n\021getContentSum" +
+      "mary\022\036.GetContentSummaryRequestProto\032\037.G" +
+      "etContentSummaryResponseProto\0229\n\010setQuot" +
+      "a\022\025.SetQuotaRequestProto\032\026.SetQuotaRespo" +
+      "nseProto\0220\n\005fsync\022\022.FsyncRequestProto\032\023." +
+      "FsyncResponseProto\0229\n\010setTimes\022\025.SetTime",
+      "sRequestProto\032\026.SetTimesResponseProto\022H\n" +
+      "\rcreateSymlink\022\032.CreateSymlinkRequestPro" +
+      "to\032\033.CreateSymlinkResponseProto\022H\n\rgetLi" +
+      "nkTarget\022\032.GetLinkTargetRequestProto\032\033.G" +
+      "etLinkTargetResponseProto\022c\n\026updateBlock" +
+      "ForPipeline\022#.UpdateBlockForPipelineRequ" +
+      "estProto\032$.UpdateBlockForPipelineRespons" +
+      "eProto\022K\n\016updatePipeline\022\033.UpdatePipelin" +
+      "eRequestProto\032\034.UpdatePipelineResponsePr" +
+      "oto\022W\n\022getDelegationToken\022\037.GetDelegatio",
+      "nTokenRequestProto\032 .GetDelegationTokenR" +
+      "esponseProto\022]\n\024renewDelegationToken\022!.R" +
+      "enewDelegationTokenRequestProto\032\".RenewD" +
+      "elegationTokenResponseProto\022`\n\025cancelDel" +
+      "egationToken\022\".CancelDelegationTokenRequ" +
+      "estProto\032#.CancelDelegationTokenResponse" +
+      "Proto\022]\n\024setBalancerBandwidth\022!.SetBalan" +
+      "cerBandwidthRequestProto\032\".SetBalancerBa" +
+      "ndwidthResponseProto\022]\n\024getDataEncryptio" +
+      "nKey\022!.GetDataEncryptionKeyRequestProto\032",
+      "\".GetDataEncryptionKeyResponseProtoB:\n\030o" +
+      "rg.apache.giraffa.hbaseB\030NamespaceProces" +
+      "sorProtos\210\001\001\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
             com.google.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;
+          internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_descriptor =
+            getDescriptor().getMessageTypes().get(0);
+          internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_org_apache_giraffa_hbase_UnlocatedBlockProto_descriptor,
+              new java.lang.String[] { "B", "Offset", "Corrupt", "BlockToken", },
+              org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.class,
+              org.apache.giraffa.hbase.NamespaceProcessorProtos.UnlocatedBlockProto.Builder.class);
           return null;
         }
       };

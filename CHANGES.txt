@@ -42,6 +42,7 @@ Release 0.0.2 - Unreleased
     Issue 55: Upgrade to Hadoop 2. (Milan)
     Issue 4:  Make scripts work for custom specified hadoop and hbase home
               distros. (Milan)
+    Issue 65: Need to store Block and Location info separately. (Milan)
 
   DOCUMENTATION
 

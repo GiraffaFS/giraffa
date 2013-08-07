@@ -17,10 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -30,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaPBHelper;
+import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -50,10 +48,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.io.EnumSetWritable;
 
 /**
@@ -155,8 +152,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
     // remove the blockAction
     removeBlockAction(kvs);
 
-    ArrayList<LocatedBlock> al = getFileBlocks(kvs);
-    for(LocatedBlock block : al) {
+    List<UnlocatedBlock> al = getFileBlocks(kvs);
+    for(UnlocatedBlock block : al) {
       try {
         hdfs.delete(getGiraffaBlockPath(block.getBlock()), true);
       } catch (IOException e) {
@@ -187,9 +184,9 @@ private void removeBlockAction(List<KeyValue> kvs) {
       BlockAction.valueOf(Bytes.toString(kv.getValue()));
   }
 
-  static ArrayList<LocatedBlock> getFileBlocks(List<KeyValue> kvs) {
+  static List<UnlocatedBlock> getFileBlocks(List<KeyValue> kvs) {
     KeyValue kv = findField(kvs, FileField.BLOCK);
-    return kv == null ? new ArrayList<LocatedBlock>() :
+    return kv == null ? new ArrayList<UnlocatedBlock>() :
       byteArrayToBlockList(kv.getValue());
   }
 
@@ -197,9 +194,9 @@ private void removeBlockAction(List<KeyValue> kvs) {
     // remove the blockAction
     removeBlockAction(kvs);
 
-    ArrayList<LocatedBlock> al = getFileBlocks(kvs);
+    List<UnlocatedBlock> al = getFileBlocks(kvs);
     // get the last block
-    LocatedBlock block = al.get(al.size()-1);
+    UnlocatedBlock block = al.get(al.size()-1);
     closeBlockFile(block.getBlock());
     LOG.info("Block file is closed: " + block);
     // return total fileSize to update in the put
@@ -233,27 +230,41 @@ private void removeBlockAction(List<KeyValue> kvs) {
     // remove the blockAction
     removeBlockAction(kvs);
 
-    KeyValue kv = findField(kvs, FileField.BLOCK);
-    if(kv != null) {
+    KeyValue blockKv = findField(kvs, FileField.BLOCK);
+    KeyValue locsKv = findField(kvs, FileField.LOCATIONS);
+    if(blockKv != null && locsKv != null) {
       // modifying the block column
       LOG.info("Altering put edits...");
-      // create arrayList from this current KeyValue
-      ArrayList<LocatedBlock> al = byteArrayToBlockList(kv.getValue());
+      // create arrayLists from current KeyValues
+      List<UnlocatedBlock> al_blks =
+          byteArrayToBlockList(blockKv.getValue());
+      List<DatanodeInfo[]> al_locs =
+          byteArrayToLocsList(locsKv.getValue());
 
-      LOG.info("al := " + al);
-      // get new empty Block and add it to list
-      LocatedBlock loc = allocateBlockFile(al);
-      al.add(loc);
+      LOG.info("al_blks := " + al_blks);
+      // get new empty Block, seperate into blocks/locations, and add to lists
+      LocatedBlock locatedBlock = allocateBlockFile(al_blks);
+      UnlocatedBlock blk = new UnlocatedBlock(locatedBlock);
+      DatanodeInfo[] locs = locatedBlock.getLocations();
+      al_blks.add(blk);
+      al_locs.add(locs);
 
-      // grab old KeyValue data and create new KeyValue
-      byte[] row = kv.getRow();
-      long timestamp = kv.getTimestamp();
-      KeyValue nkv = new KeyValue(row, FileField.getFileAttributes(),
-          FileField.getBlock(), timestamp, blockArrayToBytes(al));
+      // grab old KeyValue data and create new KeyValue for blocks
+      byte[] row = blockKv.getRow();
+      long blk_timestamp = blockKv.getTimestamp();
+      KeyValue blockNkv = new KeyValue(row, FileField.getFileAttributes(),
+          FileField.getBlock(), blk_timestamp, blockArrayToBytes(al_blks));
+      
+      // repeat for locations
+      long loc_timestamp = locsKv.getTimestamp();
+      KeyValue locsNkv = new KeyValue(row, FileField.getFileAttributes(),
+          FileField.getLocations(), loc_timestamp, locsArrayToBytes(al_locs));
 
-      // replace this KeyValue with new KeyValue
-      kvs.remove(kv);
-      kvs.add(nkv);
+      // replace original KeyValues with new KeyValues
+      kvs.remove(blockKv);
+      kvs.remove(locsKv);
+      kvs.add(blockNkv);
+      kvs.add(locsNkv);
     }
   }
 
@@ -269,7 +280,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
    * @throws IOException
    */
   @SuppressWarnings("deprecation")
-  private LocatedBlock allocateBlockFile(ArrayList<LocatedBlock> blocks)
+  private LocatedBlock allocateBlockFile(List<UnlocatedBlock> blocks)
   throws IOException {
     String tmpFile = getTemporaryBlockPath().toString();
 
@@ -313,9 +324,9 @@ private void removeBlockAction(List<KeyValue> kvs) {
     }
   }
 
-  static long getFileSize(ArrayList<LocatedBlock> al) {
+  static long getFileSize(List<UnlocatedBlock> al) {
     long n = 0;
-    for(LocatedBlock bl : al) {
+    for(UnlocatedBlock bl : al) {
       n += bl.getBlockSize();
     }
     return n;
@@ -340,51 +351,63 @@ private void removeBlockAction(List<KeyValue> kvs) {
   }
 
   /**
-   * Convert ArrayList of LocatedBlocks to a byte array.
+   * Convert ArrayList of UnlocatedBlocks to a byte array.
    * @param blocks
-   * @return Byte array representation of array of LocatedBlocks,
+   * @return Byte array representation of array of UnlocatedBlocks,
    * or null if fails.
    */
-  private byte[] blockArrayToBytes(ArrayList<LocatedBlock> blocks) {
-    byte[] retVal = null;
-
+  private byte[] blockArrayToBytes(List<UnlocatedBlock> blocks) {
     try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream out = new DataOutputStream(baos);
-      for(LocatedBlock loc : blocks) {
-        PBHelper.convert(loc).writeDelimitedTo(out);
-      }
-      retVal = baos.toByteArray();
-      out.close();
+      return GiraffaPBHelper.unlocatedBlocksToBytes(blocks);
     } catch (IOException e) {
       LOG.info("Error with serialization!", e);
-      return null;
     }
-    return retVal;
+    return null;
+  }
+  
+  /**
+   * Convert ArrayList of DatanodeInfo[]s to a byte array.
+   * @param locations
+   * @return Byte array representation of array of DatanodeInfo[]s,
+   * or null if fails.
+   */
+  private byte[] locsArrayToBytes(List<DatanodeInfo[]> locations) {
+    try {
+      return GiraffaPBHelper.blockLocationsToBytes(locations);
+    } catch (IOException e) {
+      LOG.info("Error with serialization!", e);
+    }
+    return null;
   }
 
   /**
-   * Convert a byte array into an ArrayList of LocatedBlocks.
+   * Convert a byte array into an ArrayList of UnlocatedBlocks.
    * @param blockArray
-   * @return ArrayList representation of byte array of LocatedBlocks,
+   * @return ArrayList representation of byte array of UnlocatedBlocks,
    *  returns null if fails.
    */
-  static ArrayList<LocatedBlock> byteArrayToBlockList(byte[] blockArray) {
-    ArrayList<LocatedBlock> locs = new ArrayList<LocatedBlock>();
-    DataInputStream in = null;
+  static List<UnlocatedBlock> byteArrayToBlockList(byte[] blockArray) {
     try {
-      in = new DataInputStream(new ByteArrayInputStream(blockArray));
-      while(in.available() > 0) {
-        LocatedBlock loc =
-            PBHelper.convert(HdfsProtos.LocatedBlockProto.parseDelimitedFrom(in));
-        locs.add(loc);
-      }
-      in.close();
+      return GiraffaPBHelper.bytesToUnlocatedBlocks(blockArray);
     } catch (IOException e) {
-      LOG.info("Error during deserialization!", e);
-      return null;
+      LOG.info("Error with serialization!", e);
     }
-    return locs;
+    return null;
+  }
+  
+  /**
+   * Convert a byte array into an ArrayList of DatanodeInfo[]s.
+   * @param locsArray
+   * @return ArrayList representation of byte array of DatanodeInfo[]s,
+   *  returns null if fails.
+   */
+  static List<DatanodeInfo[]> byteArrayToLocsList(byte[] locsArray) {
+    try {
+      return GiraffaPBHelper.bytesToBlockLocations(locsArray);
+    } catch (IOException e) {
+      LOG.info("Error with serialization!", e);
+    }
+    return null;
   }
   
   private static long now(){

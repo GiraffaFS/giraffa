@@ -34,8 +34,6 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_ENCRYPT_DATA_TRANSFER_KEY
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,10 +46,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
+import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -88,8 +88,6 @@ import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
@@ -225,8 +223,21 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
     synchronized(table) {
       nodeInfo = table.get(new Get(iNode.getRowKey().getKey()));
     }
-    ArrayList<LocatedBlock> al = getBlocks(nodeInfo);
-    return al.get(al.size()-1);
+    List<UnlocatedBlock> al_blks = getBlocks(nodeInfo);
+    List<DatanodeInfo[]> al_locs = getLocations(nodeInfo);
+    int last = al_blks.size()-1;
+    
+    if(al_blks.size() != al_locs.size()) {
+      LOG.error("Number of block infos (" + al_blks.size() +
+          ") and number of location infos (" + al_locs.size() +
+          ") do not match");
+      return null;
+    }
+    
+    if(last < 0)
+      return null;
+    else
+      return al_blks.get(last).toLocatedBlock(al_locs.get(last));
   }
 
   @Override // ClientProtocol
@@ -345,7 +356,7 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
           masked, clientName, machineName, null,
-          key, 0, 0, FileState.UNDER_CONSTRUCTION, null);
+          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null);
     }
 
     // add file to HBase (update if already exists)
@@ -505,9 +516,9 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
       return null; // HBase RPC does not pass exceptions
     }
 
-    List<LocatedBlock> al = iNode.getBlocks();
-    boolean underConstruction = 
-        (iNode.getFileState().equals(FileState.CLOSED)) ? true : false;
+    List<LocatedBlock> al = UnlocatedBlock.toLocatedBlocks(iNode.getBlocks(),
+        iNode.getLocations());
+    boolean underConstruction = (iNode.getFileState().equals(FileState.CLOSED));
 
     LocatedBlock lastBlock = al.size() == 0 ? null : al.get(al.size()-1);
     LocatedBlocks lbs = new LocatedBlocks(computeFileLength(al),
@@ -715,7 +726,7 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
         long time = now();
         inode = new INode(0, true, (short) 0, 0, time, time,
             masked, clientName, machineName, null,
-            key, 0, 0, null, null);
+            key, 0, 0, null, null, null);
         updateINode(inode);
       }
       return true;
@@ -744,7 +755,7 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
     long time = now();
     inode = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, null,
-        key, 0, 0, null, null);
+        key, 0, 0, null, null, null);
 
     // add directory to HBase
     updateINode(inode);
@@ -969,7 +980,8 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
         getDsQuota(result),
         getNsQuota(result),
         getState(result),
-        (needLocation) ? getBlocks(result) : null);
+        (needLocation) ? getBlocks(result) : null,
+        (needLocation) ? getLocations(result) : null);
     return iNode;
   }
 
@@ -1015,6 +1027,8 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
     else
       put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
              node.getBlocksBytes())
+         .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
+             node.getLocationsBytes())
          .add(FileField.getFileAttributes(), FileField.getState(), ts,
              Bytes.toBytes(node.getFileState().toString()));
 
@@ -1028,29 +1042,35 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
   }
 
   /**
-   * Get LocatedBlock info from HBase based on this nodes internal RowKey.
+   * Get UnlocatedBlock info from HBase based on this nodes internal RowKey.
    * @param res
-   * @return LocatedBlock from HBase row. Null if a directory or
+   * @return UnlocatedBlock from HBase row. Null if a directory or
    *  any sort of Exception happens.
    * @throws IOException
    */
-  public static ArrayList<LocatedBlock> getBlocks(Result res) throws
+  public static List<UnlocatedBlock> getBlocks(Result res) throws
        IOException {
     if(getDirectory(res))
       return null;
-  
-    ArrayList<LocatedBlock> blocks = new ArrayList<LocatedBlock>();
-    DataInputStream in = null;
+    
     byte[] value = res.getValue(
         FileField.getFileAttributes(), FileField.getBlock());
-    in = new DataInputStream(new ByteArrayInputStream(value));
-    while(in.available() > 0){
-      LocatedBlock loc =
-          PBHelper.convert(HdfsProtos.LocatedBlockProto.parseDelimitedFrom(in));
-      blocks.add(loc);
-    }
-    in.close();
-    return blocks;
+    return GiraffaPBHelper.bytesToUnlocatedBlocks(value);
+  }
+  
+  public static List<DatanodeInfo[]> getLocations(Result res) throws
+      IOException {
+    if(getDirectory(res))
+      return null;
+    
+    byte[] value = res.getValue(
+        FileField.getFileAttributes(), FileField.getLocations());
+    return GiraffaPBHelper.bytesToBlockLocations(value);
+  }
+  
+  public static List<LocatedBlock> getLocatedBlocks(Result res) throws
+      IOException {
+    return UnlocatedBlock.toLocatedBlocks(getBlocks(res), getLocations(res));
   }
 
   public static boolean getDirectory(Result res) {
@@ -1079,12 +1099,12 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
   }
 
   public static String getFileName(Result res) {
-    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
+    return Bytes.toString(res.getValue(FileField.getFileAttributes(),
                                    FileField.getFileName()));
   }
 
   public static String getUserName(Result res) {
-    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
+    return Bytes.toString(res.getValue(FileField.getFileAttributes(),
         FileField.getUserName()));
   }
 

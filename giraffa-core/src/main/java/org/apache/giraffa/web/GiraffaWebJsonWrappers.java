@@ -208,7 +208,7 @@ public class GiraffaWebJsonWrappers {
                     String group, byte[] symlink, RowKey rowKey)
         throws IOException {
       super(length, directory, replication, blockSize, mtime, atime, perms, owner, group,
-          symlink, rowKey, 0, 0, null, null);
+          symlink, rowKey, 0, 0, null, null, null);
     }
 
     public String getPreview() {
