@@ -135,16 +135,17 @@ public class BlockManagementAgent extends BaseRegionObserver {
     } else if(blockAction.equals(BlockAction.DELETE)) {
       deleteBlocks(kvs);
     }
+    put.getFamilyCellMap().put(FileField.getFileAttributes(),
+        new ArrayList<Cell>(kvs));
   }
 
   private List<KeyValue> getKeyValues(Put put) {
-    List<? extends Cell> cells =
-        put.getFamilyMap().get(FileField.getFileAttributes());
+    List<Cell> cells =
+        put.getFamilyCellMap().get(FileField.getFileAttributes());
     List<KeyValue> kvs = new ArrayList<KeyValue>(cells.size());
     for(Cell cell : cells) {
       kvs.add(KeyValueUtil.ensureKeyValue(cell));
     }
-    put.getFamilyMap().put(FileField.getFileAttributes(), kvs);
     return kvs;
   }
 
@@ -215,7 +216,6 @@ private void removeBlockAction(List<KeyValue> kvs) {
     //replace this KeyValue with new KeyValue
     kvs.remove(kv);
     kvs.add(nkv);
-    return;
   }
 
   /**

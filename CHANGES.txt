@@ -86,3 +86,5 @@ Release 0.0.2 - Unreleased
               TestGiraffaFileStatus.testUnderConstructionLocatedFileStatus().
               (Plamen)
     Issue 51: FullPathRowKey should not use Bytes. (Milan)
+    Issue 77: Add missing dependencies to fix Jenkins build.
+              (Plamen, Konstantin P)

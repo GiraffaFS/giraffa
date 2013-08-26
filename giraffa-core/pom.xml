@@ -41,6 +41,16 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
             <version>${hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -48,6 +58,14 @@
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
@@ -63,6 +81,16 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-minicluster</artifactId>
             <version>${hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -95,6 +123,16 @@
             <version>${hadoop.version}</version>
             <scope>test</scope>
             <type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -103,10 +141,17 @@
             <version>${hadoop.version}</version>
             <scope>test</scope>
             <type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet.jsp</groupId>
+                    <artifactId>jsp-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
-
-
         <!-- Hbase dependencies -->
 
 
@@ -215,6 +260,10 @@
                 <exclusion>
                 	<groupId>org.apache.hadoop</groupId>
                 	<artifactId>hadoop-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tomcat</groupId>
+                    <artifactId>jasper-runtime</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

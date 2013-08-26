@@ -1,7 +1,6 @@
-<%@ page contentType="text/html;charset=UTF-8"%>
+<%@ page contentType="text/html;charset=UTF-8" isELIgnored="false"%>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page import="org.apache.hadoop.hbase.client.HBaseAdmin" %>
 <%@ page import="org.apache.hadoop.conf.Configuration" %>
 <%@ page import="org.apache.giraffa.GiraffaConfiguration" %>

@@ -1,4 +1,4 @@
-<%@ page import="org.apache.hadoop.conf.Configuration" %>
+<%@ page import="org.apache.hadoop.conf.Configuration" isELIgnored="false"%>
 <%@ page contentType="text/html;charset=UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>

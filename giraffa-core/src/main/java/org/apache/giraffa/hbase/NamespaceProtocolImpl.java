@@ -21,6 +21,7 @@ import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERV
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
+import org.apache.hadoop.hbase.TableName;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BYTES_PER_CHECKSUM_DEFAULT;
@@ -72,7 +73,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.exceptions.CoprocessorException;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
@@ -179,7 +180,7 @@ public class NamespaceProtocolImpl implements NamespaceProtocol {
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     try {
-      table = env.getTable(RowKeyBytes.toBytes(tableName));
+      table = env.getTable(TableName.valueOf(RowKeyBytes.toBytes(tableName)));
     } catch (IOException e) {
       LOG.error("Cannot get table: " + tableName, e);
     }

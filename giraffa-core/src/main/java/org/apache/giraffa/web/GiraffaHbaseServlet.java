@@ -10,6 +10,7 @@ import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceProtocolImpl;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -214,7 +215,8 @@ public class GiraffaHbaseServlet extends HttpServlet {
         .get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     try {
-      table = masterEnv.getTable(RowKeyBytes.toBytes(tableName));
+      table = masterEnv.getTable(
+          TableName.valueOf(RowKeyBytes.toBytes(tableName)));
     } catch (IOException e) {
       LOG.error("Cannot get table: " + tableName, e);
     }

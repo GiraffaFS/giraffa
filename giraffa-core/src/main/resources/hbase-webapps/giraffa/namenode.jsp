@@ -1,4 +1,4 @@
-<%@ page import="org.apache.hadoop.conf.Configuration" %>
+<%@ page import="org.apache.hadoop.conf.Configuration" isELIgnored="false" %>
 <%@ page import="org.apache.hadoop.hdfs.DFSConfigKeys" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ page contentType="text/html;charset=UTF-8"%>
