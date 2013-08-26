@@ -36,6 +36,9 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.URI;
 
 import org.apache.commons.logging.Log;
@@ -78,6 +81,9 @@ import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
+import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
+import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
@@ -157,11 +163,30 @@ public class NamespaceAgent implements NamespaceService {
   private ClientProtocol getRegionProxy(String src) throws IOException {    
     return getRegionProxy(RowKeyFactory.newInstance(src));
   }
-
-   ClientProtocol getRegionProxy(RowKey key) throws IOException {
-     CoprocessorRpcChannel coprocRpc = nsTable.coprocessorService(key.getKey());
-     return new GiraffaRpc(coprocRpc);
-   }
+  
+  private ClientProtocol getRegionProxy(RowKey key) {
+    // load blocking stub for protocol based on row key
+    CoprocessorRpcChannel channel = nsTable.coprocessorService(key.getKey());
+    final ClientNamenodeProtocol.BlockingInterface stub =
+        ClientNamenodeProtocol.newBlockingStub(channel);
+    
+    // create a handler for forwarding proxy calls to blocking stub
+    InvocationHandler handler = new InvocationHandler(){
+      @Override
+      public Object invoke(Object proxy, Method method, Object[] args)
+          throws Throwable {
+        return method.invoke(stub, args);
+      }
+    };
+    
+    // create a proxy implementation of ClientNamenodeProtocolPB
+    Class<ClientNamenodeProtocolPB> classObj = ClientNamenodeProtocolPB.class;
+    ClientNamenodeProtocolPB clientPB =
+        (ClientNamenodeProtocolPB) Proxy.newProxyInstance(
+            classObj.getClassLoader(), new Class[]{classObj}, handler);
+    
+    return new ClientNamenodeProtocolTranslatorPB(clientPB);
+  }
 
   @Override // ClientProtocol
   public void abandonBlock(ExtendedBlock b, String src, String holder)

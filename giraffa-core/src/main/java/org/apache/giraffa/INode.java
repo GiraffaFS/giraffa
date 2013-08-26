@@ -64,8 +64,7 @@ public class INode {
       long mtime, long atime, FsPermission perms, String owner, String group,
       byte[] symlink, RowKey key, long dsQuota, long nsQuota,
       FileState state, List<UnlocatedBlock> blocks,
-      List<DatanodeInfo[]> locations)
-  throws IOException {
+      List<DatanodeInfo[]> locations) {
     this.length = length;
     this.isdir = directory;
     this.block_replication = replication;
@@ -269,6 +268,7 @@ public class INode {
     }
   }
 
+  @Override
   public String toString() {
     return "\"" + getRowKey().getPath() + "\":" + permission;
   }

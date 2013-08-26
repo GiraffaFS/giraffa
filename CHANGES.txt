@@ -59,6 +59,8 @@ Release 0.0.2 - Unreleased
     Issue 20: DirectoryTable should use Map or Set instead of the
               ArrayList to store its directory entries. (Plamen)
     Issue 52: Eliminate recursion in delete(). (Plamen)
+    Issue 78: Remove NamespaceProtocol and simplify HBase package now that
+              HBase 6340 is resolved. (Milan)
 
   BUG FIXES
 

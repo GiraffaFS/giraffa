@@ -8,7 +8,7 @@ import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
-import org.apache.giraffa.hbase.NamespaceProtocolImpl;
+import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -139,12 +139,12 @@ public class GiraffaHbaseServlet extends HttpServlet {
         if (r.containsColumn(FileField.FILE_ATTRIBUTES.getBytes(),
             entry.getBytes())) {
           if (entry == FileField.PERMISSIONS) {
-            data.put(8, NamespaceProtocolImpl.getPermissions(r).toString());
+            data.put(8, NamespaceProcessor.getPermissions(r).toString());
           } else if (entry == FileField.BLOCK) {
             List<LocatedBlockDescriptor> locatedBlockResult =
                 new ArrayList<LocatedBlockDescriptor>();
             List<LocatedBlock> blockArrayList =
-                NamespaceProtocolImpl.getLocatedBlocks(r);
+                NamespaceProcessor.getLocatedBlocks(r);
             long blockCounter = 0;
             for (LocatedBlock locatedBlock : blockArrayList) {
               if (blockCounter >= BLOCK_RESULT_LIMIT) {
@@ -157,22 +157,22 @@ public class GiraffaHbaseServlet extends HttpServlet {
                 (locatedBlockResult, blockArrayList.size()));
           } else {
             switch (entry) {
-              case A_TIME:     data.put(7, NamespaceProtocolImpl.getATime(r));     break;
-              case M_TIME:     data.put(6, NamespaceProtocolImpl.getMTime(r));     break;
+              case A_TIME:     data.put(7, NamespaceProcessor.getATime(r));     break;
+              case M_TIME:     data.put(6, NamespaceProcessor.getMTime(r));     break;
               case ACTION:     data.put(14, RowKeyBytes.toString(r.getValue(
                   FileField.getFileAttributes(), FileField.getAction())));         break;
-              case NAME:       data.put(1, NamespaceProtocolImpl.getFileName(r));  break;
-              case NS_QUOTA:   data.put(13, NamespaceProtocolImpl.getNsQuota(r));  break;
-              case BLOCK_SIZE: data.put(4, NamespaceProtocolImpl.getBlockSize(r)); break;
-              case DIRECTORY:  data.put(2, NamespaceProtocolImpl.getDirectory(r)); break;
-              case DS_QUOTA:   data.put(12, NamespaceProtocolImpl.getDsQuota(r));  break;
-              case GROUP_NAME: data.put(10, NamespaceProtocolImpl.getGroupName(r));break;
-              case LENGTH:     data.put(3, NamespaceProtocolImpl.getLength(r));    break;
-              case PERMISSIONS:data.put(8, NamespaceProtocolImpl.getPermissions(r)); break;
-              case REPLICATION:data.put(15, NamespaceProtocolImpl.getReplication(r)); break;
-              case USER_NAME:  data.put(9, NamespaceProtocolImpl.getUserName(r));  break;
-              case SYMLINK:    data.put(11, NamespaceProtocolImpl.getSymlink(r));  break;
-              case STATE:      data.put(16, NamespaceProtocolImpl.getState(r));    break;
+              case NAME:       data.put(1, NamespaceProcessor.getFileName(r));  break;
+              case NS_QUOTA:   data.put(13, NamespaceProcessor.getNsQuota(r));  break;
+              case BLOCK_SIZE: data.put(4, NamespaceProcessor.getBlockSize(r)); break;
+              case DIRECTORY:  data.put(2, NamespaceProcessor.getDirectory(r)); break;
+              case DS_QUOTA:   data.put(12, NamespaceProcessor.getDsQuota(r));  break;
+              case GROUP_NAME: data.put(10, NamespaceProcessor.getGroupName(r));break;
+              case LENGTH:     data.put(3, NamespaceProcessor.getLength(r));    break;
+              case PERMISSIONS:data.put(8, NamespaceProcessor.getPermissions(r)); break;
+              case REPLICATION:data.put(15, NamespaceProcessor.getReplication(r)); break;
+              case USER_NAME:  data.put(9, NamespaceProcessor.getUserName(r));  break;
+              case SYMLINK:    data.put(11, NamespaceProcessor.getSymlink(r));  break;
+              case STATE:      data.put(16, NamespaceProcessor.getState(r));    break;
               default:                                                          break;
             }
           }
