@@ -62,6 +62,7 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -333,7 +334,7 @@ public class NamespaceAgent implements NamespaceService {
   throws IOException {
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    HTableDescriptor htd = new HTableDescriptor(tableName);
+    HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
     String coprocClass =
         conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
@@ -347,8 +348,9 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public void fsync(String src, String client) throws AccessControlException,
-      FileNotFoundException, UnresolvedLinkException, IOException {
+  public void fsync(String src, String client, long lastBlockLength)
+      throws AccessControlException, FileNotFoundException,
+      UnresolvedLinkException, IOException {
     throw new IOException("fsync is not supported");
   }
 
@@ -537,7 +539,8 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public boolean setSafeMode(SafeModeAction action) throws IOException {
+  public boolean setSafeMode(SafeModeAction action, boolean isChecked)
+      throws IOException {
     return false;
   }
 

@@ -520,7 +520,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public void fsync(String src, String client) throws
+  public void fsync(String src, String client, long lastBlockLength) throws
       AccessControlException, FileNotFoundException, UnresolvedLinkException,
       IOException {
     throw new IOException("fsync is not supported.");
@@ -927,7 +927,8 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean setSafeMode(SafeModeAction action) throws IOException {
+  public boolean setSafeMode(SafeModeAction action, boolean isChecked)
+      throws IOException {
     return false;
   }
 

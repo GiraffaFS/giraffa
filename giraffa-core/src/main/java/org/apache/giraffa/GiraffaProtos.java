@@ -11,7 +11,7 @@ public final class GiraffaProtos {
   public interface UnlocatedBlockProtoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
     
-    // required .ExtendedBlockProto b = 1;
+    // required .hadoop.hdfs.ExtendedBlockProto b = 1;
     boolean hasB();
     org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB();
     org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder();
@@ -24,10 +24,10 @@ public final class GiraffaProtos {
     boolean hasCorrupt();
     boolean getCorrupt();
     
-    // required .BlockTokenIdentifierProto blockToken = 4;
+    // required .hadoop.common.TokenProto blockToken = 4;
     boolean hasBlockToken();
-    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken();
-    org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder();
+    org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken();
+    org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder();
   }
   public static final class UnlocatedBlockProto extends
       com.google.protobuf.GeneratedMessage
@@ -49,16 +49,16 @@ public final class GiraffaProtos {
     
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.apache.giraffa.GiraffaProtos.internal_static_org_apache_giraffa_UnlocatedBlockProto_descriptor;
+      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_descriptor;
     }
     
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.giraffa.GiraffaProtos.internal_static_org_apache_giraffa_UnlocatedBlockProto_fieldAccessorTable;
+      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable;
     }
     
     private int bitField0_;
-    // required .ExtendedBlockProto b = 1;
+    // required .hadoop.hdfs.ExtendedBlockProto b = 1;
     public static final int B_FIELD_NUMBER = 1;
     private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_;
     public boolean hasB() {
@@ -91,16 +91,16 @@ public final class GiraffaProtos {
       return corrupt_;
     }
     
-    // required .BlockTokenIdentifierProto blockToken = 4;
+    // required .hadoop.common.TokenProto blockToken = 4;
     public static final int BLOCKTOKEN_FIELD_NUMBER = 4;
-    private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto blockToken_;
+    private org.apache.hadoop.security.proto.SecurityProtos.TokenProto blockToken_;
     public boolean hasBlockToken() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
-    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken() {
+    public org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken() {
       return blockToken_;
     }
-    public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder() {
+    public org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder() {
       return blockToken_;
     }
     
@@ -108,7 +108,7 @@ public final class GiraffaProtos {
       b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
       offset_ = 0L;
       corrupt_ = false;
-      blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+      blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -340,12 +340,12 @@ public final class GiraffaProtos {
        implements org.apache.giraffa.GiraffaProtos.UnlocatedBlockProtoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.apache.giraffa.GiraffaProtos.internal_static_org_apache_giraffa_UnlocatedBlockProto_descriptor;
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_descriptor;
       }
       
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.apache.giraffa.GiraffaProtos.internal_static_org_apache_giraffa_UnlocatedBlockProto_fieldAccessorTable;
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable;
       }
       
       // Construct using org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.newBuilder()
@@ -380,7 +380,7 @@ public final class GiraffaProtos {
         corrupt_ = false;
         bitField0_ = (bitField0_ & ~0x00000004);
         if (blockTokenBuilder_ == null) {
-          blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+          blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
         } else {
           blockTokenBuilder_.clear();
         }
@@ -550,7 +550,7 @@ public final class GiraffaProtos {
               break;
             }
             case 34: {
-              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder subBuilder = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.newBuilder();
+              org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder subBuilder = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.newBuilder();
               if (hasBlockToken()) {
                 subBuilder.mergeFrom(getBlockToken());
               }
@@ -564,7 +564,7 @@ public final class GiraffaProtos {
       
       private int bitField0_;
       
-      // required .ExtendedBlockProto b = 1;
+      // required .hadoop.hdfs.ExtendedBlockProto b = 1;
       private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder> bBuilder_;
@@ -696,21 +696,21 @@ public final class GiraffaProtos {
         return this;
       }
       
-      // required .BlockTokenIdentifierProto blockToken = 4;
-      private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+      // required .hadoop.common.TokenProto blockToken = 4;
+      private org.apache.hadoop.security.proto.SecurityProtos.TokenProto blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder> blockTokenBuilder_;
+          org.apache.hadoop.security.proto.SecurityProtos.TokenProto, org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder, org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder> blockTokenBuilder_;
       public boolean hasBlockToken() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
-      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto getBlockToken() {
+      public org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken() {
         if (blockTokenBuilder_ == null) {
           return blockToken_;
         } else {
           return blockTokenBuilder_.getMessage();
         }
       }
-      public Builder setBlockToken(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto value) {
+      public Builder setBlockToken(org.apache.hadoop.security.proto.SecurityProtos.TokenProto value) {
         if (blockTokenBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -724,7 +724,7 @@ public final class GiraffaProtos {
         return this;
       }
       public Builder setBlockToken(
-          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder builderForValue) {
+          org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder builderForValue) {
         if (blockTokenBuilder_ == null) {
           blockToken_ = builderForValue.build();
           onChanged();
@@ -734,12 +734,12 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000008;
         return this;
       }
-      public Builder mergeBlockToken(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto value) {
+      public Builder mergeBlockToken(org.apache.hadoop.security.proto.SecurityProtos.TokenProto value) {
         if (blockTokenBuilder_ == null) {
           if (((bitField0_ & 0x00000008) == 0x00000008) &&
-              blockToken_ != org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance()) {
+              blockToken_ != org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance()) {
             blockToken_ =
-              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.newBuilder(blockToken_).mergeFrom(value).buildPartial();
+              org.apache.hadoop.security.proto.SecurityProtos.TokenProto.newBuilder(blockToken_).mergeFrom(value).buildPartial();
           } else {
             blockToken_ = value;
           }
@@ -752,7 +752,7 @@ public final class GiraffaProtos {
       }
       public Builder clearBlockToken() {
         if (blockTokenBuilder_ == null) {
-          blockToken_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.getDefaultInstance();
+          blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
           onChanged();
         } else {
           blockTokenBuilder_.clear();
@@ -760,12 +760,12 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
-      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder getBlockTokenBuilder() {
+      public org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder getBlockTokenBuilder() {
         bitField0_ |= 0x00000008;
         onChanged();
         return getBlockTokenFieldBuilder().getBuilder();
       }
-      public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder getBlockTokenOrBuilder() {
+      public org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder() {
         if (blockTokenBuilder_ != null) {
           return blockTokenBuilder_.getMessageOrBuilder();
         } else {
@@ -773,11 +773,11 @@ public final class GiraffaProtos {
         }
       }
       private com.google.protobuf.SingleFieldBuilder<
-          org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder> 
+          org.apache.hadoop.security.proto.SecurityProtos.TokenProto, org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder, org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder> 
           getBlockTokenFieldBuilder() {
         if (blockTokenBuilder_ == null) {
           blockTokenBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.BlockTokenIdentifierProtoOrBuilder>(
+              org.apache.hadoop.security.proto.SecurityProtos.TokenProto, org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder, org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder>(
                   blockToken_,
                   getParentForChildren(),
                   isClean());
@@ -786,7 +786,7 @@ public final class GiraffaProtos {
         return blockTokenBuilder_;
       }
       
-      // @@protoc_insertion_point(builder_scope:org.apache.giraffa.UnlocatedBlockProto)
+      // @@protoc_insertion_point(builder_scope:giraffa.UnlocatedBlockProto)
     }
     
     static {
@@ -794,14 +794,14 @@ public final class GiraffaProtos {
       defaultInstance.initFields();
     }
     
-    // @@protoc_insertion_point(class_scope:org.apache.giraffa.UnlocatedBlockProto)
+    // @@protoc_insertion_point(class_scope:giraffa.UnlocatedBlockProto)
   }
   
   private static com.google.protobuf.Descriptors.Descriptor
-    internal_static_org_apache_giraffa_UnlocatedBlockProto_descriptor;
+    internal_static_giraffa_UnlocatedBlockProto_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_org_apache_giraffa_UnlocatedBlockProto_fieldAccessorTable;
+      internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable;
   
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -811,23 +811,23 @@ public final class GiraffaProtos {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\ngrfa.proto\022\022org.apache.giraffa\032\nhdfs.p" +
-      "roto\"\206\001\n\023UnlocatedBlockProto\022\036\n\001b\030\001 \002(\0132" +
-      "\023.ExtendedBlockProto\022\016\n\006offset\030\002 \002(\004\022\017\n\007" +
-      "corrupt\030\003 \002(\010\022.\n\nblockToken\030\004 \002(\0132\032.Bloc" +
-      "kTokenIdentifierProtoB)\n\022org.apache.gira" +
-      "ffaB\rGiraffaProtos\210\001\001\240\001\001"
+      "\n\ngrfa.proto\022\007giraffa\032\nhdfs.proto\032\016Secur" +
+      "ity.proto\"\221\001\n\023UnlocatedBlockProto\022*\n\001b\030\001" +
+      " \002(\0132\037.hadoop.hdfs.ExtendedBlockProto\022\016\n" +
+      "\006offset\030\002 \002(\004\022\017\n\007corrupt\030\003 \002(\010\022-\n\nblockT" +
+      "oken\030\004 \002(\0132\031.hadoop.common.TokenProtoB&\n" +
+      "\022org.apache.giraffaB\rGiraffaProtos\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
         public com.google.protobuf.ExtensionRegistry assignDescriptors(
             com.google.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;
-          internal_static_org_apache_giraffa_UnlocatedBlockProto_descriptor =
+          internal_static_giraffa_UnlocatedBlockProto_descriptor =
             getDescriptor().getMessageTypes().get(0);
-          internal_static_org_apache_giraffa_UnlocatedBlockProto_fieldAccessorTable = new
+          internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-              internal_static_org_apache_giraffa_UnlocatedBlockProto_descriptor,
+              internal_static_giraffa_UnlocatedBlockProto_descriptor,
               new java.lang.String[] { "B", "Offset", "Corrupt", "BlockToken", },
               org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.class,
               org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.Builder.class);
@@ -838,6 +838,7 @@ public final class GiraffaProtos {
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.getDescriptor(),
+          org.apache.hadoop.security.proto.SecurityProtos.getDescriptor(),
         }, assigner);
   }
   

@@ -23,7 +23,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto;
@@ -57,7 +56,7 @@ public class GiraffaPBHelper {
   
   private static DatanodeInfosProto convert(DatanodeInfo[] toConv) {
     return DatanodeInfosProto.newBuilder()
-        .addAllDatanodes(Arrays.asList(PBHelper.convert(toConv)))
+        .addAllDatanodes(PBHelper.convert(toConv))
         .build();
   }
   

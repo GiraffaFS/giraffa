@@ -43,6 +43,7 @@ Release 0.0.2 - Unreleased
     Issue 4:  Make scripts work for custom specified hadoop and hbase home
               distros. (Milan)
     Issue 65: Need to store Block and Location info separately. (Milan)
+    Issue 79: Upgrade Giraffa to Hadoop 2.0.5. (Milan)
 
   DOCUMENTATION
 
