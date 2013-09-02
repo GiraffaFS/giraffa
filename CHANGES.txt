@@ -1,6 +1,38 @@
 Giraffa Change Log
 
-Release 0.0.2 - Unreleased
+Trunk - Unreleased
+
+  INCOMPATIBLE CHANGES
+
+    Issue 55: Upgrade to Hadoop 2. (Milan)
+    Issue 79: Upgrade Giraffa to Hadoop 2.0.5. (Milan)
+
+  NEW FEATURES
+
+    Issue 4:  Make scripts work for custom specified hadoop and hbase home
+              distros. (Milan)
+    Issue 65: Need to store Block and Location info separately. (Milan)
+
+  IMPROVEMENTS
+
+    Issue 51: FullPathRowKey should not use Bytes. (Milan)
+
+  DOCUMENTATION
+
+    Issue 80: CHANGES.txt should reflect release history. (shv)
+
+  OPTIMIZATIONS
+
+    Issue 78: Remove NamespaceProtocol and simplify HBase package now that
+              HBase 6340 is resolved. (Milan)
+
+  BUG FIXES
+
+    Issue 77: Add missing dependencies to fix Jenkins build.
+              (Plamen, Konstantin P)
+
+
+Release 0.0.1 - 2013-07-10
 
   INCOMPATIBLE CHANGES
 
@@ -39,11 +71,6 @@ Release 0.0.2 - Unreleased
     Issue 66: Rename artifact to giraffa, remove giraffa-site.xml from
               test resources. (Plamen)
     Issue 70: Remove grfa.jar dependency. (Plamen)
-    Issue 55: Upgrade to Hadoop 2. (Milan)
-    Issue 4:  Make scripts work for custom specified hadoop and hbase home
-              distros. (Milan)
-    Issue 65: Need to store Block and Location info separately. (Milan)
-    Issue 79: Upgrade Giraffa to Hadoop 2.0.5. (Milan)
 
   DOCUMENTATION
 
@@ -60,8 +87,6 @@ Release 0.0.2 - Unreleased
     Issue 20: DirectoryTable should use Map or Set instead of the
               ArrayList to store its directory entries. (Plamen)
     Issue 52: Eliminate recursion in delete(). (Plamen)
-    Issue 78: Remove NamespaceProtocol and simplify HBase package now that
-              HBase 6340 is resolved. (Milan)
 
   BUG FIXES
 
@@ -88,6 +113,3 @@ Release 0.0.2 - Unreleased
     Issue 61: Incorrect number of blocks returned in
               TestGiraffaFileStatus.testUnderConstructionLocatedFileStatus().
               (Plamen)
-    Issue 51: FullPathRowKey should not use Bytes. (Milan)
-    Issue 77: Add missing dependencies to fix Jenkins build.
-              (Plamen, Konstantin P)
