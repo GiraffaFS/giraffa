@@ -351,7 +351,7 @@ public class NamespaceAgent implements NamespaceService {
   public void fsync(String src, String client, long lastBlockLength)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    throw new IOException("fsync is not supported");
+    // NYI, but can't throw Exception for sake of hflush()
   }
 
   @Override // ClientProtocol

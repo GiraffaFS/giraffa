@@ -30,7 +30,8 @@ Trunk - Unreleased
 
     Issue 77: Add missing dependencies to fix Jenkins build.
               (Plamen, Konstantin P)
-
+    Issue 81: TestGiraffaFileStatus should use hflush() not flush().
+              (Milan)
 
 Release 0.0.1 - 2013-07-10
 

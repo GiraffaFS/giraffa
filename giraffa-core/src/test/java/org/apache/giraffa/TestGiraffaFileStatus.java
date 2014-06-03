@@ -100,13 +100,13 @@ public class TestGiraffaFileStatus {
   }
 
   @Test
-  public void testUnderConstructionLocatedFileStatus() throws IOException, InterruptedException {
+  public void testUnderConstructionLocatedFileStatus() throws IOException {
     Path file = new Path("/fileB");
     FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);
     for(int i = 0; i < 12345; i++) {
       out.write('B');
     }
-    out.flush();
+    out.hflush();
 
     DirectoryListing listing = grfaClient.listPaths("/fileB", null, true);
     assertTrue("DirectoryListing.getPartialListing() returned empty result.",
