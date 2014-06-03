@@ -32,6 +32,8 @@ Trunk - Unreleased
               (Plamen, Konstantin P)
     Issue 81: TestGiraffaFileStatus should use hflush() not flush().
               (Milan)
+    Issue 82: create() should not throw FNFE when overwrite flag is set.
+              (Milan)
 
 Release 0.0.1 - 2013-07-10
 

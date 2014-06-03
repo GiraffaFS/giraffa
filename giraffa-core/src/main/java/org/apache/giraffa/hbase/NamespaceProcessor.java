@@ -325,7 +325,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     INode iFile = getINode(src);
-    if(create && iFile != null) {
+    if(create && !overwrite && iFile != null) {
       LOG.info("File already exists: " + src);
       // throw FileAlreadyExistsException
       return; // HBase RPC does not pass exceptions
