@@ -30,4 +30,8 @@
     qualified class name here.
     </description>
   </property>
+  <property>
+	<name>hbase.rpc.callerfactory.class</name>
+	<value>org.apache.giraffa.hbase.GiraffaRpcRetryingCallerFactory</value>
+  </property>
 </configuration>

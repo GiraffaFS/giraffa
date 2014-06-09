@@ -12,6 +12,7 @@ Trunk - Unreleased
     Issue 4:  Make scripts work for custom specified hadoop and hbase home
               distros. (Milan)
     Issue 65: Need to store Block and Location info separately. (Milan)
+    Issue 75: Make Giraffa throw Exceptions over RPC Interface. (Milan)
 
   IMPROVEMENTS
 

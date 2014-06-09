@@ -44,7 +44,6 @@ import java.util.ListIterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.ClientNamenodeProtocolServerSideCallbackTranslatorPB;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaPBHelper;
@@ -210,7 +209,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public void abandonBlock(ExtendedBlock b, String src, String holder)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-
+    throw new IOException("abandonBlock is not supported");
   }
 
   @Override // ClientProtocol
@@ -222,9 +221,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode iNode = getINode(src, true);
 
     if(iNode == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return null; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     // Calls addBlock on HDFS by putting another empty Block in HBase
@@ -249,14 +246,13 @@ public class NamespaceProcessor implements ClientProtocol,
     int last = al_blks.size()-1;
     
     if(al_blks.size() != al_locs.size()) {
-      LOG.error("Number of block infos (" + al_blks.size() +
+      throw new IOException("Number of block infos (" + al_blks.size() +
           ") and number of location infos (" + al_locs.size() +
           ") do not match");
-      return null;
     }
     
     if(last < 0)
-      return null;
+      throw new IOException("Number of block infos is 0");
     else
       return al_blks.get(last).toLocatedBlock(al_locs.get(last));
   }
@@ -272,6 +268,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public void cancelDelegationToken(Token<DelegationTokenIdentifier> token)
       throws IOException {
+    throw new IOException("cancelDelegationToken is not supported");
   }
 
   @Override // ClientProtocol
@@ -283,9 +280,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode iNode = getINode(src, true);
 
     if(iNode == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return false; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     // set the state and replace the block, then put the iNode
@@ -319,22 +314,17 @@ public class NamespaceProcessor implements ClientProtocol,
     boolean create = flag.contains(CreateFlag.CREATE);
 
     if(append) {
-      LOG.error("Append is not supported.");
-      // throw IOException("Append is not supported.")
-      return;
+      throw new IOException("Append is not supported.");
     }
 
     INode iFile = getINode(src);
     if(create && !overwrite && iFile != null) {
-      LOG.info("File already exists: " + src);
-      // throw FileAlreadyExistsException
-      return; // HBase RPC does not pass exceptions
+      throw new FileAlreadyExistsException("File already exists: " + src);
     }
 
     if(iFile != null && iFile.isDir()) {
-      LOG.error("File already exists as a directory: " + src);
-      // throw FileAlreadyExistsException
-      return; // HBase RPC does not pass exceptions
+      throw new FileAlreadyExistsException("File already exists as directory: "
+          + src);
     }
 
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
@@ -347,27 +337,21 @@ public class NamespaceProcessor implements ClientProtocol,
     String parent = parentPath.toString();
     INode iParent = getINode(parent);
     if(!createParent && iParent == null) {
-      // throw new FileNotFoundException("Parent does not exist: " + src);
-      LOG.error("Parent does not exist: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("Parent does not exist: " + src);
     }
 
     if(iParent == null) { // create parent directories
-      if(! mkdirs(parent, masked, true)) {
-        LOG.error("Cannot create parent directories: " + src);
-        return;
+      if(!mkdirs(parent, masked, true)) {
+        throw new IOException("Cannot create parent directories: " + src);
       }
     } else if(!iParent.isDir()) {
-      // throw new ParentNotDirectoryException(
-      //     "Parent path is not a directory: " + src);
-      LOG.error("Parent path is not a directory: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new ParentNotDirectoryException("Parent path is not a directory: "
+          + src);
     }
 
     if(overwrite && iFile != null) {
-      if(! deleteFile(iFile)) {
-        LOG.error("Cannot override existing file: " + src);
-        return;
+      if(!deleteFile(iFile)) {
+        throw new IOException("Cannot override existing file: " + src);
       }
     }
 
@@ -415,11 +399,9 @@ public class NamespaceProcessor implements ClientProtocol,
     // then check parent inode
     INode parent = getINode(parentPath.toString());
     if(parent == null)
-      // throw new FileNotFoundException("Parent does not exist.");
-      return false; // parent already deleted
+      throw new FileNotFoundException("Parent does not exist.");
     if(!parent.isDir())
-      // throw new ParentNotDirectoryException("Parent is not a directory.");
-      return false; // parent already replaced
+      throw new ParentNotDirectoryException("Parent is not a directory.");
 
     if(node.isDir())
       return deleteDirectory(node, recursive);
@@ -532,9 +514,7 @@ public class NamespaceProcessor implements ClientProtocol,
       UnresolvedLinkException, IOException {
     INode iNode = getINode(src, true);
     if(iNode == null || iNode.isDir()) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return null; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     List<LocatedBlock> al = UnlocatedBlock.toLocatedBlocks(iNode.getBlocks(),
@@ -562,11 +542,14 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     INode node = getINode(path);
+    if(node == null) {
+      throw new FileNotFoundException("Path does not exist: " + path);
+    }
     if(node.isDir()) {
       return new ContentSummary(0L, 0L, 1L, node.getNsQuota(), 
           0L, node.getDsQuota());
     }
-    return null;
+    throw new IOException("Path is not a directory: " + path);
   }
 
   @Override // ClientProtocol
@@ -578,7 +561,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public Token<DelegationTokenIdentifier> getDelegationToken(Text renewer)
       throws IOException {
-    return null;
+    throw new IOException("getDelegationToken is not supported");
   }
 
   @Override // ClientProtocol
@@ -586,9 +569,7 @@ public class NamespaceProcessor implements ClientProtocol,
       FileNotFoundException, UnresolvedLinkException, IOException {
     INode node = getINode(src);
     if(node == null) {
-      //throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return null; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
     return node.getFileStatus();
   }
@@ -653,9 +634,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src, needLocation);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return null; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     if(!node.isDir()) {
@@ -706,9 +685,7 @@ public class NamespaceProcessor implements ClientProtocol,
       UnresolvedLinkException {
     INode inode = getINode(src);
     if(inode == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return -1; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
     return inode.getBlockSize();
   }
@@ -761,12 +738,10 @@ public class NamespaceProcessor implements ClientProtocol,
     String parent = parentPath.toString();
     INode iParent = getINode(parent);
     if(!createParent && iParent == null) {
-      // throw new FileNotFoundException();
-      return false;
+      throw new FileNotFoundException("Parent does not exist: "+parent);
     }
     if(iParent != null && !iParent.isDir()) {
-      // throw new ParentNotDirectoryException();
-      return false;
+      throw new ParentNotDirectoryException("Parent is not directory: "+parent);
     }
     if(createParent && iParent == null) {
       //make the parent directories
@@ -785,7 +760,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
   @Override // ClientProtocol
   public boolean recoverLease(String src, String clientName) throws IOException {
-    return false;
+    throw new IOException("recoverLease is not supported");
   }
 
   @Override // ClientProtocol
@@ -811,16 +786,18 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public long renewDelegationToken(Token<DelegationTokenIdentifier> token)
       throws IOException {
-    return 0;
+    throw new IOException("renewDelegationToken is not supported");
   }
 
   @Override // ClientProtocol
   public void renewLease(String clientName) throws AccessControlException,
       IOException {
+    throw new IOException("renewLease is not supported");
   }
 
   @Override // ClientProtocol
   public void reportBadBlocks(LocatedBlock[] blocks) throws IOException {
+    throw new IOException("reportBadBlocks is not supported");
   }
 
   @Override // ClientProtocol
@@ -843,9 +820,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     node.setOwner(username, groupname);
@@ -860,9 +835,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
     
     if(!node.isDir()) {
@@ -881,15 +854,12 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
 
     //can only set Quota for directories
     if(!node.isDir()) {
-      //throw new FileNotFoundException("Directory does not exist: " + src);
-      return;
+      throw new FileNotFoundException("Directory does not exist: " + src);
     }
     
     // sanity check
@@ -897,9 +867,8 @@ public class NamespaceProcessor implements ClientProtocol,
         namespaceQuota < HdfsConstants.QUOTA_RESET) || 
         (diskspaceQuota < 0 && diskspaceQuota != HdfsConstants.QUOTA_DONT_SET && 
         diskspaceQuota < HdfsConstants.QUOTA_RESET)) {
-      //throw new IllegalArgumentException("Illegal value for nsQuota or " +
-      //    "dsQuota : " + namespaceQuota + " and " + diskspaceQuota);
-      return;
+      throw new IllegalArgumentException("Illegal value for nsQuota or " +
+          "dsQuota : " + namespaceQuota + " and " + diskspaceQuota);
     }
 
     node.setQuota(namespaceQuota, diskspaceQuota);
@@ -914,9 +883,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return false; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
     if(node.isDir())
       return false;
@@ -929,7 +896,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public boolean setSafeMode(SafeModeAction action, boolean isChecked)
       throws IOException {
-    return false;
+    throw new IOException("setSafeMode is not supported");
   }
 
   @Override // ClientProtocol
@@ -939,9 +906,7 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = getINode(src);
 
     if(node == null) {
-      // throw new FileNotFoundException("File does not exist: " + src);
-      LOG.error("File does not exist: " + src);
-      return; // HBase RPC does not pass exceptions
+      throw new FileNotFoundException("File does not exist: " + src);
     }
     if(node.isDir())
       return;
@@ -953,13 +918,14 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public LocatedBlock updateBlockForPipeline(ExtendedBlock block, String clientName)
       throws IOException {
-    return null;
+    throw new IOException("updateBlockForPipeline is not supported");
   }
 
   @Override // ClientProtocol
   public void updatePipeline(
       String clientName, ExtendedBlock oldBlock, ExtendedBlock newBlock, DatanodeID[] newNodes)
       throws IOException {
+    throw new IOException("updatePipeline is not supported");
   }
 
   /**

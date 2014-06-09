@@ -37,10 +37,10 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
@@ -92,9 +92,11 @@ import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.retry.Idempotent;
+import org.apache.hadoop.ipc.ProtobufHelper;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DataChecksum;
+import com.google.protobuf.ServiceException;
 
  /**
   * NamespaceAgent is the proxy used by DFSClient to communicate with HBase
@@ -176,7 +178,13 @@ public class NamespaceAgent implements NamespaceService {
       @Override
       public Object invoke(Object proxy, Method method, Object[] args)
           throws Throwable {
-        return method.invoke(stub, args);
+        try {
+          return method.invoke(stub, args);
+        }catch(InvocationTargetException e) {
+          LOG.info(ProtobufHelper.getRemoteException(
+              (ServiceException) e.getCause()).getMessage());
+          throw e.getCause();
+        }
       }
     };
     

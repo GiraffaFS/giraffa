@@ -1,7 +1,8 @@
-package org.apache.giraffa;
+package org.apache.giraffa.hbase;
 
 import java.io.IOException;
-
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AbandonBlockRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AbandonBlockResponseProto;
@@ -11,6 +12,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Append
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AppendResponseProto;
 import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenRequestProto;
 import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenResponseProto;
+import org.apache.hadoop.security.proto.SecurityProtos.TokenProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteResponseProto;
@@ -66,6 +68,10 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Rename
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Rename2ResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ContentSummaryProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.FsServerDefaultsProto;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.LocatedBlockProto;
 import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenRequestProto;
 import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseRequestProto;
@@ -97,7 +103,7 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Update
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineResponseProto;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolServerSideTranslatorPB;
-
+import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
@@ -129,7 +135,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       e.printStackTrace();
     }
   }
-  
+
   @Override
   public void getBlockLocations(RpcController controller,
       GetBlockLocationsRequestProto req,
@@ -137,7 +143,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getBlockLocations(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -148,7 +154,14 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getServerDefaults(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          GetServerDefaultsResponseProto.newBuilder().setServerDefaults(
+              FsServerDefaultsProto.newBuilder()
+              .setBlockSize(0)
+              .setBytesPerChecksum(0)
+              .setWritePacketSize(0)
+              .setReplication(0)
+              .setFileBufferSize(0)).build());
     }
   }
 
@@ -158,7 +171,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.create(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -168,7 +181,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.append(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -179,7 +192,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setReplication(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          SetReplicationResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -190,7 +204,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setPermission(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -200,18 +214,18 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setOwner(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
   @Override
-  public void
-      abandonBlock(RpcController controller, AbandonBlockRequestProto req,
-          RpcCallback<AbandonBlockResponseProto> done) {
+  public void abandonBlock(RpcController controller,
+      AbandonBlockRequestProto req,
+      RpcCallback<AbandonBlockResponseProto> done) {
     try {
       done.run(blockingTranslator.abandonBlock(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -221,7 +235,20 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.addBlock(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          AddBlockResponseProto.newBuilder().setBlock(
+              LocatedBlockProto.newBuilder()
+              .setB(ExtendedBlockProto.newBuilder()
+                  .setPoolId("")
+                  .setBlockId(0)
+                  .setGenerationStamp(0))
+              .setOffset(0)
+              .setCorrupt(false)
+              .setBlockToken(TokenProto.newBuilder()
+                  .setIdentifier(ByteString.EMPTY)
+                  .setPassword(ByteString.EMPTY)
+                  .setKind("")
+                  .setService(""))).build());
     }
   }
 
@@ -232,7 +259,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getAdditionalDatanode(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -242,7 +269,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.complete(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -253,7 +280,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.reportBadBlocks(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -263,7 +290,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.concat(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -273,7 +300,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.rename(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          RenameResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -283,7 +311,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.rename2(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -293,7 +321,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.delete(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          DeleteResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -303,7 +332,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.mkdirs(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          MkdirsResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -313,7 +343,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getListing(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -323,18 +353,19 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.renewLease(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
   @Override
-  public void
-      recoverLease(RpcController controller, RecoverLeaseRequestProto req,
-          RpcCallback<RecoverLeaseResponseProto> done) {
+  public void recoverLease(RpcController controller,
+      RecoverLeaseRequestProto req,
+      RpcCallback<RecoverLeaseResponseProto> done) {
     try {
       done.run(blockingTranslator.recoverLease(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          RecoverLeaseResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -344,7 +375,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getFsStats(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -355,7 +386,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getDatanodeReport(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -366,7 +397,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getPreferredBlockSize(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          GetPreferredBlockSizeResponseProto.newBuilder().setBsize(0).build());
     }
   }
 
@@ -376,7 +408,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setSafeMode(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          SetSafeModeResponseProto.newBuilder().setResult(false).build());
     }
   }
 
@@ -387,7 +420,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.saveNamespace(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -397,7 +430,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.rollEdits(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          RollEditsResponseProto.newBuilder().setNewSegmentTxId(0).build());
     }
   }
 
@@ -408,7 +442,9 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.restoreFailedStorage(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          RestoreFailedStorageResponseProto.newBuilder()
+          .setResult(false).build());
     }
   }
 
@@ -419,7 +455,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.refreshNodes(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -430,7 +466,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.finalizeUpgrade(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -441,7 +477,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.listCorruptFileBlocks(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -451,7 +487,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.metaSave(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -461,7 +497,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getFileInfo(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -472,7 +508,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getFileLinkInfo(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -483,7 +519,15 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getContentSummary(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          GetContentSummaryResponseProto.newBuilder().setSummary(
+              ContentSummaryProto.newBuilder()
+              .setLength(0)
+              .setFileCount(0)
+              .setDirectoryCount(0)
+              .setQuota(0)
+              .setSpaceConsumed(0)
+              .setSpaceQuota(0)).build());
     }
   }
 
@@ -493,7 +537,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setQuota(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -503,7 +547,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.fsync(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -513,7 +557,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setTimes(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -524,7 +568,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.createSymlink(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -535,7 +579,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getLinkTarget(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -546,7 +590,20 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.updateBlockForPipeline(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done,
+          UpdateBlockForPipelineResponseProto.newBuilder().setBlock(
+              LocatedBlockProto.newBuilder()
+              .setB(ExtendedBlockProto.newBuilder()
+                  .setPoolId("")
+                  .setBlockId(0)
+                  .setGenerationStamp(0))
+              .setOffset(0)
+              .setCorrupt(false)
+              .setBlockToken(TokenProto.newBuilder()
+                  .setIdentifier(ByteString.EMPTY)
+                  .setPassword(ByteString.EMPTY)
+                  .setKind("")
+                  .setService(""))).build());
     }
   }
 
@@ -557,7 +614,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.updatePipeline(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -568,7 +625,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getDelegationToken(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -579,7 +636,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.renewDelegationToken(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -590,7 +647,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.cancelDelegationToken(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -601,7 +658,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.setBalancerBandwidth(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
   }
 
@@ -612,7 +669,19 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getDataEncryptionKey(controller, req));
     } catch (ServiceException e) {
-      e.printStackTrace();
+      handleRemoteException(controller, e, done);
     }
+  }
+
+  private static void handleRemoteException(RpcController controller,
+      ServiceException e, RpcCallback<?> done) {
+    handleRemoteException(controller, e, done, null);
+  }
+
+  private static <T> void handleRemoteException(RpcController controller,
+      ServiceException e, RpcCallback<T> done, T response) {
+    ResponseConverter.setControllerException(controller,
+        ProtobufUtil.getRemoteException(e));
+    done.run(response);
   }
 }
