@@ -476,7 +476,8 @@ public class NamespaceAgent implements NamespaceService {
   @Override // ClientProtocol
   public boolean rename(String src, String dst) throws UnresolvedLinkException,
       IOException {
-    throw new IOException("rename is not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    return proxy.rename(src, dst);
   }
 
   @Override // ClientProtocol
@@ -485,7 +486,8 @@ public class NamespaceAgent implements NamespaceService {
       FileAlreadyExistsException, FileNotFoundException,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
       UnresolvedLinkException, IOException {
-    throw new IOException("rename is not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    proxy.rename2(src, dst, options);
   }
 
   @Override // ClientProtocol

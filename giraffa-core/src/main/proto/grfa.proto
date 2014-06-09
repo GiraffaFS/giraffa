@@ -12,3 +12,8 @@ message UnlocatedBlockProto {
   required bool corrupt = 3;
   required hadoop.common.TokenProto blockToken = 4;
 }
+
+message RenameStateProto {
+  required bool flag = 1;
+  optional bytes src = 2;
+}

@@ -28,7 +28,8 @@ public enum FileField {
   A_TIME (RowKeyBytes.toBytes("atime")),
   PERMISSIONS (RowKeyBytes.toBytes("permissions")),
   NAME (RowKeyBytes.toBytes("src")),
-  STATE (RowKeyBytes.toBytes("state")),
+  FILE_STATE (RowKeyBytes.toBytes("fileState")),
+  RENAME_STATE(RowKeyBytes.toBytes("renameState")),
   ACTION (RowKeyBytes.toBytes("action")),
   SYMLINK (RowKeyBytes.toBytes("symlink")),
   DIRECTORY (RowKeyBytes.toBytes("directory")),
@@ -86,8 +87,11 @@ public enum FileField {
   public static byte[] getSymlink() {
     return SYMLINK.bytes;
   }
-  public static byte[] getState() {
-    return STATE.bytes;
+  public static byte[] getFileState() {
+    return FILE_STATE.bytes;
+  }
+  public static byte[] getRenameState() {
+    return RENAME_STATE.bytes;
   }
   public static byte[] getAction() {
     return ACTION.bytes;

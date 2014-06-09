@@ -172,7 +172,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
               case REPLICATION:data.put(15, NamespaceProcessor.getReplication(r)); break;
               case USER_NAME:  data.put(9, NamespaceProcessor.getUserName(r));  break;
               case SYMLINK:    data.put(11, NamespaceProcessor.getSymlink(r));  break;
-              case STATE:      data.put(16, NamespaceProcessor.getState(r));    break;
+              case FILE_STATE: data.put(16, NamespaceProcessor.getFileState(r));break;
               default:                                                          break;
             }
           }

@@ -47,7 +47,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaPBHelper;
+import org.apache.giraffa.GiraffaProtos.RenameStateProto;
 import org.apache.giraffa.INode;
+import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
@@ -116,7 +118,7 @@ public class NamespaceProcessor implements ClientProtocol,
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
   
   // Coprocessor variables needed
-  private CoprocessorEnvironment env;
+  private RegionCoprocessorEnvironment env;
   private HTableInterface table;
   private Configuration conf;
   private FsServerDefaults serverDefaults;
@@ -138,7 +140,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // Coprocessor
   public void start(CoprocessorEnvironment env) throws IOException {    
     if (env instanceof RegionCoprocessorEnvironment) {
-      this.env = env;
+      this.env = (RegionCoprocessorEnvironment) env;
     } else {
       throw new CoprocessorException("Must be loaded on a table region!");
     }
@@ -361,7 +363,7 @@ public class NamespaceProcessor implements ClientProtocol,
       long time = now();
       iFile = new INode(0, false, replication, blockSize, time, time,
           masked, clientName, machineName, null,
-          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null);
+          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null, null);
     }
 
     // add file to HBase (update if already exists)
@@ -724,7 +726,7 @@ public class NamespaceProcessor implements ClientProtocol,
         long time = now();
         inode = new INode(0, true, (short) 0, 0, time, time,
             masked, clientName, machineName, null,
-            key, 0, 0, null, null, null);
+            key, 0, 0, null, null, null, null);
         updateINode(inode);
       }
       return true;
@@ -751,7 +753,7 @@ public class NamespaceProcessor implements ClientProtocol,
     long time = now();
     inode = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, null,
-        key, 0, 0, null, null, null);
+        key, 0, 0, null, null, null, null);
 
     // add directory to HBase
     updateINode(inode);
@@ -771,7 +773,13 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public boolean rename(String src, String dst) throws UnresolvedLinkException,
       IOException {
-    throw new IOException("rename is not supported");
+    try {
+      rename2(src, dst);
+    }catch(IOException e){
+      LOG.warn(e.getMessage());
+      return false;
+    }
+    return true;
   }
 
   @Override // ClientProtocol
@@ -780,7 +788,91 @@ public class NamespaceProcessor implements ClientProtocol,
       FileAlreadyExistsException, FileNotFoundException,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
       UnresolvedLinkException, IOException {
-    throw new IOException("rename is not supported");
+
+    // GET src, dst (with block/location info for copying src)
+    INode srcNode = getINode(src, true);
+    INode dstNode = getINode(dst, true);
+
+    // check file status
+    boolean src_exists = (srcNode != null);
+    boolean dst_exists = (dstNode != null);
+    boolean dst_renaming =
+        ((dstNode != null) && dstNode.getRenameState().getFlag());
+    boolean overwrite = dst_exists && !dst_renaming;
+
+    if(dstNode != null) {
+      if(dstNode.isDir())
+        throw new IOException(
+            "rename: destination cannot be specified as directory");
+      else if(srcNode != null && srcNode.isDir())
+        throw new IOException("rename: "+ src +" is a directory, but " +
+            dst + " is an existing file");
+    }
+    else {
+      if(getINode(new Path(dst).getParent().toString()) == null)
+        throw new IOException("rename: destination " + dst + " is invalid");
+    }
+
+    if(srcNode != null && srcNode.isDir()) {
+      throw new IOException("rename: directory rename is not supported");
+    }else {
+      // ============================ RECOVERY ============================
+      RenameRecoveryState recover_state;
+
+      if(src_exists && overwrite) {
+        throw new FileAlreadyExistsException(
+            "rename: destination " + dst + " already exists");
+      }else if(src_exists && !dst_renaming) {
+        recover_state = RenameRecoveryState.PUT_SETFLAG;
+      }else if(src_exists && dst_renaming) {
+        recover_state = RenameRecoveryState.DELETE;
+      }else if(!src_exists && dst_renaming) {
+        recover_state = RenameRecoveryState.PUT_NOFLAG;
+      }else if(!src_exists && !dst_renaming) {
+        throw new FileNotFoundException("rename: file not found ("+src+")");
+      }else {
+        throw new IOException("rename: recovery failure (0)");
+      }
+
+      if(recover_state != RenameRecoveryState.PUT_SETFLAG) {
+        LOG.info("rename: recovered. skipping to stage " + recover_state);
+      }
+
+      // ============================ RENAME ============================
+      switch(recover_state) {
+        case PUT_SETFLAG: // PUT dst[R]
+          LOG.debug("rename: entering stage 1");
+          if(srcNode == null) {
+            throw new IOException("rename: recovery failure (1)");
+          }
+          dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+          dstNode.setRenameState(
+              RenameState.TRUE(srcNode.getRowKey().getKey()));
+          updateINode(dstNode);
+
+        case DELETE: // DELETE src
+          LOG.debug("rename: entering stage 2");
+          if(srcNode == null) {
+            throw new IOException("rename: recovery failure (2)");
+          }
+          Delete delete = new Delete(srcNode.getRowKey().getKey());
+          synchronized(table){
+            table.delete(delete);
+          }
+
+        case PUT_NOFLAG: // PUT dst
+          LOG.debug("rename: entering stage 3");
+          if(dstNode == null) {
+            throw new IOException("rename: recovery failure (3)");
+          }
+          dstNode.setRenameState(RenameState.FALSE());
+          updateINode(dstNode);
+      }
+    }
+  }
+
+  public static enum RenameRecoveryState {
+    PUT_SETFLAG, DELETE, PUT_NOFLAG;
   }
 
   @Override // ClientProtocol
@@ -967,7 +1059,8 @@ public class NamespaceProcessor implements ClientProtocol,
         key,
         getDsQuota(result),
         getNsQuota(result),
-        getState(result),
+        getFileState(result),
+        getRenameState(result),
         (needLocation) ? getBlocks(result) : null,
         (needLocation) ? getLocations(result) : null);
     return iNode;
@@ -1003,7 +1096,9 @@ public class NamespaceProcessor implements ClientProtocol,
         .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
             Bytes.toBytes(node.getReplication()))
         .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-            Bytes.toBytes(node.getBlockSize()));
+            Bytes.toBytes(node.getBlockSize()))
+        .add(FileField.getFileAttributes(), FileField.getRenameState(), ts,
+            node.getRenameStateBytes());
 
     if(node.getSymlink() != null)
       put.add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
@@ -1017,7 +1112,7 @@ public class NamespaceProcessor implements ClientProtocol,
              node.getBlocksBytes())
          .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
              node.getLocationsBytes())
-         .add(FileField.getFileAttributes(), FileField.getState(), ts,
+         .add(FileField.getFileAttributes(), FileField.getFileState(), ts,
              Bytes.toBytes(node.getFileState().toString()));
 
     if(ba != null)
@@ -1105,11 +1200,18 @@ public class NamespaceProcessor implements ClientProtocol,
     return res.getValue(FileField.getFileAttributes(), FileField.getSymlink());
   }
 
-  public static FileState getState(Result res) {
+  public static FileState getFileState(Result res) {
     if(getDirectory(res))
       return null;
     return FileState.valueOf(
-        Bytes.toString(res.getValue(FileField.getFileAttributes(), FileField.getState())));
+        Bytes.toString(res.getValue(FileField.getFileAttributes(),
+            FileField.getFileState())));
+  }
+
+  public static RenameState getRenameState(Result res)
+      throws IOException {
+    return GiraffaPBHelper.convert(RenameStateProto.parseFrom(
+        res.getValue(FileField.getFileAttributes(), FileField.getRenameState())));
   }
 
   public static long getNsQuota(Result res) {

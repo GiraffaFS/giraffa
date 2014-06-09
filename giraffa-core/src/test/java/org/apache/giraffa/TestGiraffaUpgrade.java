@@ -231,7 +231,9 @@ public class TestGiraffaUpgrade {
           .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
               Bytes.toBytes(replication))
           .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-              Bytes.toBytes(blockSize));
+              Bytes.toBytes(blockSize))
+          .add(FileField.getFileAttributes(), FileField.getRenameState(), ts,
+              GiraffaPBHelper.convert(RenameState.FALSE()).toByteArray());
 
       if(directory)
         put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
@@ -241,7 +243,7 @@ public class TestGiraffaUpgrade {
             GiraffaPBHelper.unlocatedBlocksToBytes(blocks))
             .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
                 GiraffaPBHelper.blockLocationsToBytes(locations))
-            .add(FileField.getFileAttributes(), FileField.getState(), ts,
+            .add(FileField.getFileAttributes(), FileField.getFileState(), ts,
                 Bytes.toBytes(GiraffaConstants.FileState.CLOSED.toString()));
 
       synchronized(table) {

@@ -54,6 +54,7 @@ public class INode {
   private List<UnlocatedBlock> blocks;
   private List<DatanodeInfo[]> locations;
   private FileState fileState;
+  private RenameState renameState;
 
   public static final Log LOG = LogFactory.getLog(INode.class.getName());
 
@@ -62,8 +63,8 @@ public class INode {
    */
   public INode(long length, boolean directory, short replication, long blockSize,
       long mtime, long atime, FsPermission perms, String owner, String group,
-      byte[] symlink, RowKey key, long dsQuota, long nsQuota,
-      FileState state, List<UnlocatedBlock> blocks,
+      byte[] symlink, RowKey key, long dsQuota, long nsQuota, FileState state,
+      RenameState renameState, List<UnlocatedBlock> blocks,
       List<DatanodeInfo[]> locations) {
     this.length = length;
     this.isdir = directory;
@@ -78,6 +79,7 @@ public class INode {
     this.key = key;
     this.nsQuota = nsQuota;
     this.dsQuota = dsQuota;
+    this.renameState = renameState == null ? RenameState.FALSE() : renameState;
     if(! isDir()) {
       this.fileState = (state == null ? FileState.UNDER_CONSTRUCTION : state);
       this.blocks = (blocks == null ? new ArrayList<UnlocatedBlock>() : blocks);
@@ -202,6 +204,10 @@ public class INode {
     return fileState;
   }
 
+  public RenameState getRenameState() {
+    return renameState;
+  }
+
   /**
    * Get the blocks member as a byte array.
    * 
@@ -220,6 +226,11 @@ public class INode {
       return null;
     else
       return GiraffaPBHelper.blockLocationsToBytes(locations);
+  }
+
+  public byte[] getRenameStateBytes() {
+    return renameState == null ? null :
+      GiraffaPBHelper.convert(renameState).toByteArray();
   }
 
   public void setPermission(FsPermission newPermission) {
@@ -241,6 +252,10 @@ public class INode {
 
   public void setState(FileState newFileState) {
     this.fileState = newFileState;
+  }
+
+  public void setRenameState(RenameState renameState) {
+    this.renameState = renameState;
   }
 
   public void setTimes(long mtime, long atime) {
@@ -266,6 +281,12 @@ public class INode {
         return;
       }
     }
+  }
+
+  public INode cloneWithNewRowKey(RowKey newKey) {
+    return new INode(length, isdir, block_replication, blocksize,
+        modification_time, access_time, permission, owner, group, symlink,
+        newKey, dsQuota, nsQuota, fileState, renameState, blocks, locations);
   }
 
   @Override

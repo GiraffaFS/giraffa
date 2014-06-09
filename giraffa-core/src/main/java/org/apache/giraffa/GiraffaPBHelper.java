@@ -24,11 +24,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+import org.apache.giraffa.GiraffaProtos.RenameStateProto;
 import org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeInfosProto;
 import org.apache.hadoop.hdfs.protocolPB.PBHelper;
+import com.google.protobuf.ByteString;
 
 /**
  * Helper class, similar to PBHelper, for converting between Giraffa objects
@@ -64,6 +65,21 @@ public class GiraffaPBHelper {
     return PBHelper.convert(toConv);
   }
   
+  public static RenameStateProto convert(RenameState toConv) {
+    RenameStateProto.Builder builder = RenameStateProto.newBuilder();
+    builder.setFlag(toConv.getFlag());
+    if(toConv.getSrc() != null)
+      builder.setSrc(ByteString.copyFrom(toConv.getSrc()));
+    return builder.build();
+  }
+
+  public static RenameState convert(RenameStateProto toConv) {
+    if(toConv.getFlag())
+      return RenameState.TRUE(toConv.getSrc().toByteArray());
+    else
+      return RenameState.FALSE();
+  }
+
   /**
    * Serializes a list of UnlocatedBlocks into a byte array
    * @param blocks

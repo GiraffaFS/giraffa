@@ -259,10 +259,16 @@ public class GiraffaFileSystem extends FileSystem {
         grfaClient.open(getPathName(f), bufferSize, true));
   }
 
-  @Override // FileSystem
+  @SuppressWarnings("deprecation")
+  @Override
   public boolean rename(Path src, Path dst) throws IOException {
-    // Not implemented
-    throw new IOException("rename: Implement me. This is hard.");
+    return grfaClient.rename(getPathName(src), getPathName(dst));
+  }
+
+  @Override // FileSystem
+  public void rename(Path src, Path dst, Options.Rename... options)
+      throws IOException {
+    grfaClient.rename(getPathName(src), getPathName(dst), options);
   }
 
   void setHBaseUri(URI hBaseUri) {
