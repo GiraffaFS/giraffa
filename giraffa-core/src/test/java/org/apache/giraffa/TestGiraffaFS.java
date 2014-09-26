@@ -150,11 +150,21 @@ public class TestGiraffaFS {
   }
 
   @Test
-  public void testDeletionNonRecursive() throws IOException {
-    grfs.mkdirs(new Path("folder1"));
-    grfs.mkdirs(new Path("folder2"));
+  public void testDeletionNonRecursiveNoChildren() throws IOException {
+    grfs.mkdirs(new Path("folder"));
+    assertTrue(grfs.delete(new Path("folder"), false));
+    FileStatus[] files = grfs.listStatus(new Path("."));
+    printFileStatus(files);
+    assertEquals(0, files.length);
+  }
+
+  @Test
+  public void testDeletionNonRecursiveWithChildren() throws IOException {
     grfs.mkdirs(new Path("folder1/folder3"));
+    grfs.mkdirs(new Path("folder2"));
+    grfs.create(new Path("folder2/file1")).close();
     assertFalse(grfs.delete(new Path("folder1"), false));
+    assertFalse(grfs.delete(new Path("folder2"), false));
     FileStatus[] files = grfs.listStatus(new Path("."));
     printFileStatus(files);
     assertEquals(2, files.length);

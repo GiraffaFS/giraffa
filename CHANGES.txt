@@ -36,6 +36,8 @@ Trunk - Unreleased
               (Milan)
     Issue 82: create() should not throw FNFE when overwrite flag is set.
               (Milan)
+    Issue 84: Directory deletion does not remove file blocks.
+              (Plamen)
 
 Release 0.0.1 - 2013-07-10
 

@@ -476,12 +476,18 @@ public class NamespaceProcessor implements ClientProtocol,
     ListIterator<INode> it = directories.listIterator(directories.size());
     while(it.hasPrevious()) {
       INode dir = it.previous();
-      ResultScanner rs = getListingScanner(dir.getRowKey(),
+      RowKey dirRowKey = dir.getRowKey();
+      String dirPath = dirRowKey.getPath();
+      ResultScanner rs = getListingScanner(dirRowKey,
           HdfsFileStatus.EMPTY_NAME);
       ArrayList<Delete> deletes = new ArrayList<Delete>();
       // schedule immediate children for deletion
       for(Result result = rs.next(); result != null; result = rs.next()) {
-        deletes.add(new Delete(result.getRow()));
+        INode child = newINodeByParent(dirPath, result, true);
+        if(!child.isDir())
+          deleteFile(child);
+        else
+          deletes.add(new Delete(result.getRow()));
       }
       // perform delete (if non-empty)
       if(!deletes.isEmpty())
