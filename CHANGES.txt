@@ -38,6 +38,8 @@ Trunk - Unreleased
               (Milan)
     Issue 84: Directory deletion does not remove file blocks.
               (Plamen)
+    Issue 85: ResultScanners should be wrapped in try/finally blocks
+              and closed. (Milan)
 
 Release 0.0.1 - 2013-07-10
 

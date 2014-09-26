@@ -459,15 +459,18 @@ public class NamespaceProcessor implements ClientProtocol,
       RowKey key = dir.getRowKey();
       ResultScanner rs = 
           getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
-      
-      // check against recursive boolean (only if at source)
-      if(i == 0 && !recursive && rs.iterator().hasNext())
-        return false;
-                  
-      for(Result result = rs.next(); result != null; result = rs.next()) {
-        if(getDirectory(result)) {
-          directories.add(newINodeByParent(key.getPath(), result, false));
+      try {
+        // check against recursive boolean (only if at source)
+        if (i == 0 && !recursive && rs.iterator().hasNext())
+          return false;
+
+        for (Result result = rs.next(); result != null; result = rs.next()) {
+          if (getDirectory(result)) {
+            directories.add(newINodeByParent(key.getPath(), result, false));
+          }
         }
+      } finally {
+        rs.close();
       }
     }
 
@@ -482,18 +485,22 @@ public class NamespaceProcessor implements ClientProtocol,
           HdfsFileStatus.EMPTY_NAME);
       ArrayList<Delete> deletes = new ArrayList<Delete>();
       // schedule immediate children for deletion
-      for(Result result = rs.next(); result != null; result = rs.next()) {
-        INode child = newINodeByParent(dirPath, result, true);
-        if(!child.isDir())
-          deleteFile(child);
-        else
-          deletes.add(new Delete(result.getRow()));
-      }
-      // perform delete (if non-empty)
-      if(!deletes.isEmpty())
-        synchronized(table) {
-          table.delete(deletes);
+      try {
+        for (Result result = rs.next(); result != null; result = rs.next()) {
+          INode child = newINodeByParent(dirPath, result, true);
+          if (!child.isDir())
+            deleteFile(child);
+          else
+            deletes.add(new Delete(result.getRow()));
         }
+        // perform delete (if non-empty)
+        if (!deletes.isEmpty())
+          synchronized (table) {
+            table.delete(deletes);
+          }
+      } finally {
+        rs.close();
+      }
     }
 
     // delete source directory
@@ -679,12 +686,15 @@ public class NamespaceProcessor implements ClientProtocol,
     RowKey key = dir.getRowKey();
     ResultScanner rs = getListingScanner(key, startAfter);
     ArrayList<INode> list = new ArrayList<INode>();
-    for(Result result = rs.next();
-        result != null && list.size() < lsLimit;
-        result = rs.next()) {
-      list.add(newINodeByParent(key.getPath(), result, needLocation));
+    try {
+      for (Result result = rs.next();
+           result != null && list.size() < lsLimit;
+           result = rs.next()) {
+        list.add(newINodeByParent(key.getPath(), result, needLocation));
+      }
+    } finally {
+      rs.close();
     }
-
     return list;
   }
 
