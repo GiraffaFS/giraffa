@@ -40,6 +40,7 @@ Trunk - Unreleased
               (Plamen)
     Issue 85: ResultScanners should be wrapped in try/finally blocks
               and closed. (Milan)
+    Issue 86: Build failing from Javadoc plugin failure. (Plamen)
 
 Release 0.0.1 - 2013-07-10
 
