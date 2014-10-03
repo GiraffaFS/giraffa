@@ -37,6 +37,7 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -352,7 +353,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     if(overwrite && iFile != null) {
-      if(!deleteFile(iFile)) {
+      if(!deleteFile(iFile, true)) {
         throw new IOException("Cannot override existing file: " + src);
       }
     }
@@ -406,15 +407,17 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new ParentNotDirectoryException("Parent is not a directory.");
 
     if(node.isDir())
-      return deleteDirectory(node, recursive);
+      return deleteDirectory(node, recursive, true);
 
-    return deleteFile(node);
+    return deleteFile(node, true);
   }
 
-  private boolean deleteFile(INode node) throws IOException {
-    // delete single file
-    node.setState(FileState.DELETED);
-    updateINode(node, BlockAction.DELETE);
+  private boolean deleteFile(INode node, boolean deleteBlocks)
+      throws IOException {
+    if(deleteBlocks) {
+      node.setState(FileState.DELETED);
+      updateINode(node, BlockAction.DELETE);
+    }
 
     // delete the child key atomically first
     Delete delete = new Delete(node.getRowKey().getKey());
@@ -446,58 +449,47 @@ public class NamespaceProcessor implements ClientProtocol,
    * @throws UnresolvedLinkException
    * @throws IOException
    */
-  private boolean deleteDirectory(INode node, boolean recursive) 
+  private boolean deleteDirectory(INode node, boolean recursive,
+                                  boolean deleteBlocks)
       throws AccessControlException, FileNotFoundException, 
       UnresolvedLinkException, IOException {
-    ArrayList<INode> directories = new ArrayList<INode>();
-    directories.add(node);
-
-    // start loop descending the tree (breadth first, then depth)
-    for(int i = 0; i < directories.size(); i++) {
-      // get next directory INode in the list and it's Scanner
-      INode dir = directories.get(i);
-      RowKey key = dir.getRowKey();
-      ResultScanner rs = 
-          getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
-      try {
-        // check against recursive boolean (only if at source)
-        if (i == 0 && !recursive && rs.iterator().hasNext())
-          return false;
-
-        for (Result result = rs.next(); result != null; result = rs.next()) {
-          if (getDirectory(result)) {
-            directories.add(newINodeByParent(key.getPath(), result, false));
+    if(recursive) {
+      List<INode> directories = getDirectoriesRecursive(node);
+      // start ascending the tree (breadth first, then depth)
+      // we do this by iterating through directories in reverse
+      ListIterator<INode> it = directories.listIterator(directories.size());
+      while (it.hasPrevious()) {
+        INode dir = it.previous();
+        RowKey dirRowKey = dir.getRowKey();
+        String dirPath = dirRowKey.getPath();
+        ResultScanner rs = getListingScanner(dirRowKey,
+            HdfsFileStatus.EMPTY_NAME);
+        ArrayList<Delete> deletes = new ArrayList<Delete>();
+        // schedule immediate children for deletion
+        try {
+          for (Result result = rs.next(); result != null; result = rs.next()) {
+            INode child = newINodeByParent(dirPath, result, true);
+            if (!child.isDir())
+              deleteFile(child, deleteBlocks);
+            else
+              deletes.add(new Delete(result.getRow()));
           }
+          // perform delete (if non-empty)
+          if (!deletes.isEmpty())
+            synchronized (table) {
+              table.delete(deletes);
+            }
+        } finally {
+          rs.close();
         }
-      } finally {
-        rs.close();
       }
-    }
-
-    // start ascending the tree (breadth first, then depth)
-    // we do this by iterating through directories in reverse
-    ListIterator<INode> it = directories.listIterator(directories.size());
-    while(it.hasPrevious()) {
-      INode dir = it.previous();
-      RowKey dirRowKey = dir.getRowKey();
-      String dirPath = dirRowKey.getPath();
-      ResultScanner rs = getListingScanner(dirRowKey,
+    } else {
+      // check that node has no children
+      ResultScanner rs = getListingScanner(node.getRowKey(),
           HdfsFileStatus.EMPTY_NAME);
-      ArrayList<Delete> deletes = new ArrayList<Delete>();
-      // schedule immediate children for deletion
       try {
-        for (Result result = rs.next(); result != null; result = rs.next()) {
-          INode child = newINodeByParent(dirPath, result, true);
-          if (!child.isDir())
-            deleteFile(child);
-          else
-            deletes.add(new Delete(result.getRow()));
-        }
-        // perform delete (if non-empty)
-        if (!deletes.isEmpty())
-          synchronized (table) {
-            table.delete(deletes);
-          }
+        if(rs.next() != null)
+          return false;
       } finally {
         rs.close();
       }
@@ -698,6 +690,30 @@ public class NamespaceProcessor implements ClientProtocol,
     return list;
   }
 
+  private List<INode> getDirectoriesRecursive(INode root) throws IOException {
+    List<INode> directories = new ArrayList<INode>();
+    directories.add(root);
+
+    // start loop descending the tree (breadth first, then depth)
+    for(int i = 0; i < directories.size(); i++) {
+      // get next directory INode in the list and it's Scanner
+      INode dir = directories.get(i);
+      RowKey key = dir.getRowKey();
+      ResultScanner rs = getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
+      try {
+        for (Result result = rs.next(); result != null; result = rs.next()) {
+          if (getDirectory(result)) {
+            directories.add(newINodeByParent(key.getPath(), result, false));
+          }
+        }
+      } finally {
+        rs.close();
+      }
+    }
+
+    return directories;
+  }
+
   @Override // ClientProtocol
   public long getPreferredBlockSize(String src) throws IOException,
       UnresolvedLinkException {
@@ -804,91 +820,188 @@ public class NamespaceProcessor implements ClientProtocol,
       FileAlreadyExistsException, FileNotFoundException,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
       UnresolvedLinkException, IOException {
+    LOG.info("Renaming " + src + " to " + dst);
+    ResultScanner rs;
+    INode rootSrcNode = getINode(src, true);
+    INode rootDstNode = getINode(dst, true);
+    boolean overwrite = false;
 
-    // GET src, dst (with block/location info for copying src)
-    INode srcNode = getINode(src, true);
-    INode dstNode = getINode(dst, true);
-
-    // check file status
-    boolean src_exists = (srcNode != null);
-    boolean dst_exists = (dstNode != null);
-    boolean dst_renaming =
-        ((dstNode != null) && dstNode.getRenameState().getFlag());
-    boolean overwrite = dst_exists && !dst_renaming;
-
-    if(dstNode != null) {
-      if(dstNode.isDir())
-        throw new IOException(
-            "rename: destination cannot be specified as directory");
-      else if(srcNode != null && srcNode.isDir())
-        throw new IOException("rename: "+ src +" is a directory, but " +
-            dst + " is an existing file");
-    }
-    else {
-      if(getINode(new Path(dst).getParent().toString()) == null)
-        throw new IOException("rename: destination " + dst + " is invalid");
+    for(Rename option : options) {
+      if(option.equals(Rename.OVERWRITE))
+        overwrite = true;
     }
 
-    if(srcNode != null && srcNode.isDir()) {
-      throw new IOException("rename: directory rename is not supported");
+    checkCanRename(src, rootSrcNode, dst, rootDstNode, overwrite);
+
+    boolean directoryRename = rootSrcNode != null && rootSrcNode.isDir() ||
+        rootDstNode != null && rootDstNode.isDir();
+    if(directoryRename)
+      LOG.debug("Detected directory rename");
+
+    if(rootDstNode != null && !rootDstNode.getRenameState().getFlag() &&
+        overwrite) {
+      LOG.debug("Overwriting "+dst);
+      if(!delete(dst, false)) // will fail if dst is non-empty directory
+        throw new IOException("rename cannot overwrite non empty destination "+
+            "directory " + dst);
+      rootDstNode = null;
+    }
+
+    // Stage 1: copy into new row with RenameState flag
+    if(rootDstNode == null) {
+      if(directoryRename) { // first do Stage 1 for all children
+        URI base = new Path(src).toUri();
+        URI newBase = URI.create(dst+Path.SEPARATOR);
+
+        List<INode> directories = getDirectoriesRecursive(rootSrcNode);
+        for (INode dir : directories) {
+          RowKey key = dir.getRowKey();
+          String parent = key.getPath();
+          // duplicate each INode in subdirectory
+          rs = getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
+          try {
+            for (Result res = rs.next(); res != null; res = rs.next()) {
+              INode srcNode = newINodeByParent(parent, res, true);
+              String iSrc = srcNode.getRowKey().getPath();
+              String iDst = changeBase(iSrc, base, newBase);
+              copyWithRenameFlag(srcNode, iDst);
+            }
+          } finally {
+            rs.close();
+          }
+        }
+      }
+      rootDstNode = copyWithRenameFlag(rootSrcNode, dst);
     }else {
-      // ============================ RECOVERY ============================
-      RenameRecoveryState recover_state;
+      LOG.debug("Rename Recovery: Skipping Stage 1 because destination " + dst +
+          " found");
+    }
 
-      if(src_exists && overwrite) {
-        throw new FileAlreadyExistsException(
-            "rename: destination " + dst + " already exists");
-      }else if(src_exists && !dst_renaming) {
-        recover_state = RenameRecoveryState.PUT_SETFLAG;
-      }else if(src_exists && dst_renaming) {
-        recover_state = RenameRecoveryState.DELETE;
-      }else if(!src_exists && dst_renaming) {
-        recover_state = RenameRecoveryState.PUT_NOFLAG;
-      }else if(!src_exists && !dst_renaming) {
-        throw new FileNotFoundException("rename: file not found ("+src+")");
-      }else {
-        throw new IOException("rename: recovery failure (0)");
-      }
+    // Stage 2: delete old rows
+    if(rootSrcNode != null) {
+      LOG.debug("Deleting "+src);
+      if(directoryRename)
+        deleteDirectory(rootSrcNode, true, false);
+      else
+        deleteFile(rootSrcNode, false);
+    }else {
+      LOG.debug("Rename Recovery: Skipping Stage 2 because "+src+" not found");
+    }
 
-      if(recover_state != RenameRecoveryState.PUT_SETFLAG) {
-        LOG.info("rename: recovered. skipping to stage " + recover_state);
-      }
-
-      // ============================ RENAME ============================
-      switch(recover_state) {
-        case PUT_SETFLAG: // PUT dst[R]
-          LOG.debug("rename: entering stage 1");
-          if(srcNode == null) {
-            throw new IOException("rename: recovery failure (1)");
+    // Stage 3: remove RenameState flags
+    if(directoryRename) { // first do Stage 3 for all children
+      List<INode> directories = getDirectoriesRecursive(rootDstNode);
+      for (INode dir : directories) {
+        String parent = dir.getRowKey().getPath();
+        rs = getListingScanner(dir.getRowKey(), HdfsFileStatus.EMPTY_NAME);
+        try {
+          for (Result res = rs.next(); res != null; res = rs.next()) {
+            removeRenameFlag(newINodeByParent(parent, res, true));
           }
-          dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
-          dstNode.setRenameState(
-              RenameState.TRUE(srcNode.getRowKey().getKey()));
-          updateINode(dstNode);
-
-        case DELETE: // DELETE src
-          LOG.debug("rename: entering stage 2");
-          if(srcNode == null) {
-            throw new IOException("rename: recovery failure (2)");
-          }
-          Delete delete = new Delete(srcNode.getRowKey().getKey());
-          synchronized(table){
-            table.delete(delete);
-          }
-
-        case PUT_NOFLAG: // PUT dst
-          LOG.debug("rename: entering stage 3");
-          if(dstNode == null) {
-            throw new IOException("rename: recovery failure (3)");
-          }
-          dstNode.setRenameState(RenameState.FALSE());
-          updateINode(dstNode);
+        } finally {
+          rs.close();
+        }
       }
     }
+    removeRenameFlag(rootDstNode);
   }
 
-  public static enum RenameRecoveryState {
-    PUT_SETFLAG, DELETE, PUT_NOFLAG;
+  /**
+   * Replaces the base prefix of src with newBase.
+   */
+  private static String changeBase(String src, URI base, URI newBase) {
+    URI rel = base.relativize(URI.create(src));
+    return newBase.resolve(rel).toString();
+  }
+
+  /**
+   * Creates a duplicate of srcNode in the namespace named dst and sets the
+   * rename flag on the duplicate.
+   */
+  private INode copyWithRenameFlag(INode srcNode, String dst)
+      throws IOException {
+    RowKey srcKey = srcNode.getRowKey();
+    String src = srcKey.getPath();
+    LOG.debug("Copying "+src+" to "+dst+" with rename flag");
+    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+    dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
+    updateINode(dstNode);
+    return dstNode;
+  }
+
+  /**
+   * Unsets the rename flag from the given node and updates the namespace.
+   */
+  private void removeRenameFlag(INode dstNode) throws IOException {
+    LOG.debug("Removing rename flag from "+dstNode.getRowKey().getPath());
+    dstNode.setRenameState(RenameState.FALSE());
+    updateINode(dstNode);
+  }
+
+  /**
+   * Checks the rename arguments and their corresponding INodes to see if this
+   * rename can proceed. Derived heavily from {@link
+   * org.apache.hadoop.hdfs.server.namenode.FSDirectory#unprotectedRenameTo}
+   * @throws IOException thrown if rename cannot proceed
+   */
+  private void checkCanRename(String src, INode srcNode, String dst,
+                              INode dstNode, boolean overwrite) throws
+      IOException {
+    String error = null;
+    String parent = new Path(dst).getParent().toString();
+    INode parentNode = getINode(parent, false);
+
+    boolean src_exists = (srcNode != null);
+    boolean dst_exists = (dstNode != null);
+    boolean parent_exists = (parentNode != null);
+    boolean dst_setflag = (dst_exists && dstNode.getRenameState().getFlag());
+
+    // validate source
+    if (!src_exists && !dst_setflag) {
+      error = "rename source " + src + " is not found.";
+      throw new FileNotFoundException(error);
+    }
+    if (src.equals(Path.SEPARATOR)) {
+      error = "rename source cannot be the root";
+      throw new IOException(error);
+    }
+
+    // validate destination
+    if (dst.equals(src)) {
+      throw new FileAlreadyExistsException(
+          "The source "+src+" and destination "+dst+" are the same");
+    }
+    if (dst.startsWith(src) && // dst cannot be a directory or a file under src
+        dst.charAt(src.length()) == Path.SEPARATOR_CHAR) {
+      error = "Rename destination " + dst
+          + " is a directory or file under source " + src;
+      throw new IOException(error);
+    }
+    if (dst.equals(Path.SEPARATOR)) {
+      error = "rename destination cannot be the root";
+      throw new IOException(error);
+    }
+    if (dst_exists && !dst_setflag) { // Destination exists
+      if (dstNode.isDir() != srcNode.isDir()) {
+        error = "Source " + src + " and destination " + dst
+            + " must both be of same kind (file or directory)";
+        throw new IOException(error);
+      }
+      if (!overwrite) { // If destination exists, overwrite flag must be true
+        error = "rename destination " + dst + " already exists";
+        throw new FileAlreadyExistsException(error);
+      }
+    }
+
+    // validate parent
+    if (!parent_exists) {
+      error = "rename destination parent " + dst + " not found.";
+      throw new FileNotFoundException(error);
+    }
+    if (!parentNode.isDir()) {
+      error = "rename destination parent " + dst + " is a file.";
+      throw new ParentNotDirectoryException(error);
+    }
   }
 
   @Override // ClientProtocol

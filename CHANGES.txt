@@ -14,6 +14,7 @@ Trunk - Unreleased
     Issue 65: Need to store Block and Location info separately. (Milan)
     Issue 75: Make Giraffa throw Exceptions over RPC Interface. (Milan)
     Issue 29: Implement Rename. (Milan)
+    Issue 83: Directory Renames. (Milan)
 
   IMPROVEMENTS
 

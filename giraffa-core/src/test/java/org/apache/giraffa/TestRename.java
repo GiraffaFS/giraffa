@@ -17,27 +17,32 @@
  */
 package org.apache.giraffa;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.apache.giraffa.hbase.NamespaceProcessor.RenameRecoveryState.*;
+import static org.apache.giraffa.RenameRecoveryState.PUT_SETFLAG;
+import static org.apache.giraffa.RenameRecoveryState.PUT_NOFLAG;
+import static org.apache.giraffa.RenameRecoveryState.DELETE;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.giraffa.hbase.NamespaceProcessor;
-import org.apache.giraffa.hbase.NamespaceProcessor.RenameRecoveryState;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Options.Rename;
+import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -105,153 +110,452 @@ public class TestRename {
     }
   }
 
-  private void rename(String srcStr, String dstStr, RenameRecoveryState stage)
+  /**
+   * Completes the renameFile process up to and including the given stage.
+   */
+  private void doRenameStage(String src, String dst, RenameRecoveryState stage)
       throws IOException {
-    Path src = new Path(grfs.getWorkingDirectory(), srcStr);
-    Path dst = new Path(grfs.getWorkingDirectory(), dstStr);
+    src = new Path(grfs.getWorkingDirectory(), src).toString();
+    dst = new Path(grfs.getWorkingDirectory(), dst).toString();
 
-    // initialize namespace table based on given stage
+    INode srcNode = getINode(src, true);
+    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+
+    // renameFile state should be set if PUT_NOFLAG has not been completed
     if(stage == PUT_SETFLAG || stage == DELETE) {
-      createTestFile(src.toString(), 'A');
+      dstNode.setRenameState(RenameState.TRUE(srcNode.getRowKey().getKey()));
     }
+
+    // src node should be deleted if DELETE has been completed
     if(stage == DELETE || stage == PUT_NOFLAG) {
-      RowKey srcKey = new FullPathRowKey(src.toString());
-      RowKey dstKey = new FullPathRowKey(dst.toString());
-
-      INode dstNode;
-      if(stage == DELETE) {
-        INode srcNode = newINode(src.toString(),
-            table.get(new Get(srcKey.getKey())), true);
-        dstNode = srcNode.cloneWithNewRowKey(dstKey);
+      synchronized (table) {
+        table.delete(new Delete(srcNode.getRowKey().getKey()));
       }
-      else {
-        createTestFile(dst.toString(), 'A');
-        dstNode = newINode(dst.toString(),
-            table.get(new Get(dstKey.getKey())), true);
-      }
-
-      dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
-      updateINode(dstNode, null);
     }
 
-    // rename and validate changes
-    grfs.rename(src, dst, Rename.NONE);
-    assertTrue(grfs.exists(dst));
-    assertFalse(grfs.exists(src));
-    assertTrue(readFile(dst) == 'A');
+    updateINode(dstNode, null);
   }
 
-  @SuppressWarnings("unused") //for use when directory renames are implemented
-  private void renameDir(String srcStr, String dstStr) throws IOException {
-    Path src = new Path(srcStr);
-    Path dst = new Path(dstStr);
+  private void renameFile(String src, String dst, boolean overwrite)
+      throws IOException {
+    Path srcPath = new Path(src);
+    Path dstPath = new Path(dst);
+    grfs.rename(srcPath, dstPath, overwrite ? Rename.OVERWRITE : Rename.NONE);
+    assertTrue(grfs.exists(dstPath));
+    assertFalse(grfs.exists(srcPath));
+    assertTrue(readFile(dstPath) == 'A');
+  }
 
-    // these two hash maps store information about current state of src
-    Map<URI,Boolean> isFile = new HashMap<URI,Boolean>();
-    Map<URI,Character> firstChar = new HashMap<URI,Character>();
-
-    // gather information about current subfiles
-    RemoteIterator<LocatedFileStatus> subFiles = grfs.listFiles(src, true);
-    while(subFiles.hasNext()) {
-      Path cur = subFiles.next().getPath();
-      URI curUri = cur.toUri().relativize(src.toUri());
+  /**
+   * Collects type and data information about the children of a directory.
+   * @param path the directory whose children to analyze
+   * @param isFile stores whether or not the node is a file for each child
+   * @param firstChar stores the first character of each child that is a file
+   */
+  private void collectDirectoryChildrenInfo(Path path,
+                                            Map<Path,Boolean> isFile,
+                                            Map<Path,Character> firstChar)
+      throws IOException {
+    RemoteIterator<LocatedFileStatus> children = grfs.listFiles(path, true);
+    while(children.hasNext()) {
+      Path cur = new Path(children.next().getPath().toUri().getPath());
+      // relative child paths will not change after renameFile
+      Path rel = new Path(path.toUri().relativize(cur.toUri()));
 
       if(grfs.isFile(cur)) {
-        isFile.put(curUri, true);
-        firstChar.put(curUri, readFile(cur));
+        isFile.put(rel, true);
+        firstChar.put(rel, readFile(cur));
       }else {
-        isFile.put(curUri, false);
+        isFile.put(rel, false);
       }
     }
+  }
 
-    assertTrue(grfs.rename(src, dst)); // do rename
+  private void renameDir(String src, String dst, boolean overwrite)
+      throws IOException {
+    // collect information on children of src
+    Map<Path,Boolean> isFile = new HashMap<Path,Boolean>();
+    Map<Path,Character> firstChar = new HashMap<Path,Character>();
+    collectDirectoryChildrenInfo(new Path(src), isFile, firstChar);
+    renameDir(src, dst, overwrite, isFile, firstChar);
+  }
 
-    // validate changes
-    assertFalse(grfs.exists(src));
-    assertTrue(grfs.exists(dst));
+  private void renameDir(String src, String dst, boolean overwrite,
+                         Map<Path,Boolean> isFile1,
+                         Map<Path,Character> firstChar1)
+      throws IOException {
+    Path srcPath = new Path(src);
+    Path dstPath = new Path(dst);
 
-    // validate information about renamed subfiles
-    subFiles = grfs.listFiles(dst, true);
-    while(subFiles.hasNext()) {
-      Path cur = subFiles.next().getPath();
-      URI curUri = cur.toUri().relativize(src.toUri());
+    grfs.rename(srcPath, dstPath, overwrite ? Rename.OVERWRITE : Rename.NONE);
 
-      // check that current file previously existed in src and is of same type
-      assertTrue(isFile.get(curUri) != null);
-      boolean shouldBeFile = isFile.get(curUri);
-      assertTrue(shouldBeFile == grfs.isFile(cur));
+    // check that src has moved to dst
+    assertTrue(grfs.exists(dstPath));
+    assertFalse(grfs.exists(srcPath));
 
-      if(shouldBeFile) { // check that content of current file is unchanged
-        assertTrue(readFile(cur) == firstChar.get(curUri).charValue());
-      }
+    // collect information on children of dst
+    Map<Path,Boolean> isFile2 = new HashMap<Path,Boolean>();
+    Map<Path,Character> firstChar2 = new HashMap<Path,Character>();
+    collectDirectoryChildrenInfo(dstPath, isFile2, firstChar2);
+
+    // check that information on src children was properly copied
+    assertEquals(isFile1, isFile2);
+    assertEquals(firstChar1, firstChar2);
+
+    // check that src children no longer exist
+    for(Path path : isFile1.keySet()) {
+      assertFalse("Path "+path+" exists", grfs.exists(new Path(srcPath, path)));
     }
+  }
 
-    // check that all original subfiles exist under dst
-    URI[] uris = (URI[]) isFile.keySet().toArray();
-    for(URI uri : uris) {
-      Path cur = new Path(dst, new Path(uri));
-      assertTrue(grfs.exists(cur));
-    }
+  // ==== FILE RENAME: SUCCESS CASES ====
+
+  @Test
+  public void testFileRename() throws IOException {
+    createTestFile("test", 'A');
+    renameFile("test", "test2", false);
   }
 
   @Test
-  public void testFileInPlaceStage1() throws IOException {
-    rename("test.txt", "test2.txt", PUT_SETFLAG);
+  public void testFileRenameRecoveryStage1Complete() throws IOException {
+    createTestFile("test", 'A');
+    doRenameStage("test", "test2", PUT_SETFLAG);
+    renameFile("test", "test2", false);
   }
 
   @Test
-  public void testFileInPlaceStage2() throws IOException {
+  public void testFileRenameRecoveryStage2Complete() throws IOException {
+    createTestFile("test", 'A');
+    doRenameStage("test", "test2", DELETE);
+    renameFile("test", "test2", false);
+  }
+
+  @Test
+  public void testFileRenameOverwrite() throws IOException {
+    createTestFile("test", 'A');
+    createTestFile("test2", 'B');
+    renameFile("test", "test2", true);
+  }
+
+  @Test
+  public void testFileMove() throws IOException {
     grfs.mkdirs(new Path("dir"));
-    rename("dir/test.txt", "dir/test2.txt", DELETE);
+    createTestFile("test", 'A');
+    renameFile("test", "dir/test", false);
   }
 
   @Test
-  public void testFileInPlaceStage3() throws IOException {
-    grfs.mkdirs(new Path("/dir"));
-    rename("/dir/test.txt", "/dir/test2.txt", PUT_NOFLAG);
-  }
-
-  @Test(expected = FileAlreadyExistsException.class)
-  public void testFileInPlaceOverwrite() throws IOException {
-    createTestFile("test2.txt", 'B');
-    rename("test.txt", "test2.txt", PUT_SETFLAG);
-  }
-
-  @Test(expected = IOException.class)
-  public void testFileInPlaceDestinationIsDirectory() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    rename("test.txt", "dir", PUT_SETFLAG);
-  }
-
-  @Test
-  public void testFileMoveStage1() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    rename("test.txt", "dir/test.txt", PUT_SETFLAG);
-  }
-
-  @Test
-  public void testFileMoveStage2() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    rename("dir/test.txt", "test2.txt", DELETE);
-  }
-
-  @Test
-  public void testFileMoveStage3() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    grfs.mkdirs(new Path("dir2"));
-    rename("dir/test.txt", "dir2/test.txt", PUT_NOFLAG);
-  }
-
-  @Test(expected = IOException.class)
-  public void testFileMoveInvalidDestination() throws IOException {
-    rename("test.txt", "dir/test.txt", PUT_SETFLAG);
-  }
-
-  @Test(expected = FileAlreadyExistsException.class)
   public void testFileMoveOverwrite() throws IOException {
     grfs.mkdirs(new Path("dir"));
-    createTestFile("dir/test.txt", 'B');
-    rename("test.txt", "dir/test.txt", PUT_SETFLAG);
+    createTestFile("test", 'A');
+    createTestFile("dir/test", 'B');
+    renameFile("test", "dir/test", true);
+  }
+
+  // ==== FILE RENAME: FAIL CASES ===-=
+
+  @Test(expected = FileNotFoundException.class)
+  public void testFileRenameSrcMissingAndDstMissing() throws IOException {
+    renameFile("test", "test2", false);
+  }
+
+  @Test(expected = FileNotFoundException.class)
+  public void testFileRenameSrcMissingDstExists() throws IOException {
+    createTestFile("test2", 'B');
+    renameFile("test", "test2", false);
+  }
+
+  @Test(expected = FileAlreadyExistsException.class)
+  public void testFileRenameDstExistsNoOverwrite() throws IOException {
+    createTestFile("test", 'A');
+    createTestFile("test2", 'B');
+    renameFile("test", "test2", false);
+  }
+
+  @Test(expected = FileAlreadyExistsException.class)
+  public void testFileRenameDstEqualsSrc() throws IOException {
+    createTestFile("test", 'A');
+    renameFile("test", "test", false);
+  }
+
+  @Test(expected = IOException.class)
+  public void testFileMoveDstExistsAsDirectory() throws IOException {
+    createTestFile("test", 'A');
+    grfs.mkdirs(new Path("test2"));
+    renameFile("test", "test2", true);
+  }
+
+  @Test(expected = FileNotFoundException.class)
+  public void testFileMoveDstParentDoesNotExist() throws IOException {
+    createTestFile("test", 'A');
+    renameFile("test", "dir/test2", false);
+  }
+
+  @Test(expected = ParentNotDirectoryException.class)
+  public void testFileMoveDstParentIsFile() throws IOException {
+    createTestFile("test", 'A');
+    createTestFile("file", 'C');
+    renameFile("test", "file/test2", false);
+  }
+
+  // ==== DIRECTORY RENAME: SUCCESS CASES ====
+
+  @Test
+  public void testDirRename() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+    renameDir("/a", "/newA", false);
+  }
+
+  @Test
+  public void testDirRenameOverwrite() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+    grfs.mkdirs(new Path("/newA")); // empty dst directory
+    renameDir("/a", "/newA", true);
+  }
+
+  @Test
+  public void testDirRenameNoChildren() throws IOException {
+    grfs.mkdirs(new Path("/x/a"));
+    renameDir("/x/a", "/x/newA", false);
+  }
+
+  @Test
+  public void testDirRenameRecoveryStage1PartlyComplete() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+
+    doRenameStage("/a/1", "/newA/1", PUT_SETFLAG);
+    doRenameStage("/a/2", "/newA/2", PUT_SETFLAG);
+    doRenameStage("/a/b", "/newA/b", PUT_SETFLAG);
+    renameDir("/a", "/newA", false);
+  }
+
+  @Test
+  public void testDirRenameRecoveryStage2PartlyComplete() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+
+    // collect src information before doing partial rename
+    Map<Path,Boolean> isFile = new HashMap<Path,Boolean>();
+    Map<Path,Character> firstChar = new HashMap<Path,Character>();
+    collectDirectoryChildrenInfo(new Path("/a"), isFile, firstChar);
+
+    // deletes occur recursively from bottom to top
+    doRenameStage("/a", "/newA", PUT_SETFLAG);
+    doRenameStage("/a/1", "/newA/1", PUT_SETFLAG);
+    doRenameStage("/a/2", "/newA/2", PUT_SETFLAG);
+    doRenameStage("/a/b", "/newA/b", PUT_SETFLAG);
+    doRenameStage("/a/b/1", "/newA/b/1", PUT_SETFLAG);
+    doRenameStage("/a/b/2", "/newA/b/2", DELETE);
+    doRenameStage("/a/b/c", "/newA/b/c", DELETE);
+    doRenameStage("/a/b/c/1", "/newA/b/c/1", DELETE);
+    doRenameStage("/a/b/c/2", "/newA/b/c/2", DELETE);
+    renameDir("/a", "/newA", false, isFile, firstChar);
+  }
+
+  @Test
+  public void testDirRenameRecoveryStage3PartlyComplete() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+
+    // collect src information before doing partial rename
+    Map<Path,Boolean> isFile = new HashMap<Path,Boolean>();
+    Map<Path,Character> firstChar = new HashMap<Path,Character>();
+    collectDirectoryChildrenInfo(new Path("/a"), isFile, firstChar);
+
+    doRenameStage("/a", "/newA", DELETE);
+    doRenameStage("/a/1", "/newA/1", PUT_NOFLAG);
+    doRenameStage("/a/2", "/newA/2", PUT_NOFLAG);
+    doRenameStage("/a/b", "/newA/b", PUT_NOFLAG);
+    doRenameStage("/a/b/1", "/newA/b/1", DELETE);
+    doRenameStage("/a/b/2", "/newA/b/2", DELETE);
+    doRenameStage("/a/b/c", "/newA/b/c", DELETE);
+    doRenameStage("/a/b/c/1", "/newA/b/c/1", DELETE);
+    doRenameStage("/a/b/c/2", "/newA/b/c/2", DELETE);
+    renameDir("/a", "/newA", false, isFile, firstChar);
+  }
+
+  @Test
+  public void testDirMoveDown() throws IOException {
+    grfs.mkdirs(new Path("/a/b/c"));
+    grfs.mkdirs(new Path("/d"));
+    createTestFile("/a/1", 't');
+    createTestFile("/a/2", 'u');
+    createTestFile("/a/b/1", 'v');
+    createTestFile("/a/b/2", 'w');
+    createTestFile("/a/b/c/1", 'x');
+    createTestFile("/a/b/c/2", 'y');
+    renameDir("/a", "/d/newA", false);
+  }
+
+  @Test
+  public void testDirMoveUp() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    renameDir("/x/y/a", "/x/newA", false);
+  }
+
+  @Test
+  public void testDirMoveOverwrite() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    grfs.mkdirs(new Path("/x/newA")); // empty dst directory
+    renameDir("/x/y/a", "/x/newA", true);
+  }
+
+  // ==== DIRECTORY RENAME: FAIL CASES ====
+
+  @Test(expected = IOException.class)
+  public void testDirRenameSrcIsRoot() throws IOException {
+    renameDir("/", "test", false);
+  }
+
+  @Test(expected = FileAlreadyExistsException.class)
+  public void testDirRenameDstExistsNoOverwrite() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    grfs.mkdirs(new Path("/x/newA")); // empty dst directory
+    renameDir("/x/y/a", "/x/newA", false);
+  }
+
+  @Test(expected = IOException.class)
+  public void testDirRenameDstExistsAsFile() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    createTestFile("/x/newA", 'A'); // destination exists as file
+    renameDir("/x/y/a", "/x/newA", true);
+  }
+
+  @Test(expected = IOException.class)
+  public void testDirRenameDstNotEmpty() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+
+    // create non-empty destination dir
+    grfs.mkdirs(new Path("/x/newA"));
+    createTestFile("/x/newA/test", 'A');
+    renameDir("/x/y/a", "/x/newA", true);
+  }
+
+  @Test(expected = IOException.class)
+  public void testDirRenameDstIsRoot() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    renameDir("/x/y/a", "/", true);
+  }
+
+  @Test(expected = FileNotFoundException.class)
+  public void testDirRenameDstParentDoesNotExist() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    renameDir("/x/y/a", "/x/z/newA", false);
+  }
+
+  @Test(expected = ParentNotDirectoryException.class)
+  public void testDirRenameDstParentIsFile() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    createTestFile("/x/z", 'A'); // destination parent exists as file
+    renameDir("/x/y/a", "/x/z/newA", false);
+  }
+
+  @Test(expected = FileAlreadyExistsException.class)
+  public void testDirRenameDstEqualsSrc() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    renameDir("/x/y/a", "/x/y/a", true);
+  }
+
+  @Test(expected = IOException.class)
+  public void testDirRenameDstIsInsideSrc() throws IOException {
+    grfs.mkdirs(new Path("x/y/a/b/c"));
+    createTestFile("/x/y/a/1", 't');
+    createTestFile("/x/y/a/2", 'u');
+    createTestFile("/x/y/a/b/1", 'v');
+    createTestFile("/x/y/a/b/2", 'w');
+    createTestFile("/x/y/a/b/c/1", 'x');
+    createTestFile("/x/y/a/b/c/2", 'y');
+    renameDir("/x/y/a", "/x/y/a/newA", false);
+  }
+
+  // ==== HELPER METHODS COPIED FROM NAMESPACEPROCESSOR ====
+
+  private INode getINode(String src, boolean needLocation) throws IOException {
+    RowKey key = RowKeyFactory.newInstance(src);
+    Result result = table.get(new Get(key.getKey()));
+    return newINode(src, result, needLocation);
   }
 
   private INode newINode(String src, Result result, boolean needLocation)

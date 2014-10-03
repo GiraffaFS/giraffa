@@ -53,7 +53,7 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
   private static final String TEST_FILES_DIR = "src/test/resources";
   private static final String TEST_CONFIG_FILE = TEST_FILES_DIR+"/testHDFSConf.xml";
   private static final String GIRAFFA_TEST_URI = "grfa://localhost:9000";
-  private static final int PASSING_PERCENTAGE = 75;
+  private static final int PASSING_PERCENTAGE = 94;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
 
@@ -115,7 +115,7 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
           totalFail ++;
         }
       }
-      // PJJ: TestGiraffaCLI will not throw AssertionError if passing >= 77%.
+      // PJJ: TestGiraffaCLI will not throw AssertionError if passing >= 94%.
       if((100 * totalPass / (totalPass + totalFail)) < PASSING_PERCENTAGE) {
         throw a;
       }
