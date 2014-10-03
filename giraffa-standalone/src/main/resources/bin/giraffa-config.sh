@@ -111,8 +111,8 @@ fi
 
 GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.log.dir=$GIRAFFA_LOG_DIR"
 GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.log.file=$GIRAFFA_LOGFILE"
-GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.root.logger=${GIRAFFA_ROOT_LOGGER:-INFO,console}"
-GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.security.logger=${GIRAFFA_SECURITY_LOGGER:-INFO,console}"
+GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.root.logger=${GIRAFFA_ROOT_LOGGER:-INFO,RFA}"
+GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.security.logger=${GIRAFFA_SECURITY_LOGGER:-INFO,NullAppender}"
 if [ "x$JAVA_LIBRARY_PATH" != "x" ]; then
   GIRAFFA_OPTS="$GIRAFFA_OPTS -Djava.library.path=$JAVA_LIBRARY_PATH"
 fi  

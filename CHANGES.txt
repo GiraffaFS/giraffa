@@ -42,6 +42,7 @@ Trunk - Unreleased
     Issue 85: ResultScanners should be wrapped in try/finally blocks
               and closed. (Milan)
     Issue 86: Build failing from Javadoc plugin failure. (Plamen)
+    Issue 87: Fix Giraffa Logging. (Milan)
 
 Release 0.0.1 - 2013-07-10
 
