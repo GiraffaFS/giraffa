@@ -20,6 +20,7 @@ Trunk - Unreleased
   IMPROVEMENTS
 
     Issue 51: FullPathRowKey should not use Bytes. (Milan)
+    Issue 89: RPC threads are contending for HTable access. (Plamen)
 
   DOCUMENTATION
 

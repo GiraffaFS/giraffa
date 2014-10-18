@@ -120,12 +120,19 @@ public class NamespaceProcessor implements ClientProtocol,
   
   // Coprocessor variables needed
   private RegionCoprocessorEnvironment env;
-  private HTableInterface table;
   private Configuration conf;
   private FsServerDefaults serverDefaults;
-  
+
   private int lsLimit;
-  
+
+  private final ThreadLocal<HTableInterface> table =
+      new ThreadLocal<HTableInterface>() {
+          @Override
+          public HTableInterface initialValue() {
+            return null;
+          }
+      };
+
   private static final Log LOG =
       LogFactory.getLog(NamespaceProcessor.class.getName());
    
@@ -184,27 +191,40 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // Coprocessor
   public void stop(CoprocessorEnvironment env) {
     LOG.info("Stopping NamespaceProcessor...");
-    try {
-      if(table != null) {
-        synchronized(table) {
-          table.close();
-          table = null;
-        }
-      }
-    } catch (IOException e) {
-      LOG.error("Cannot close table: ",e);
-    }
+    closeTable();
+  }
+
+  HTableInterface getThreadLocalTable() {
+    return table.get();
+  }
+
+  void setThreadLocalTable(HTableInterface client) {
+    table.set(client);
   }
 
   private void openTable() {
-    if(this.table != null)
+    HTableInterface client = getThreadLocalTable();
+    if(client != null)
       return;
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     try {
-      table = env.getTable(TableName.valueOf(RowKeyBytes.toBytes(tableName)));
+      client = env.getTable(TableName.valueOf(tableName));
+      setThreadLocalTable(client);
     } catch (IOException e) {
       LOG.error("Cannot get table: " + tableName, e);
+    }
+  }
+
+  private void closeTable() {
+    HTableInterface client = getThreadLocalTable();
+    try {
+      if(client != null) {
+        client.close();
+        table.remove();
+      }
+    } catch (IOException e) {
+      LOG.error("Cannot close table: ",e);
     }
   }
 
@@ -241,9 +261,7 @@ public class NamespaceProcessor implements ClientProtocol,
     
     // grab blocks back from HBase and return the latest one added
     Result nodeInfo;
-    synchronized(table) {
-      nodeInfo = table.get(new Get(iNode.getRowKey().getKey()));
-    }
+    nodeInfo = getThreadLocalTable().get(new Get(iNode.getRowKey().getKey()));
     List<UnlocatedBlock> al_blks = getBlocks(nodeInfo);
     List<DatanodeInfo[]> al_locs = getLocations(nodeInfo);
     int last = al_blks.size()-1;
@@ -421,9 +439,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // delete the child key atomically first
     Delete delete = new Delete(node.getRowKey().getKey());
-    synchronized(table) {
-      table.delete(delete);
-    }
+    getThreadLocalTable().delete(delete);
 
     // delete time penalty (resolves timestamp milliseconds issue)
     try {
@@ -475,10 +491,8 @@ public class NamespaceProcessor implements ClientProtocol,
               deletes.add(new Delete(result.getRow()));
           }
           // perform delete (if non-empty)
-          if (!deletes.isEmpty())
-            synchronized (table) {
-              table.delete(deletes);
-            }
+          if(!deletes.isEmpty())
+            getThreadLocalTable().delete(deletes);
         } finally {
           rs.close();
         }
@@ -497,9 +511,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // delete source directory
     Delete delete = new Delete(node.getRowKey().getKey());
-    synchronized(table) {
-      table.delete(delete);
-    }
+    getThreadLocalTable().delete(delete);
     return true;
   }
 
@@ -616,10 +628,8 @@ public class NamespaceProcessor implements ClientProtocol,
   private INode getINode(RowKey key, boolean needLocation) throws IOException {
     openTable();
     Result nodeInfo;
-    
-    synchronized(table) {
-      nodeInfo = table.get(new Get(key.getKey()));
-    }
+
+    nodeInfo = getThreadLocalTable().get(new Get(key.getKey()));
     if(nodeInfo.isEmpty()) {
       LOG.debug("File does not exist: " + key.getPath());
       return null;
@@ -666,9 +676,7 @@ public class NamespaceProcessor implements ClientProtocol,
     byte[] start = key.getStartListingKey(startAfter);
     byte[] stop = key.getStopListingKey();
     Scan scan = new Scan(start, stop);
-    synchronized(table) {
-      return table.getScanner(scan);
-    }
+    return getThreadLocalTable().getScanner(scan);
   }
 
   private List<INode> getListingInternal(
@@ -1248,9 +1256,7 @@ public class NamespaceProcessor implements ClientProtocol,
       put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
           Bytes.toBytes(ba.toString()));
 
-    synchronized(table) {
-      table.put(put);
-    }
+    getThreadLocalTable().put(put);
   }
 
   /**
