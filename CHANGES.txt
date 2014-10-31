@@ -16,6 +16,7 @@ Trunk - Unreleased
     Issue 29: Implement Rename. (Milan)
     Issue 83: Directory Renames. (Milan)
     Issue 90: Create AbstractFileSystem implementation of Giraffa. (Milan)
+    Issue 91: Support Yarn. (Milan)
 
   IMPROVEMENTS
 

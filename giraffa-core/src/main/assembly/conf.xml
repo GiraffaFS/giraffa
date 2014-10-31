@@ -17,7 +17,15 @@
             <includes>
                 <include>core-site.xml</include>
                 <include>giraffa-default.xml</include>
+                <include>giraffa-env.sh</include>
                 <include>log4j.properties</include>
+                <include>capacity-scheduler.xml</include>
+                <include>configuration.xsl</include>
+                <include>container-executor.cfg</include>
+                <include>mapred-env.sh</include>
+                <include>mapred-site.xml</include>
+                <include>yarn-env.sh</include>
+                <include>yarn-site.xml</include>
             </includes>
         </fileSet>
     </fileSets>

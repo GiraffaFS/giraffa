@@ -91,11 +91,11 @@ case $COMMAND in
     if $cygwin; then
       CLASSPATH=`cygpath -p -w "$CLASSPATH"`
     fi
-    export CLASSPATH=$CLASSPATH
+    export HADOOP_CLASSPATH=$GIRAFFA_CLASSPATH
     export HADOOP_OPTS=$GIRAFFA_OPTS
     echo $*
     if [ -f "${HADOOP_HOME}"/bin/hadoop ]; then
-      exec "${HADOOP_HOME}"/bin/hadoop  --config "${GIRAFFA_CONF_DIR}":$CLASSPATH $*
+      exec "${HADOOP_HOME}"/bin/hadoop  --config "${GIRAFFA_CONF_DIR}" $*
     else
       echo "Hadoop not found."
       exit

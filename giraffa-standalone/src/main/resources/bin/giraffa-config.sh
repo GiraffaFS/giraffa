@@ -33,13 +33,13 @@ if [ $# -gt 1 ]
 then
     if [ "--config" = "$1" ]
     then
-        shift
-        confdir=$1
-        shift
-        GIRAFFA_CONF_DIR=$confdir
+	shift
+	confdir=$1
+	shift
+	GIRAFFA_CONF_DIR=$confdir
     fi
 fi
- 
+
 # Allow alternate conf dir location.
 export GIRAFFA_CONF_DIR="${GIRAFFA_CONF_DIR:-$GIRAFFA_HOME/conf}"
 
@@ -57,14 +57,14 @@ if [ "$JAVA_HOME" != "" ]; then
   #echo "run java in $JAVA_HOME"
   JAVA_HOME=$JAVA_HOME
 fi
-  
+
 if [ "$JAVA_HOME" = "" ]; then
   echo "Error: JAVA_HOME is not set."
   exit 1
 fi
 
 JAVA=$JAVA_HOME/bin/java
-JAVA_HEAP_MAX=-Xmx1000m 
+JAVA_HEAP_MAX=-Xmx1000m
 
 # check envvars which might override default args
 if [ "$GIRAFFA_HEAPSIZE" != "" ]; then
@@ -93,6 +93,7 @@ if [ -d "${GIRAFFA_HOME}/lib" ]; then
     GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$f;
   done
 fi
+export GIRAFFA_CLASSPATH=$GIRAFFA_CLASSPATH
 # echo $GIRAFFA_CLASSPATH
 
 # add user-specified CLASSPATH last
@@ -115,7 +116,7 @@ GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.root.logger=${GIRAFFA_ROOT_LOGGER:-INFO,RF
 GIRAFFA_OPTS="$GIRAFFA_OPTS -Dgiraffa.security.logger=${GIRAFFA_SECURITY_LOGGER:-INFO,NullAppender}"
 if [ "x$JAVA_LIBRARY_PATH" != "x" ]; then
   GIRAFFA_OPTS="$GIRAFFA_OPTS -Djava.library.path=$JAVA_LIBRARY_PATH"
-fi  
+fi
 
 # Disable ipv6 as it can cause issues
 GIRAFFA_OPTS="$GIRAFFA_OPTS -Djava.net.preferIPv4Stack=true"
@@ -125,22 +126,6 @@ if [ "$HADOOP_HOME" = "" ]; then
   if [ -d "${GIRAFFA_HOME}/../hadoop" ]; then
     HADOOP_HOME=$GIRAFFA_HOME/../hadoop
   fi
-fi
-HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
-
-if [ -d "${HADOOP_HOME}" ]; then
-  for d in $HADOOP_HOME/share/hadoop/*; do
-    if [ -d "$d" ]; then
-      for f in $d/hadoop-*.jar; do
-        HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
-      done
-      if [ -d "$d/lib" ]; then
-        for f in $d/lib/hadoop-*.jar; do
-          HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
-        done
-      fi
-    fi
-  done
 fi
 
 # cygwin path translation
@@ -155,14 +140,6 @@ if [ "$HBASE_HOME" = "" ]; then
   if [ -d "${GIRAFFA_HOME}/../hbase" ]; then
     HBASE_HOME=$GIRAFFA_HOME/../hbase
   fi
-fi
-HBASE_CONF_DIR="$HBASE_HOME/conf"
-
-if [ -d "${HBASE_HOME}" ]; then
-  for f in ${HBASE_HOME}/lib/hbase-*.jar; do
-    # echo $f
-    HBASE_CLASSPATH=${HBASE_CLASSPATH}:$f;
-  done
 fi
 
 # cygwin path translation
