@@ -118,7 +118,7 @@ public class TestRename {
     src = new Path(grfs.getWorkingDirectory(), src).toString();
     dst = new Path(grfs.getWorkingDirectory(), dst).toString();
 
-    INode srcNode = getINode(src, true);
+    INode srcNode = getINode(src);
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
 
     // renameFile state should be set if PUT_NOFLAG has not been completed
@@ -552,18 +552,19 @@ public class TestRename {
 
   // ==== HELPER METHODS COPIED FROM NAMESPACEPROCESSOR ====
 
-  private INode getINode(String src, boolean needLocation) throws IOException {
+  private INode getINode(String src) throws IOException {
     RowKey key = RowKeyFactory.newInstance(src);
     Result result = table.get(new Get(key.getKey()));
-    return newINode(src, result, needLocation);
+    return newINode(src, result);
   }
 
-  private INode newINode(String src, Result result, boolean needLocation)
+  private INode newINode(String src, Result result)
       throws IOException {
     RowKey key = new FullPathRowKey(src);
-    INode iNode = new INode(
+    boolean isDir = NamespaceProcessor.getDirectory(result);
+    return new INode(
         NamespaceProcessor.getLength(result),
-        NamespaceProcessor.getDirectory(result),
+        isDir,
         NamespaceProcessor.getReplication(result),
         NamespaceProcessor.getBlockSize(result),
         NamespaceProcessor.getMTime(result),
@@ -577,9 +578,8 @@ public class TestRename {
         NamespaceProcessor.getNsQuota(result),
         NamespaceProcessor.getFileState(result),
         NamespaceProcessor.getRenameState(result),
-        (needLocation) ? NamespaceProcessor.getBlocks(result) : null,
-        (needLocation) ? NamespaceProcessor.getLocations(result) : null);
-    return iNode;
+        isDir ? null : NamespaceProcessor.getBlocks(result),
+        isDir ? null : NamespaceProcessor.getLocations(result));
   }
 
   private void updateINode(INode node, BlockAction ba) throws IOException {

@@ -241,7 +241,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode iNode = getINode(src, true);
+    INode iNode = getINode(src);
 
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -298,7 +298,7 @@ public class NamespaceProcessor implements ClientProtocol,
       UnresolvedLinkException, IOException {
     if(last == null)
       return true;
-    INode iNode = getINode(src, true);
+    INode iNode = getINode(src);
 
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -484,7 +484,7 @@ public class NamespaceProcessor implements ClientProtocol,
         // schedule immediate children for deletion
         try {
           for (Result result = rs.next(); result != null; result = rs.next()) {
-            INode child = newINodeByParent(dirPath, result, true);
+            INode child = newINodeByParent(dirPath, result);
             if (!child.isDir())
               deleteFile(child, deleteBlocks);
             else
@@ -531,7 +531,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode iNode = getINode(src, true);
+    INode iNode = getINode(src);
     if(iNode == null || iNode.isDir()) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
@@ -599,33 +599,23 @@ public class NamespaceProcessor implements ClientProtocol,
     throw new IOException("symlinks are not supported");
   }
 
-  private INode getINode(String path) throws IOException {
-    return getINode(path, false);
-  }
-
   /**
-   * Fetch an INode by source path String with / without block locations.
+   * Fetch an INode by source path String
    * @param path the source path String
-   * @param needLocation whether to get block locations
-   * @return INode with / without block locations
+   * @return INode for the specified path
    * @throws IOException
    */
-  private INode getINode(String path, boolean needLocation) throws IOException {
-    return getINode(RowKeyFactory.newInstance(path), needLocation);
-  }
-
-  private INode getINode(RowKey key) throws IOException {
-    return getINode(key, false);
+  private INode getINode(String path) throws IOException {
+    return getINode(RowKeyFactory.newInstance(path));
   }
 
   /**
-   * Fetch an INode, by RowKey, with / without block locations.
+   * Fetch an INode, by RowKey.
    * @param key the RowKey
-   * @param needLocation whether to get block locations
-   * @return INode with / without block locations
+   * @return INode with the specified RowKey
    * @throws IOException
    */
-  private INode getINode(RowKey key, boolean needLocation) throws IOException {
+  private INode getINode(RowKey key) throws IOException {
     openTable();
     Result nodeInfo;
 
@@ -634,7 +624,7 @@ public class NamespaceProcessor implements ClientProtocol,
       LOG.debug("File does not exist: " + key.getPath());
       return null;
     }
-    return newINode(key.getPath(), nodeInfo, needLocation);
+    return newINode(key.getPath(), nodeInfo);
   }
 
   @Override // ClientProtocol
@@ -648,7 +638,7 @@ public class NamespaceProcessor implements ClientProtocol,
       String src, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(src, needLocation);
+    INode node = getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -659,7 +649,7 @@ public class NamespaceProcessor implements ClientProtocol,
           node.getLocatedFileStatus() : node.getFileStatus() }, 0);
     }
 
-    List<INode> list = this.getListingInternal(node, startAfter, needLocation);
+    List<INode> list = this.getListingInternal(node, startAfter);
 
     HdfsFileStatus[] retVal = new HdfsFileStatus[list.size()];
     int i = 0;
@@ -679,8 +669,7 @@ public class NamespaceProcessor implements ClientProtocol,
     return getThreadLocalTable().getScanner(scan);
   }
 
-  private List<INode> getListingInternal(
-      INode dir, byte[] startAfter, boolean needLocation)
+  private List<INode> getListingInternal(INode dir, byte[] startAfter)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     RowKey key = dir.getRowKey();
@@ -690,7 +679,7 @@ public class NamespaceProcessor implements ClientProtocol,
       for (Result result = rs.next();
            result != null && list.size() < lsLimit;
            result = rs.next()) {
-        list.add(newINodeByParent(key.getPath(), result, needLocation));
+        list.add(newINodeByParent(key.getPath(), result));
       }
     } finally {
       rs.close();
@@ -711,7 +700,7 @@ public class NamespaceProcessor implements ClientProtocol,
       try {
         for (Result result = rs.next(); result != null; result = rs.next()) {
           if (getDirectory(result)) {
-            directories.add(newINodeByParent(key.getPath(), result, false));
+            directories.add(newINodeByParent(key.getPath(), result));
           }
         }
       } finally {
@@ -830,8 +819,8 @@ public class NamespaceProcessor implements ClientProtocol,
       UnresolvedLinkException, IOException {
     LOG.info("Renaming " + src + " to " + dst);
     ResultScanner rs;
-    INode rootSrcNode = getINode(src, true);
-    INode rootDstNode = getINode(dst, true);
+    INode rootSrcNode = getINode(src);
+    INode rootDstNode = getINode(dst);
     boolean overwrite = false;
 
     for(Rename option : options) {
@@ -869,7 +858,7 @@ public class NamespaceProcessor implements ClientProtocol,
           rs = getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
           try {
             for (Result res = rs.next(); res != null; res = rs.next()) {
-              INode srcNode = newINodeByParent(parent, res, true);
+              INode srcNode = newINodeByParent(parent, res);
               String iSrc = srcNode.getRowKey().getPath();
               String iDst = changeBase(iSrc, base, newBase);
               copyWithRenameFlag(srcNode, iDst);
@@ -904,7 +893,7 @@ public class NamespaceProcessor implements ClientProtocol,
         rs = getListingScanner(dir.getRowKey(), HdfsFileStatus.EMPTY_NAME);
         try {
           for (Result res = rs.next(); res != null; res = rs.next()) {
-            removeRenameFlag(newINodeByParent(parent, res, true));
+            removeRenameFlag(newINodeByParent(parent, res));
           }
         } finally {
           rs.close();
@@ -957,7 +946,7 @@ public class NamespaceProcessor implements ClientProtocol,
       IOException {
     String error = null;
     String parent = new Path(dst).getParent().toString();
-    INode parentNode = getINode(parent, false);
+    INode parentNode = getINode(parent);
 
     boolean src_exists = (srcNode != null);
     boolean dst_exists = (dstNode != null);
@@ -1158,33 +1147,32 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   /**
-   * Fetch an INode by parent path, child result, with / without block locations.
+   * Fetch an INode by parent path, child result
    * @param parent parent source path
    * @param result Result row obtained from HBase by RowKey
-   * @param needLocation whether to grab block locations
-   * @return fully-constructed INode with / without block locations
+   * @return fully-constructed INode
    * @throws IOException
    */
-  private INode newINodeByParent(String parent, Result result, boolean needLocation)
+  private INode newINodeByParent(String parent, Result result)
       throws IOException {
     String cur = new Path(parent, getFileName(result)).toString();
-    return newINode(cur, result, needLocation);
+    return newINode(cur, result);
   }
 
   /**
-   * This private method is ultimately responsible for generating INode objects based
-   * on HBase rows and RowKeys.
+   * This private method is ultimately responsible for generating INode objects
+   * based on HBase rows and RowKeys.
    * @param src source path
    * @param result HBase row obtained by RowKey
- * @param needLocation 
    * @return fully constructed INode
    * @throws IOException
    */
-  private INode newINode(String src, Result result, boolean needLocation) throws IOException {
+  private INode newINode(String src, Result result) throws IOException {
     RowKey key = RowKeyFactory.newInstance(src, result.getRow());
-    INode iNode = new INode(
+    boolean isDir = getDirectory(result);
+    return new INode(
         getLength(result),
-        getDirectory(result),
+        isDir,
         getReplication(result),
         getBlockSize(result),
         getMTime(result),
@@ -1198,9 +1186,8 @@ public class NamespaceProcessor implements ClientProtocol,
         getNsQuota(result),
         getFileState(result),
         getRenameState(result),
-        (needLocation) ? getBlocks(result) : null,
-        (needLocation) ? getLocations(result) : null);
-    return iNode;
+        isDir ? null : getBlocks(result),
+        isDir ? null : getLocations(result));
   }
 
   private void updateINode(INode node) throws IOException {
