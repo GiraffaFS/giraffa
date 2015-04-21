@@ -20,3 +20,4 @@
 target/
 *.iml
 .idea/clover/*
+.idea
