@@ -1,5 +1,24 @@
 Giraffa Change Log
 
+Release 0.1.1 - unreleased
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+    Issue 96: Move HBase related logic from NamespaceProcessor to new
+              class INodeManager. (Milan)
+    Issue 101: Adding .idea folder to the .gitignore. (Cos)
+
+  DOCUMENTATION
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+
 Release 0.1.0 - 2014-11-07
 
   INCOMPATIBLE CHANGES
@@ -22,8 +41,6 @@ Release 0.1.0 - 2014-11-07
 
     Issue 51: FullPathRowKey should not use Bytes. (Milan)
     Issue 89: RPC threads are contending for HTable access. (Plamen)
-    Issue 96: Move HBase related logic from NamespaceProcessor to new
-              class INodeManager. (Milan)
 
   DOCUMENTATION
 
