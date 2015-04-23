@@ -283,6 +283,14 @@ public class INode {
     }
   }
 
+  public void setBlocks(List<UnlocatedBlock> blocks) {
+    this.blocks = blocks;
+  }
+
+  public void setLocations(List<DatanodeInfo[]> locations) {
+    this.locations = locations;
+  }
+
   public INode cloneWithNewRowKey(RowKey newKey) {
     return new INode(length, isdir, block_replication, blocksize,
         modification_time, access_time, permission, owner, group, symlink,

@@ -8,7 +8,8 @@ import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
-import org.apache.giraffa.hbase.NamespaceProcessor;
+import org.apache.giraffa.UnlocatedBlock;
+import org.apache.giraffa.hbase.FileFieldDeserializer;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -19,6 +20,7 @@ import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SubstringComparator;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -139,12 +141,16 @@ public class GiraffaHbaseServlet extends HttpServlet {
         if (r.containsColumn(FileField.FILE_ATTRIBUTES.getBytes(),
             entry.getBytes())) {
           if (entry == FileField.PERMISSIONS) {
-            data.put(8, NamespaceProcessor.getPermissions(r).toString());
+            data.put(8, FileFieldDeserializer.getPermissions(r).toString());
           } else if (entry == FileField.BLOCK) {
             List<LocatedBlockDescriptor> locatedBlockResult =
                 new ArrayList<LocatedBlockDescriptor>();
-            List<LocatedBlock> blockArrayList =
-                NamespaceProcessor.getLocatedBlocks(r);
+            List<LocatedBlock> blockArrayList = new ArrayList<LocatedBlock>();
+            List<UnlocatedBlock> blocks = FileFieldDeserializer.getBlocks(r);
+            List<DatanodeInfo[]> locs = FileFieldDeserializer.getLocations(r);
+            for(int i = 0; i < blocks.size(); i++) {
+              blockArrayList.add(blocks.get(i).toLocatedBlock(locs.get(i)));
+            }
             long blockCounter = 0;
             for (LocatedBlock locatedBlock : blockArrayList) {
               if (blockCounter >= BLOCK_RESULT_LIMIT) {
@@ -157,22 +163,22 @@ public class GiraffaHbaseServlet extends HttpServlet {
                 (locatedBlockResult, blockArrayList.size()));
           } else {
             switch (entry) {
-              case A_TIME:     data.put(7, NamespaceProcessor.getATime(r));     break;
-              case M_TIME:     data.put(6, NamespaceProcessor.getMTime(r));     break;
+              case A_TIME:     data.put(7, FileFieldDeserializer.getATime(r));     break;
+              case M_TIME:     data.put(6, FileFieldDeserializer.getMTime(r));     break;
               case ACTION:     data.put(14, RowKeyBytes.toString(r.getValue(
                   FileField.getFileAttributes(), FileField.getAction())));         break;
-              case NAME:       data.put(1, NamespaceProcessor.getFileName(r));  break;
-              case NS_QUOTA:   data.put(13, NamespaceProcessor.getNsQuota(r));  break;
-              case BLOCK_SIZE: data.put(4, NamespaceProcessor.getBlockSize(r)); break;
-              case DIRECTORY:  data.put(2, NamespaceProcessor.getDirectory(r)); break;
-              case DS_QUOTA:   data.put(12, NamespaceProcessor.getDsQuota(r));  break;
-              case GROUP_NAME: data.put(10, NamespaceProcessor.getGroupName(r));break;
-              case LENGTH:     data.put(3, NamespaceProcessor.getLength(r));    break;
-              case PERMISSIONS:data.put(8, NamespaceProcessor.getPermissions(r)); break;
-              case REPLICATION:data.put(15, NamespaceProcessor.getReplication(r)); break;
-              case USER_NAME:  data.put(9, NamespaceProcessor.getUserName(r));  break;
-              case SYMLINK:    data.put(11, NamespaceProcessor.getSymlink(r));  break;
-              case FILE_STATE: data.put(16, NamespaceProcessor.getFileState(r));break;
+              case NAME:       data.put(1, FileFieldDeserializer.getFileName(r));  break;
+              case NS_QUOTA:   data.put(13, FileFieldDeserializer.getNsQuota(r));  break;
+              case BLOCK_SIZE: data.put(4, FileFieldDeserializer.getBlockSize(r)); break;
+              case DIRECTORY:  data.put(2, FileFieldDeserializer.getDirectory(r)); break;
+              case DS_QUOTA:   data.put(12, FileFieldDeserializer.getDsQuota(r));  break;
+              case GROUP_NAME: data.put(10, FileFieldDeserializer.getGroupName(r));break;
+              case LENGTH:     data.put(3, FileFieldDeserializer.getLength(r));    break;
+              case PERMISSIONS:data.put(8, FileFieldDeserializer.getPermissions(r)); break;
+              case REPLICATION:data.put(15, FileFieldDeserializer.getReplication(r)); break;
+              case USER_NAME:  data.put(9, FileFieldDeserializer.getUserName(r));  break;
+              case SYMLINK:    data.put(11, FileFieldDeserializer.getSymlink(r));  break;
+              case FILE_STATE: data.put(16, FileFieldDeserializer.getFileState(r));break;
               default:                                                          break;
             }
           }

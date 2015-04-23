@@ -28,8 +28,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
-import org.apache.giraffa.hbase.NamespaceProcessor;
+
+import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
@@ -39,16 +39,11 @@ import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.util.Time;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -60,7 +55,7 @@ public class TestRename {
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
-  private HTable table;
+  private INodeManager nodeManager;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -77,13 +72,15 @@ public class TestRename {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    table = new HTable(cluster.getConfiguration(),
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
+    CoprocessorEnvironment env = new CoprocessorHost.Environment(
+        null, 0, 0, cluster.getConfiguration());
+    nodeManager = new INodeManager(conf, env);
   }
 
   @After
   public void after() throws IOException {
     if(grfs != null) grfs.close();
+    nodeManager.close();
   }
 
   @AfterClass
@@ -118,7 +115,7 @@ public class TestRename {
     src = new Path(grfs.getWorkingDirectory(), src).toString();
     dst = new Path(grfs.getWorkingDirectory(), dst).toString();
 
-    INode srcNode = getINode(src);
+    INode srcNode = nodeManager.getINode(src);
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
 
     // renameFile state should be set if PUT_NOFLAG has not been completed
@@ -128,12 +125,10 @@ public class TestRename {
 
     // src node should be deleted if DELETE has been completed
     if(stage == DELETE || stage == PUT_NOFLAG) {
-      synchronized (table) {
-        table.delete(new Delete(srcNode.getRowKey().getKey()));
-      }
+      nodeManager.delete(srcNode);
     }
 
-    updateINode(dstNode, null);
+    nodeManager.updateINode(dstNode);
   }
 
   private void renameFile(String src, String dst, boolean overwrite)
@@ -548,90 +543,5 @@ public class TestRename {
     createTestFile("/x/y/a/b/c/1", 'x');
     createTestFile("/x/y/a/b/c/2", 'y');
     renameDir("/x/y/a", "/x/y/a/newA", false);
-  }
-
-  // ==== HELPER METHODS COPIED FROM NAMESPACEPROCESSOR ====
-
-  private INode getINode(String src) throws IOException {
-    RowKey key = RowKeyFactory.newInstance(src);
-    Result result = table.get(new Get(key.getKey()));
-    return newINode(src, result);
-  }
-
-  private INode newINode(String src, Result result)
-      throws IOException {
-    RowKey key = new FullPathRowKey(src);
-    boolean isDir = NamespaceProcessor.getDirectory(result);
-    return new INode(
-        NamespaceProcessor.getLength(result),
-        isDir,
-        NamespaceProcessor.getReplication(result),
-        NamespaceProcessor.getBlockSize(result),
-        NamespaceProcessor.getMTime(result),
-        NamespaceProcessor.getATime(result),
-        NamespaceProcessor.getPermissions(result),
-        NamespaceProcessor.getUserName(result),
-        NamespaceProcessor.getGroupName(result),
-        NamespaceProcessor.getSymlink(result),
-        key,
-        NamespaceProcessor.getDsQuota(result),
-        NamespaceProcessor.getNsQuota(result),
-        NamespaceProcessor.getFileState(result),
-        NamespaceProcessor.getRenameState(result),
-        isDir ? null : NamespaceProcessor.getBlocks(result),
-        isDir ? null : NamespaceProcessor.getLocations(result));
-  }
-
-  private void updateINode(INode node, BlockAction ba) throws IOException {
-    long ts = Time.now();
-    RowKey key = node.getRowKey();
-    Put put = new Put(key.getKey(), ts);
-    put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-            RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
-        .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
-            RowKeyBytes.toBytes(node.getOwner()))
-        .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
-            RowKeyBytes.toBytes(node.getGroup()))
-        .add(FileField.getFileAttributes(), FileField.getLength(), ts,
-            Bytes.toBytes(node.getLen()))
-        .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
-            Bytes.toBytes(node.getPermission().toShort()))
-        .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
-            Bytes.toBytes(node.getModificationTime()))
-        .add(FileField.getFileAttributes(), FileField.getATime(), ts,
-            Bytes.toBytes(node.getAccessTime()))
-        .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
-            Bytes.toBytes(node.getDsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
-            Bytes.toBytes(node.getNsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
-            Bytes.toBytes(node.getReplication()))
-        .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-            Bytes.toBytes(node.getBlockSize()))
-        .add(FileField.getFileAttributes(), FileField.getRenameState(), ts,
-            node.getRenameStateBytes());
-
-    if(node.getSymlink() != null)
-      put.add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
-          node.getSymlink());
-
-    if(node.isDir())
-      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
-          Bytes.toBytes(node.isDir()));
-    else
-      put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
-             node.getBlocksBytes())
-         .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
-             node.getLocationsBytes())
-         .add(FileField.getFileAttributes(), FileField.getFileState(), ts,
-             Bytes.toBytes(node.getFileState().toString()));
-
-    if(ba != null)
-      put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
-          Bytes.toBytes(ba.toString()));
-
-    synchronized(table) {
-      table.put(put);
-    }
   }
 }

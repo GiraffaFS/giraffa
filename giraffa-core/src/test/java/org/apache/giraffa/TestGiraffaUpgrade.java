@@ -33,15 +33,16 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -65,6 +66,7 @@ public class TestGiraffaUpgrade {
       GiraffaTestUtils.getHBaseTestingUtility();
   private DFSTestUtil fsUtil;
   private GiraffaFileSystem grfa;
+  private INodeManager nodeManager;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -86,11 +88,15 @@ public class TestGiraffaUpgrade {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
+    CoprocessorEnvironment env = new CoprocessorHost.Environment(
+        null, 0, 0, cluster.getConfiguration());
+    nodeManager = new INodeManager(conf, env);
   }
 
   @After
   public void after() throws IOException {
     if(grfa != null) grfa.close();
+    nodeManager.close();
   }
 
   @AfterClass
@@ -190,72 +196,21 @@ public class TestGiraffaUpgrade {
              .replace("        PERMISSION_STRING = ","").trim());
 
         // COMMIT IT!
-        commitToHBase(path, replication, modTime, accessTime, blockSize, blocks,
-            locations, isDirectory, nsQuota, dsQuota, userName, groupName, perm,
-            length);
+        INode node = new INode(length, isDirectory, replication, blockSize,
+            modTime.getTime(), accessTime.getTime(), perm, userName,
+            groupName, null, RowKeyFactory.newInstance(path), dsQuota,
+            nsQuota, FileState.CLOSED, RenameState.FALSE(), blocks, locations);
+        try {
+          nodeManager.updateINode(node);
+          System.out.println("COMMITTED: " + path + ", with BLOCKS:" + blocks);
+        } catch(IOException e) {
+          System.err.println("Failed to commit INODE: "+path);
+          e.printStackTrace();
+          fail();
+        }
       }
     }
     return true;
-  }
-
-  private void commitToHBase(String path, short replication, Date modTime,
-      Date accessTime, long blockSize, List<UnlocatedBlock> blocks,
-      List<DatanodeInfo[]> locations, boolean directory, long nsQuota,
-      long dsQuota,String userName, String groupName, FsPermission perm,
-      long length) {
-    try {
-      HTable table = new HTable(cluster.getConfiguration(),
-          GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT.getBytes());
-
-      long ts = System.currentTimeMillis();
-      RowKey key = new FullPathRowKey(path);
-      Put put = new Put(key.getKey(), ts);
-      put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-          new Path(path).getName().getBytes())
-          .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
-              userName.getBytes())
-          .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
-              groupName.getBytes())
-          .add(FileField.getFileAttributes(), FileField.getLength(), ts,
-              Bytes.toBytes(length))
-          .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
-              Bytes.toBytes(perm.toShort()))
-          .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
-              Bytes.toBytes(modTime.getTime()))
-          .add(FileField.getFileAttributes(), FileField.getATime(), ts,
-              Bytes.toBytes(accessTime.getTime()))
-          .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
-              Bytes.toBytes(dsQuota))
-          .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
-              Bytes.toBytes(nsQuota))
-          .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
-              Bytes.toBytes(replication))
-          .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-              Bytes.toBytes(blockSize))
-          .add(FileField.getFileAttributes(), FileField.getRenameState(), ts,
-              GiraffaPBHelper.convert(RenameState.FALSE()).toByteArray());
-
-      if(directory)
-        put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
-            Bytes.toBytes(directory));
-      else
-        put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
-            GiraffaPBHelper.unlocatedBlocksToBytes(blocks))
-            .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
-                GiraffaPBHelper.blockLocationsToBytes(locations))
-            .add(FileField.getFileAttributes(), FileField.getFileState(), ts,
-                Bytes.toBytes(GiraffaConstants.FileState.CLOSED.toString()));
-
-      synchronized(table) {
-        table.put(put);
-        table.close();
-      }
-      System.out.println("COMMITED: "+path+", with BLOCKS:"+blocks);
-    } catch (IOException e) {
-      System.err.println("Failed to commit INODE: "+path);
-      e.printStackTrace();
-      fail();
-    }
   }
 
   private long parseBlocks(int numOfBlocks, List<UnlocatedBlock> blocks,

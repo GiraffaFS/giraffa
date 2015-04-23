@@ -21,7 +21,6 @@ import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERV
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
-import org.apache.hadoop.hbase.TableName;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BLOCK_SIZE_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_BYTES_PER_CHECKSUM_DEFAULT;
@@ -45,17 +44,14 @@ import java.util.ListIterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
-import org.apache.giraffa.GiraffaPBHelper;
-import org.apache.giraffa.GiraffaProtos.RenameStateProto;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
-import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.hbase.INodeManager.Function;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -69,17 +65,9 @@ import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
@@ -117,21 +105,12 @@ public class NamespaceProcessor implements ClientProtocol,
   ClientNamenodeProtocolServerSideCallbackTranslatorPB translator =
       new ClientNamenodeProtocolServerSideCallbackTranslatorPB(this);
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
-  
-  // Coprocessor variables needed
-  private RegionCoprocessorEnvironment env;
-  private Configuration conf;
+
+  private INodeManager nodeManager;
+
   private FsServerDefaults serverDefaults;
 
   private int lsLimit;
-
-  private final ThreadLocal<HTableInterface> table =
-      new ThreadLocal<HTableInterface>() {
-          @Override
-          public HTableInterface initialValue() {
-            return null;
-          }
-      };
 
   private static final Log LOG =
       LogFactory.getLog(NamespaceProcessor.class.getName());
@@ -147,14 +126,12 @@ public class NamespaceProcessor implements ClientProtocol,
 
   @Override // Coprocessor
   public void start(CoprocessorEnvironment env) throws IOException {    
-    if (env instanceof RegionCoprocessorEnvironment) {
-      this.env = (RegionCoprocessorEnvironment) env;
-    } else {
+    if (!(env instanceof RegionCoprocessorEnvironment)) {
       throw new CoprocessorException("Must be loaded on a table region!");
     }
     
     LOG.info("Start NamespaceProcessor...");
-    this.conf = env.getConfiguration();
+    Configuration conf = env.getConfiguration();
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
@@ -174,7 +151,8 @@ public class NamespaceProcessor implements ClientProtocol,
        throw new IOException("Invalid checksum type in "
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
-    
+
+    this.nodeManager = new INodeManager(conf, env);
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),
@@ -191,41 +169,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // Coprocessor
   public void stop(CoprocessorEnvironment env) {
     LOG.info("Stopping NamespaceProcessor...");
-    closeTable();
-  }
-
-  HTableInterface getThreadLocalTable() {
-    return table.get();
-  }
-
-  void setThreadLocalTable(HTableInterface client) {
-    table.set(client);
-  }
-
-  private void openTable() {
-    HTableInterface client = getThreadLocalTable();
-    if(client != null)
-      return;
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    try {
-      client = env.getTable(TableName.valueOf(tableName));
-      setThreadLocalTable(client);
-    } catch (IOException e) {
-      LOG.error("Cannot get table: " + tableName, e);
-    }
-  }
-
-  private void closeTable() {
-    HTableInterface client = getThreadLocalTable();
-    try {
-      if(client != null) {
-        client.close();
-        table.remove();
-      }
-    } catch (IOException e) {
-      LOG.error("Cannot close table: ",e);
-    }
+    nodeManager.close();
   }
 
   @Override // ClientProtocol
@@ -241,7 +185,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException,
       NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode iNode = getINode(src);
+    INode iNode = nodeManager.getINode(src);
 
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -257,21 +201,20 @@ public class NamespaceProcessor implements ClientProtocol,
     // (if there was a previous block this call with add it in as well)
     long time = now();
     iNode.setTimes(time, time);
-    updateINode(iNode, BlockAction.ALLOCATE);
+    nodeManager.updateINode(iNode, BlockAction.ALLOCATE);
     
     // grab blocks back from HBase and return the latest one added
-    Result nodeInfo;
-    nodeInfo = getThreadLocalTable().get(new Get(iNode.getRowKey().getKey()));
-    List<UnlocatedBlock> al_blks = getBlocks(nodeInfo);
-    List<DatanodeInfo[]> al_locs = getLocations(nodeInfo);
-    int last = al_blks.size()-1;
-    
+    nodeManager.getBlocksAndLocations(iNode);
+    List<UnlocatedBlock> al_blks = iNode.getBlocks();
+    List<DatanodeInfo[]> al_locs = iNode.getLocations();
+
     if(al_blks.size() != al_locs.size()) {
       throw new IOException("Number of block infos (" + al_blks.size() +
           ") and number of location infos (" + al_locs.size() +
           ") do not match");
     }
-    
+
+    int last = al_blks.size() - 1;
     if(last < 0)
       throw new IOException("Number of block infos is 0");
     else
@@ -298,7 +241,7 @@ public class NamespaceProcessor implements ClientProtocol,
       UnresolvedLinkException, IOException {
     if(last == null)
       return true;
-    INode iNode = getINode(src);
+    INode iNode = nodeManager.getINode(src);
 
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -309,7 +252,7 @@ public class NamespaceProcessor implements ClientProtocol,
     iNode.setLastBlock(last);
     long time = now();
     iNode.setTimes(time, time);
-    updateINode(iNode, BlockAction.CLOSE);
+    nodeManager.updateINode(iNode, BlockAction.CLOSE);
     LOG.info("Completed file: "+src+" | BlockID: "+last.getBlockId());
     return true;
   }
@@ -338,7 +281,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new IOException("Append is not supported.");
     }
 
-    INode iFile = getINode(src);
+    INode iFile = nodeManager.getINode(src);
     if(create && !overwrite && iFile != null) {
       throw new FileAlreadyExistsException("File already exists: " + src);
     }
@@ -356,7 +299,7 @@ public class NamespaceProcessor implements ClientProtocol,
     Path parentPath = new Path(src).getParent();
     assert parentPath != null : "File must have a parent";
     String parent = parentPath.toString();
-    INode iParent = getINode(parent);
+    INode iParent = nodeManager.getINode(parent);
     if(!createParent && iParent == null) {
       throw new FileNotFoundException("Parent does not exist: " + src);
     }
@@ -386,7 +329,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     // add file to HBase (update if already exists)
-    updateINode(iFile);
+    nodeManager.updateINode(iFile);
   }
 
   @Override // ClientProtocol
@@ -414,11 +357,11 @@ public class NamespaceProcessor implements ClientProtocol,
     Path parentPath = new Path(src).getParent();
     assert parentPath != null : "File must have a parent";
 
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
     if(node == null) return false;
 
     // then check parent inode
-    INode parent = getINode(parentPath.toString());
+    INode parent = nodeManager.getINode(parentPath.toString());
     if(parent == null)
       throw new FileNotFoundException("Parent does not exist.");
     if(!parent.isDir())
@@ -434,12 +377,11 @@ public class NamespaceProcessor implements ClientProtocol,
       throws IOException {
     if(deleteBlocks) {
       node.setState(FileState.DELETED);
-      updateINode(node, BlockAction.DELETE);
+      nodeManager.updateINode(node, BlockAction.DELETE);
     }
 
     // delete the child key atomically first
-    Delete delete = new Delete(node.getRowKey().getKey());
-    getThreadLocalTable().delete(delete);
+    nodeManager.delete(node);
 
     // delete time penalty (resolves timestamp milliseconds issue)
     try {
@@ -466,52 +408,38 @@ public class NamespaceProcessor implements ClientProtocol,
    * @throws IOException
    */
   private boolean deleteDirectory(INode node, boolean recursive,
-                                  boolean deleteBlocks)
+                                  final boolean deleteBlocks)
       throws AccessControlException, FileNotFoundException, 
       UnresolvedLinkException, IOException {
     if(recursive) {
-      List<INode> directories = getDirectoriesRecursive(node);
+      List<INode> directories = nodeManager.getDirectories(node);
       // start ascending the tree (breadth first, then depth)
       // we do this by iterating through directories in reverse
       ListIterator<INode> it = directories.listIterator(directories.size());
       while (it.hasPrevious()) {
-        INode dir = it.previous();
-        RowKey dirRowKey = dir.getRowKey();
-        String dirPath = dirRowKey.getPath();
-        ResultScanner rs = getListingScanner(dirRowKey,
-            HdfsFileStatus.EMPTY_NAME);
-        ArrayList<Delete> deletes = new ArrayList<Delete>();
-        // schedule immediate children for deletion
-        try {
-          for (Result result = rs.next(); result != null; result = rs.next()) {
-            INode child = newINodeByParent(dirPath, result);
-            if (!child.isDir())
-              deleteFile(child, deleteBlocks);
+        final List<INode> dirsToDelete = new ArrayList<INode>();
+        nodeManager.map(it.previous(), new Function() {
+          @Override
+          public void apply(INode input) throws IOException {
+            if (!input.isDir())
+              deleteFile(input, deleteBlocks);
             else
-              deletes.add(new Delete(result.getRow()));
+              dirsToDelete.add(input);
           }
-          // perform delete (if non-empty)
-          if(!deletes.isEmpty())
-            getThreadLocalTable().delete(deletes);
-        } finally {
-          rs.close();
+        });
+
+        // perform delete (if non-empty)
+        if(!dirsToDelete.isEmpty()) {
+          nodeManager.delete(dirsToDelete);
         }
       }
-    } else {
-      // check that node has no children
-      ResultScanner rs = getListingScanner(node.getRowKey(),
-          HdfsFileStatus.EMPTY_NAME);
-      try {
-        if(rs.next() != null)
-          return false;
-      } finally {
-        rs.close();
-      }
+    }
+    else if(!nodeManager.isEmptyDirectory(node)) {
+      return false;
     }
 
     // delete source directory
-    Delete delete = new Delete(node.getRowKey().getKey());
-    getThreadLocalTable().delete(delete);
+    nodeManager.delete(node);
     return true;
   }
 
@@ -531,7 +459,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public LocatedBlocks getBlockLocations(String src, long offset, long length)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode iNode = getINode(src);
+    INode iNode = nodeManager.getINode(src);
     if(iNode == null || iNode.isDir()) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
@@ -560,7 +488,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public ContentSummary getContentSummary(String path)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(path);
+    INode node = nodeManager.getINode(path);
     if(node == null) {
       throw new FileNotFoundException("Path does not exist: " + path);
     }
@@ -586,7 +514,7 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public HdfsFileStatus getFileInfo(String src) throws AccessControlException,
       FileNotFoundException, UnresolvedLinkException, IOException {
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
@@ -597,34 +525,6 @@ public class NamespaceProcessor implements ClientProtocol,
   public HdfsFileStatus getFileLinkInfo(String src)
       throws AccessControlException, UnresolvedLinkException, IOException {
     throw new IOException("symlinks are not supported");
-  }
-
-  /**
-   * Fetch an INode by source path String
-   * @param path the source path String
-   * @return INode for the specified path
-   * @throws IOException
-   */
-  private INode getINode(String path) throws IOException {
-    return getINode(RowKeyFactory.newInstance(path));
-  }
-
-  /**
-   * Fetch an INode, by RowKey.
-   * @param key the RowKey
-   * @return INode with the specified RowKey
-   * @throws IOException
-   */
-  private INode getINode(RowKey key) throws IOException {
-    openTable();
-    Result nodeInfo;
-
-    nodeInfo = getThreadLocalTable().get(new Get(key.getKey()));
-    if(nodeInfo.isEmpty()) {
-      LOG.debug("File does not exist: " + key.getPath());
-      return null;
-    }
-    return newINode(key.getPath(), nodeInfo);
   }
 
   @Override // ClientProtocol
@@ -638,7 +538,7 @@ public class NamespaceProcessor implements ClientProtocol,
       String src, byte[] startAfter, boolean needLocation)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -649,7 +549,7 @@ public class NamespaceProcessor implements ClientProtocol,
           node.getLocatedFileStatus() : node.getFileStatus() }, 0);
     }
 
-    List<INode> list = this.getListingInternal(node, startAfter);
+    List<INode> list = nodeManager.getListing(node, startAfter, lsLimit);
 
     HdfsFileStatus[] retVal = new HdfsFileStatus[list.size()];
     int i = 0;
@@ -661,60 +561,10 @@ public class NamespaceProcessor implements ClientProtocol,
     return new DirectoryListing(retVal, list.size() < lsLimit ? 0 : 1);
   }
 
-  private ResultScanner getListingScanner(RowKey key, byte[] startAfter) 
-      throws IOException {
-    byte[] start = key.getStartListingKey(startAfter);
-    byte[] stop = key.getStopListingKey();
-    Scan scan = new Scan(start, stop);
-    return getThreadLocalTable().getScanner(scan);
-  }
-
-  private List<INode> getListingInternal(INode dir, byte[] startAfter)
-      throws AccessControlException, FileNotFoundException,
-      UnresolvedLinkException, IOException {
-    RowKey key = dir.getRowKey();
-    ResultScanner rs = getListingScanner(key, startAfter);
-    ArrayList<INode> list = new ArrayList<INode>();
-    try {
-      for (Result result = rs.next();
-           result != null && list.size() < lsLimit;
-           result = rs.next()) {
-        list.add(newINodeByParent(key.getPath(), result));
-      }
-    } finally {
-      rs.close();
-    }
-    return list;
-  }
-
-  private List<INode> getDirectoriesRecursive(INode root) throws IOException {
-    List<INode> directories = new ArrayList<INode>();
-    directories.add(root);
-
-    // start loop descending the tree (breadth first, then depth)
-    for(int i = 0; i < directories.size(); i++) {
-      // get next directory INode in the list and it's Scanner
-      INode dir = directories.get(i);
-      RowKey key = dir.getRowKey();
-      ResultScanner rs = getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
-      try {
-        for (Result result = rs.next(); result != null; result = rs.next()) {
-          if (getDirectory(result)) {
-            directories.add(newINodeByParent(key.getPath(), result));
-          }
-        }
-      } finally {
-        rs.close();
-      }
-    }
-
-    return directories;
-  }
-
   @Override // ClientProtocol
   public long getPreferredBlockSize(String src) throws IOException,
       UnresolvedLinkException {
-    INode inode = getINode(src);
+    INode inode = nodeManager.getINode(src);
     if(inode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
@@ -748,7 +598,7 @@ public class NamespaceProcessor implements ClientProtocol,
     String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
 
     RowKey key = RowKeyFactory.newInstance(src);
-    INode inode = getINode(key);
+    INode inode = nodeManager.getINode(key);
     if(parentPath == null) {
       //generate root if doesn't exist
       if(inode == null) {
@@ -756,7 +606,7 @@ public class NamespaceProcessor implements ClientProtocol,
         inode = new INode(0, true, (short) 0, 0, time, time,
             masked, clientName, machineName, null,
             key, 0, 0, null, null, null, null);
-        updateINode(inode);
+        nodeManager.updateINode(inode);
       }
       return true;
     }
@@ -767,7 +617,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // create parent directories if requested
     String parent = parentPath.toString();
-    INode iParent = getINode(parent);
+    INode iParent = nodeManager.getINode(parent);
     if(!createParent && iParent == null) {
       throw new FileNotFoundException("Parent does not exist: "+parent);
     }
@@ -785,7 +635,7 @@ public class NamespaceProcessor implements ClientProtocol,
         key, 0, 0, null, null, null, null);
 
     // add directory to HBase
-    updateINode(inode);
+    nodeManager.updateINode(inode);
     return true;
   }
 
@@ -818,9 +668,8 @@ public class NamespaceProcessor implements ClientProtocol,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
       UnresolvedLinkException, IOException {
     LOG.info("Renaming " + src + " to " + dst);
-    ResultScanner rs;
-    INode rootSrcNode = getINode(src);
-    INode rootDstNode = getINode(dst);
+    INode rootSrcNode = nodeManager.getINode(src);
+    INode rootDstNode = nodeManager.getINode(dst);
     boolean overwrite = false;
 
     for(Rename option : options) {
@@ -847,25 +696,20 @@ public class NamespaceProcessor implements ClientProtocol,
     // Stage 1: copy into new row with RenameState flag
     if(rootDstNode == null) {
       if(directoryRename) { // first do Stage 1 for all children
-        URI base = new Path(src).toUri();
-        URI newBase = URI.create(dst+Path.SEPARATOR);
+        final URI base = new Path(src).toUri();
+        final URI newBase = URI.create(dst+Path.SEPARATOR);
 
-        List<INode> directories = getDirectoriesRecursive(rootSrcNode);
+        List<INode> directories = nodeManager.getDirectories(rootSrcNode);
         for (INode dir : directories) {
-          RowKey key = dir.getRowKey();
-          String parent = key.getPath();
           // duplicate each INode in subdirectory
-          rs = getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
-          try {
-            for (Result res = rs.next(); res != null; res = rs.next()) {
-              INode srcNode = newINodeByParent(parent, res);
+          nodeManager.map(dir, new Function() {
+            @Override
+            public void apply(INode srcNode) throws IOException {
               String iSrc = srcNode.getRowKey().getPath();
               String iDst = changeBase(iSrc, base, newBase);
               copyWithRenameFlag(srcNode, iDst);
             }
-          } finally {
-            rs.close();
-          }
+          });
         }
       }
       rootDstNode = copyWithRenameFlag(rootSrcNode, dst);
@@ -887,17 +731,14 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // Stage 3: remove RenameState flags
     if(directoryRename) { // first do Stage 3 for all children
-      List<INode> directories = getDirectoriesRecursive(rootDstNode);
+      List<INode> directories = nodeManager.getDirectories(rootDstNode);
       for (INode dir : directories) {
-        String parent = dir.getRowKey().getPath();
-        rs = getListingScanner(dir.getRowKey(), HdfsFileStatus.EMPTY_NAME);
-        try {
-          for (Result res = rs.next(); res != null; res = rs.next()) {
-            removeRenameFlag(newINodeByParent(parent, res));
+        nodeManager.map(dir, new Function() {
+          @Override
+          public void apply(INode dstNode) throws IOException {
+            removeRenameFlag(dstNode);
           }
-        } finally {
-          rs.close();
-        }
+        });
       }
     }
     removeRenameFlag(rootDstNode);
@@ -922,7 +763,7 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.debug("Copying "+src+" to "+dst+" with rename flag");
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
-    updateINode(dstNode);
+    nodeManager.updateINode(dstNode);
     return dstNode;
   }
 
@@ -932,7 +773,7 @@ public class NamespaceProcessor implements ClientProtocol,
   private void removeRenameFlag(INode dstNode) throws IOException {
     LOG.debug("Removing rename flag from "+dstNode.getRowKey().getPath());
     dstNode.setRenameState(RenameState.FALSE());
-    updateINode(dstNode);
+    nodeManager.updateINode(dstNode);
   }
 
   /**
@@ -946,7 +787,7 @@ public class NamespaceProcessor implements ClientProtocol,
       IOException {
     String error = null;
     String parent = new Path(dst).getParent().toString();
-    INode parentNode = getINode(parent);
+    INode parentNode = nodeManager.getINode(parent);
 
     boolean src_exists = (srcNode != null);
     boolean dst_exists = (dstNode != null);
@@ -1035,14 +876,14 @@ public class NamespaceProcessor implements ClientProtocol,
     if(username == null && groupname == null)
       return;
     
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
 
     node.setOwner(username, groupname);
-    updateINode(node);
+    nodeManager.updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -1050,7 +891,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
 
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -1061,7 +902,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
     
     node.setPermission(permission);
-    updateINode(node);
+    nodeManager.updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -1069,7 +910,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -1090,7 +931,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     node.setQuota(namespaceQuota, diskspaceQuota);
-    updateINode(node);
+    nodeManager.updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -1098,7 +939,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, DSQuotaExceededException,
       FileNotFoundException, SafeModeException, UnresolvedLinkException,
       IOException {
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -1107,7 +948,7 @@ public class NamespaceProcessor implements ClientProtocol,
       return false;
 
     node.setReplication(replication);
-    updateINode(node);
+    nodeManager.updateINode(node);
     return true;
   }
 
@@ -1121,7 +962,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public void setTimes(String src, long mtime, long atime)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    INode node = getINode(src);
+    INode node = nodeManager.getINode(src);
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
@@ -1130,7 +971,7 @@ public class NamespaceProcessor implements ClientProtocol,
       return;
 
     node.setTimes(mtime, atime);
-    updateINode(node);
+    nodeManager.updateINode(node);
   }
 
   @Override // ClientProtocol
@@ -1144,209 +985,6 @@ public class NamespaceProcessor implements ClientProtocol,
       String clientName, ExtendedBlock oldBlock, ExtendedBlock newBlock, DatanodeID[] newNodes)
       throws IOException {
     throw new IOException("updatePipeline is not supported");
-  }
-
-  /**
-   * Fetch an INode by parent path, child result
-   * @param parent parent source path
-   * @param result Result row obtained from HBase by RowKey
-   * @return fully-constructed INode
-   * @throws IOException
-   */
-  private INode newINodeByParent(String parent, Result result)
-      throws IOException {
-    String cur = new Path(parent, getFileName(result)).toString();
-    return newINode(cur, result);
-  }
-
-  /**
-   * This private method is ultimately responsible for generating INode objects
-   * based on HBase rows and RowKeys.
-   * @param src source path
-   * @param result HBase row obtained by RowKey
-   * @return fully constructed INode
-   * @throws IOException
-   */
-  private INode newINode(String src, Result result) throws IOException {
-    RowKey key = RowKeyFactory.newInstance(src, result.getRow());
-    boolean isDir = getDirectory(result);
-    return new INode(
-        getLength(result),
-        isDir,
-        getReplication(result),
-        getBlockSize(result),
-        getMTime(result),
-        getATime(result),
-        getPermissions(result),
-        getUserName(result),
-        getGroupName(result),
-        getSymlink(result),
-        key,
-        getDsQuota(result),
-        getNsQuota(result),
-        getFileState(result),
-        getRenameState(result),
-        isDir ? null : getBlocks(result),
-        isDir ? null : getLocations(result));
-  }
-
-  private void updateINode(INode node) throws IOException {
-    updateINode(node, null);
-  }
-
-  private void updateINode(INode node, BlockAction ba)
-      throws IOException {
-    long ts = now();
-    RowKey key = node.getRowKey();
-    Put put = new Put(key.getKey(), ts);
-    put.add(FileField.getFileAttributes(), FileField.getFileName(), ts,
-            RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
-        .add(FileField.getFileAttributes(), FileField.getUserName(), ts,
-            RowKeyBytes.toBytes(node.getOwner()))
-        .add(FileField.getFileAttributes(), FileField.getGroupName(), ts,
-            RowKeyBytes.toBytes(node.getGroup()))
-        .add(FileField.getFileAttributes(), FileField.getLength(), ts,
-            Bytes.toBytes(node.getLen()))
-        .add(FileField.getFileAttributes(), FileField.getPermissions(), ts,
-            Bytes.toBytes(node.getPermission().toShort()))
-        .add(FileField.getFileAttributes(), FileField.getMTime(), ts,
-            Bytes.toBytes(node.getModificationTime()))
-        .add(FileField.getFileAttributes(), FileField.getATime(), ts,
-            Bytes.toBytes(node.getAccessTime()))
-        .add(FileField.getFileAttributes(), FileField.getDsQuota(), ts,
-            Bytes.toBytes(node.getDsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getNsQuota(), ts,
-            Bytes.toBytes(node.getNsQuota()))
-        .add(FileField.getFileAttributes(), FileField.getReplication(), ts,
-            Bytes.toBytes(node.getReplication()))
-        .add(FileField.getFileAttributes(), FileField.getBlockSize(), ts,
-            Bytes.toBytes(node.getBlockSize()))
-        .add(FileField.getFileAttributes(), FileField.getRenameState(), ts,
-            node.getRenameStateBytes());
-
-    if(node.getSymlink() != null)
-      put.add(FileField.getFileAttributes(), FileField.getSymlink(), ts,
-          node.getSymlink());
-
-    if(node.isDir())
-      put.add(FileField.getFileAttributes(), FileField.getDirectory(), ts,
-          Bytes.toBytes(node.isDir()));
-    else
-      put.add(FileField.getFileAttributes(), FileField.getBlock(), ts,
-             node.getBlocksBytes())
-         .add(FileField.getFileAttributes(), FileField.getLocations(), ts,
-             node.getLocationsBytes())
-         .add(FileField.getFileAttributes(), FileField.getFileState(), ts,
-             Bytes.toBytes(node.getFileState().toString()));
-
-    if(ba != null)
-      put.add(FileField.getFileAttributes(), FileField.getAction(), ts,
-          Bytes.toBytes(ba.toString()));
-
-    getThreadLocalTable().put(put);
-  }
-
-  /**
-   * Get UnlocatedBlock info from HBase based on this nodes internal RowKey.
-   * @param res
-   * @return UnlocatedBlock from HBase row. Null if a directory or
-   *  any sort of Exception happens.
-   * @throws IOException
-   */
-  public static List<UnlocatedBlock> getBlocks(Result res) throws
-       IOException {
-    if(getDirectory(res))
-      return null;
-    
-    byte[] value = res.getValue(
-        FileField.getFileAttributes(), FileField.getBlock());
-    return GiraffaPBHelper.bytesToUnlocatedBlocks(value);
-  }
-  
-  public static List<DatanodeInfo[]> getLocations(Result res) throws
-      IOException {
-    if(getDirectory(res))
-      return null;
-    
-    byte[] value = res.getValue(
-        FileField.getFileAttributes(), FileField.getLocations());
-    return GiraffaPBHelper.bytesToBlockLocations(value);
-  }
-  
-  public static List<LocatedBlock> getLocatedBlocks(Result res) throws
-      IOException {
-    return UnlocatedBlock.toLocatedBlocks(getBlocks(res), getLocations(res));
-  }
-
-  public static boolean getDirectory(Result res) {
-    return res.containsColumn(FileField.getFileAttributes(), FileField.getDirectory());
-  }
-
-  public static short getReplication(Result res) {
-    return Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getReplication()));
-  }
-
-  public static long getBlockSize(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getBlockSize()));
-  }
-
-  public static long getMTime(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getMTime()));
-  }
-
-  public static long getATime(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getATime()));
-  }
-
-  public static FsPermission getPermissions(Result res) {
-    return new FsPermission(
-        Bytes.toShort(res.getValue(FileField.getFileAttributes(), FileField.getPermissions())));
-  }
-
-  public static String getFileName(Result res) {
-    return Bytes.toString(res.getValue(FileField.getFileAttributes(),
-                                   FileField.getFileName()));
-  }
-
-  public static String getUserName(Result res) {
-    return Bytes.toString(res.getValue(FileField.getFileAttributes(),
-        FileField.getUserName()));
-  }
-
-  public static String getGroupName(Result res) {
-    return RowKeyBytes.toString(res.getValue(FileField.getFileAttributes(),
-        FileField.getGroupName()));
-  }
-
-  public static byte[] getSymlink(Result res) {
-    return res.getValue(FileField.getFileAttributes(), FileField.getSymlink());
-  }
-
-  public static FileState getFileState(Result res) {
-    if(getDirectory(res))
-      return null;
-    return FileState.valueOf(
-        Bytes.toString(res.getValue(FileField.getFileAttributes(),
-            FileField.getFileState())));
-  }
-
-  public static RenameState getRenameState(Result res)
-      throws IOException {
-    return GiraffaPBHelper.convert(RenameStateProto.parseFrom(
-        res.getValue(FileField.getFileAttributes(), FileField.getRenameState())));
-  }
-
-  public static long getNsQuota(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getNsQuota()));
-  }
-
-  public static long getDsQuota(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getDsQuota()));
-  }
-
-  // Get file fields from Result
-  public static long getLength(Result res) {
-    return Bytes.toLong(res.getValue(FileField.getFileAttributes(), FileField.getLength()));
   }
  
   private static long now() {
