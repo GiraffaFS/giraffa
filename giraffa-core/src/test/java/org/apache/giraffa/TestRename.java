@@ -80,12 +80,12 @@ public class TestRename {
   @After
   public void after() throws IOException {
     if(grfs != null) grfs.close();
-    nodeManager.close();
+    if(nodeManager != null) nodeManager.close();
   }
 
   @AfterClass
   public static void afterClass() throws IOException {
-    cluster.shutdown();
+    if(cluster != null) cluster.shutdown();
   }
 
   private void createTestFile(String srcStr, char c) throws IOException {

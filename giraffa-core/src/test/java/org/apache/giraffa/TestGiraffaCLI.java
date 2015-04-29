@@ -99,8 +99,10 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
   @After
   @Override
   public void tearDown() throws Exception {
-    fs.delete(new Path("."), true);
-    if(fs != null) fs.close();
+    if(fs != null) {
+      fs.delete(new Path("."), true);
+      fs.close();
+    }
     try {
       super.tearDown(); // displayResults
     } catch(AssertionError a) {
@@ -120,7 +122,7 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
         throw a;
       }
     }
-    cluster.shutdown();
+    if(cluster != null) cluster.shutdown();
   }
 
   @Override

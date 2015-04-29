@@ -65,7 +65,7 @@ public class TestGiraffaFSNegative {
   @AfterClass
   public static void afterClass() throws IOException {
     if(grfs != null) grfs.close();
-    cluster.shutdown();
+    if(cluster != null) cluster.shutdown();
   }
 
   @Test

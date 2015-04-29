@@ -69,7 +69,7 @@ public class TestGiraffaFileStatus {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    cluster.shutdown();
+    if(cluster != null) cluster.shutdown();
   }
 
   @Test

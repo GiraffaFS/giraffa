@@ -63,7 +63,7 @@ public class TestBlockManagement {
 
   @AfterClass
   public static void afterClass() throws IOException {
-    cluster.shutdown();
+    if(cluster != null) cluster.shutdown();
   }
 
   @Test
