@@ -37,6 +37,8 @@ public class TestDirectoryTable {
     assertTrue(dirTable.addEntry(new FullPathRowKey("/ghi")));
     byte[] out = dirTable.toBytes();
 
+    // Issue 108: Dummy change for testing. (shv)
+
     //dirTable serialized
 
     dirTable = new DirectoryTable(out);
