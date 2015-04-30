@@ -1,0 +1,196 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+def final langLevel = '1.6'
+
+def final hadoop_version = '2.0.5-alpha'
+def final hbase_version = '0.95.2-hadoop2'
+def final commons_fileupload_version = '1.2.2'
+def final twitter_bootstrap_version = '2.3.1'
+def final bootstrap_jasny_ext_version = '2.3.0-j5'
+def final jquery_version = '1.8.3'
+def final jquery_form_version = '3.28.0-2013.02.06'
+def final datatables_version = '1.9.4'
+def final findbugs_version = '3.0.1'
+def final checkstyle_version = '6.6'
+def final junit_version = '4.11'
+def final pmd_version = '5.3.1'
+
+def final pGroup = 'org.apache.giraffa'
+def final pVersion = '0.2-SNAPSHOT'
+def final pArtifactId = 'giraffa'
+
+description = """A distributed highly available file system using HDFS and HBase."""
+
+allprojects {
+  apply plugin: 'java'
+  apply plugin: 'maven'
+
+  group = pGroup
+  version = pVersion
+
+  sourceCompatibility = langLevel
+  targetCompatibility = langLevel
+
+  repositories {
+    mavenCentral()
+  }
+}
+
+project(':giraffa-core') {
+  apply plugin: 'findbugs'
+  apply plugin: 'checkstyle'
+  apply plugin: 'pmd'
+
+  findbugs {
+    toolVersion = findbugs_version
+    excludeFilter = file("src/main/resources/findbugs-exclude.xml")
+  }
+  tasks.withType(FindBugs) {
+    ignoreFailures = true
+    reports {
+      html { enabled = false }
+      xml  { enabled = !html.enabled }
+    }
+  }
+  check {
+    checkstyle {
+      toolVersion = checkstyle_version
+      ignoreFailures = true
+      configProperties = ['cacheFile':"$buildDir/checkstyle-cachefile"]
+      showViolations = false
+    }
+    pmd {
+      toolVersion = pmd_version
+      ignoreFailures = true
+      targetJdk = langLevel
+      ruleSets = ["java-basic", "java-unusedcode", "java-naming", "java-imports",
+                  "java-design", "java-strings/StringToString",
+                  "java-strings/StringInstantiation",
+                  "java-controversial/UnnecessaryConstructorRule",
+                  "java-controversial/NullAssignment",
+                  "java-controversial/UnusedModifier", "java-typeresolution"
+      ]
+    }
+  }
+
+  description = """Core module"""
+
+  dependencies {
+    compile (group: 'org.apache.hadoop', name: 'hadoop-common', version:hadoop_version) {
+      exclude group: 'javax.servlet.jsp', module: 'jsp-api'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+      exclude group: 'org.slf4j', module: 'slf4j-api'
+      exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+    }
+    compile (group: 'org.apache.hadoop', name: 'hadoop-hdfs', version:hadoop_version) {
+      exclude group: 'javax.servlet.jsp', module: 'jsp-api'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+    }
+    compile (group: 'org.apache.hadoop', name: 'hadoop-minicluster', version:hadoop_version) {
+      exclude group: 'javax.servlet.jsp', module: 'jsp-api'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+    }
+    compile group: 'org.apache.hadoop', name: 'hadoop-client', version:hadoop_version
+    compile group: 'org.apache.hadoop', name: 'hadoop-auth', version:hadoop_version
+    compile group: 'org.apache.hadoop', name: 'hadoop-mapreduce-client-core', version:hadoop_version
+    compile group: 'org.apache.hadoop', name: 'hadoop-mapreduce-client-core', version:hadoop_version
+    compile group: 'org.apache.hadoop', name: 'hadoop-annotations', version:hadoop_version
+    testCompile (group: 'org.apache.hadoop', name: 'hadoop-common', version:hadoop_version) {
+      exclude group: 'javax.servlet.jsp', module: 'jsp-api'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+    }
+    testCompile ("org.apache.hadoop:hadoop-hdfs:${hadoop_version}") {
+      exclude module: 'jsp-api'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+    }
+
+    compile (group: 'org.apache.hbase', name: 'hbase-common', version:hbase_version) {
+      exclude group: 'org.apache.hadoop', module: 'hadoop-core'
+    }
+    compile group: 'org.apache.hbase', name: 'hbase-client', version:hbase_version
+    compile (group: 'org.apache.hbase', name: 'hbase-server', version:hbase_version) {
+      exclude group: 'org.apache.hadoop', module: 'hadoop-core'
+      exclude group: 'org.apache.hbase', module: 'hbase-hadoop-compat'
+      exclude group: 'tomcat', module: 'jasper-runtime'
+    }
+    compile group: 'org.apache.hbase', name: 'hbase-protocol', version:hbase_version
+    compile group: 'org.apache.hbase', name: 'hbase-hadoop-compat', version:hbase_version
+    compile group: 'org.apache.hbase', name: 'hbase-hadoop2-compat', version:hbase_version
+    compile (group: 'org.apache.hbase', name: 'hbase-it', version:hbase_version) {
+      exclude group: 'org.apache.hbase', module: 'hbase-hadoop-compat'
+    }
+    testCompile group: 'org.apache.hbase', name: 'hbase-client', version:hbase_version, classifier: 'tests'
+    testCompile (group: 'org.apache.hbase', name: 'hbase-server', version:hbase_version, classifier: 'tests') {
+      exclude group: 'org.apache.hadoop', module: 'hadoop-core'
+      exclude group: 'org.apache.hbase', module: 'hbase-hadoop-compat'
+    }
+    testCompile group: 'org.apache.hbase', name: 'hbase-common', version:hbase_version, classifier: 'tests'
+    testCompile group: 'org.apache.hbase', name: 'hbase-hadoop-compat', version:hbase_version, classifier: 'tests'
+    testCompile group: 'org.apache.hbase', name: 'hbase-hadoop2-compat', version:hbase_version, classifier: 'tests'
+    testCompile group: 'org.apache.hbase', name: 'hbase-it', version:hbase_version, classifier: 'tests'
+
+    compile group: 'commons-fileupload', name: 'commons-fileupload', version:commons_fileupload_version
+    compile group: 'org.webjars', name: 'bootstrap', version:twitter_bootstrap_version
+    compile group: 'org.webjars', name: 'jasny-bootstrap', version: bootstrap_jasny_ext_version
+    compile group: 'org.webjars', name: 'jquery', version: jquery_version
+    compile group: 'org.webjars', name: 'jquery-form', version: jquery_form_version
+    compile group: 'org.webjars', name: 'datatables', version: datatables_version
+
+    testCompile group: 'junit', name: 'junit', version: junit_version
+  }
+}
+
+project(':giraffa-standalone') {
+  description = """Standalone module"""
+
+  dependencies {
+    compile group: 'org.apache.giraffa', name:'giraffa-core', version:version
+  }
+}
+
+tasks.withType (Jar) {
+  onlyIf { !sourceSets.main.allSource.files.isEmpty() }
+}
+
+task genPom << {
+  pom {
+    project {
+      groupId = pGroup
+      artifactId = pArtifactId
+      version = pVersion
+
+      inceptionYear = '2011'
+      licenses {
+        license {
+          name 'The Apache Software License, Version 2.0'
+          url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        }
+      }
+      issueManagement {
+        system 'GitHub'
+        url 'https://github.com/GiraffaFS/giraffa/issues'
+      }
+      scm {
+        connection 'https://github.com/GiraffaFS/giraffa.git'
+        developerConnection 'git@github.com:GiraffaFS/giraffa.git'
+        url 'https://github.com/GiraffaFS/giraffa/'
+      }
+    }
+  }.writeTo("$buildDir/poms/pom.xml")
+}
