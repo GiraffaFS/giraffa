@@ -42,13 +42,17 @@ public class GiraffaClient extends DFSClient {
     getNamespaceService().initialize(conf);
   }
 
-  NamespaceService getNamespaceService() {
+  public NamespaceService getNamespaceService() {
     return (NamespaceService) this.namenode;
   }
 
   public static void format(GiraffaConfiguration conf) throws IOException {
     NamespaceService namespace = conf.newNamespaceService();
     namespace.format(conf);
+  }
+
+  public String getClientName() {
+    return super.getClientName();
   }
 
   @Override // DFSClient

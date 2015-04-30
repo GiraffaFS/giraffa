@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConstants;
 import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.GiraffaProtos;
@@ -121,5 +122,15 @@ public class FileFieldDeserializer {
   public static long getLength(Result res) {
     return Bytes.toLong(res.getValue(FileField.getFileAttributes(),
         FileField.getLength()));
+  }
+
+  public static FileLease getLease(Result res, String path) throws IOException {
+    if(getDirectory(res))
+      return null;
+    byte[] leaseByteArray = res.getValue(FileField.getFileAttributes(),
+        FileField.getLease());
+    if(leaseByteArray == null || leaseByteArray.length == 0)
+      return null;
+    return GiraffaPBHelper.bytesToHdfsLease(leaseByteArray, path);
   }
 }
