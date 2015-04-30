@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>giraffa</artifactId>
         <groupId>org.apache.hadoop</groupId>
-        <version>0.1.1-SNAPSHOT</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -446,30 +444,24 @@
                         <phase>generate-sources</phase>
                         <configuration>
                             <target>
-                                <property name="build.webapps"
-                                          location="${project.build.directory}/hbase-webapps/giraffa"/>
-                                <property name="src.webapps"
-                                          location="${basedir}/src/main/resources/hbase-webapps/giraffa"/>
-                                <property name="generated.sources"
-                                          location="${project.build.directory}/generated-sources"/>
+                                <property name="build.webapps" location="${project.build.directory}/hbase-webapps/giraffa" />
+                                <property name="src.webapps" location="${basedir}/src/main/resources/hbase-webapps/giraffa" />
+                                <property name="generated.sources" location="${project.build.directory}/generated-sources" />
 
-                                <mkdir dir="${build.webapps}"/>
+                                <mkdir dir="${build.webapps}" />
                                 <copy todir="${build.webapps}">
                                     <fileset dir="${src.webapps}">
-                                        <exclude name="**/*.jsp"/>
-                                        <exclude name="**/.*"/>
-                                        <exclude name="**/*~"/>
+                                        <exclude name="**/*.jsp" />
+                                        <exclude name="**/.*" />
+                                        <exclude name="**/*~" />
                                     </fileset>
                                 </copy>
 
                                 <!--The compile.classpath is passed in by maven-->
-                                <taskdef classname="org.apache.jasper.JspC" name="jspcompiler" classpathref="maven.compile.classpath"/>
+                                <taskdef classname="org.apache.jasper.JspC" name="jspcompiler" classpathref="maven.compile.classpath" />
 
-                                <mkdir dir="${build.webapps}/WEB-INF"/>
-                                <jspcompiler uriroot="${src.webapps}"
-                                             outputdir="${generated.sources}/java"
-                                             package="org.apache.giraffa.web"
-                                             webxml="${build.webapps}/WEB-INF/web.xml"/>
+                                <mkdir dir="${build.webapps}/WEB-INF" />
+                                <jspcompiler uriroot="${src.webapps}" outputdir="${generated.sources}/java" package="org.apache.giraffa.web" webxml="${build.webapps}/WEB-INF/web.xml" />
                             </target>
                         </configuration>
                         <goals>
@@ -625,7 +617,7 @@
                                 <argument>-Dtest.cache.data=${basedir}/target/build/test/cache</argument>
                                 <!--<argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</argument>-->
                                 <argument>-classpath</argument>
-                                <classpath/>
+                                <classpath />
                                 <argument>org.apache.giraffa.web.GiraffaWebDemoRunner</argument>
                             </arguments>
                         </configuration>
