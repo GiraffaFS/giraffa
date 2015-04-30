@@ -198,8 +198,8 @@ public class TestGiraffaUpgrade {
         // COMMIT IT!
         INode node = new INode(length, isDirectory, replication, blockSize,
             modTime.getTime(), accessTime.getTime(), perm, userName,
-            groupName, null, RowKeyFactory.newInstance(path), dsQuota,
-            nsQuota, FileState.CLOSED, RenameState.FALSE(), blocks, locations);
+            groupName, null, RowKeyFactory.newInstance(path), dsQuota, nsQuota,
+            FileState.CLOSED, RenameState.FALSE(), blocks, locations, null);
         try {
           nodeManager.updateINode(node);
           System.out.println("COMMITTED: " + path + ", with BLOCKS:" + blocks);

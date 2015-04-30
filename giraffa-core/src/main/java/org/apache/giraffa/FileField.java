@@ -36,6 +36,7 @@ public enum FileField {
   BLOCK_SIZE (RowKeyBytes.toBytes("blockSize")),
   BLOCK (RowKeyBytes.toBytes("block")),
   LOCATIONS (RowKeyBytes.toBytes("locations")),
+  LEASE (RowKeyBytes.toBytes("lease")),
   FILE_ATTRIBUTES (RowKeyBytes.toBytes("default"));
 
   private byte[] bytes = null;
@@ -83,6 +84,9 @@ public enum FileField {
   }
   public static byte[] getLocations() {
     return LOCATIONS.bytes;
+  }
+  public static byte[] getLease() {
+    return LEASE.bytes;
   }
   public static byte[] getSymlink() {
     return SYMLINK.bytes;

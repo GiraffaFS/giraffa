@@ -161,7 +161,9 @@ public class INodeManager implements Closeable {
       put.add(family, FileField.getBlock(), ts, node.getBlocksBytes())
           .add(family, FileField.getLocations(), ts, node.getLocationsBytes())
           .add(family, FileField.getFileState(), ts,
-              Bytes.toBytes(node.getFileState().toString()));
+              Bytes.toBytes(node.getFileState().toString()))
+          .add(FileField.getFileAttributes(), FileField.getLease(), ts,
+              node.getLeaseBytes());
     }
 
     // block action
@@ -330,7 +332,8 @@ public class INodeManager implements Closeable {
         directory ? null : FileFieldDeserializer.getFileState(result),
         FileFieldDeserializer.getRenameState(result),
         directory ? null : FileFieldDeserializer.getBlocks(result),
-        directory ? null : FileFieldDeserializer.getLocations(result));
+        directory ? null : FileFieldDeserializer.getLocations(result),
+        directory ? null : FileFieldDeserializer.getLease(result, src));
   }
 
   private ResultScanner getListingScanner(RowKey key)
