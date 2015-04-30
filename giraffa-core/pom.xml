@@ -477,6 +477,15 @@
                         </goals>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>tools.jar</groupId>
+                        <artifactId>tools.jar</artifactId>
+                        <version>1.7</version>
+                        <scope>system</scope>
+                        <systemPath>${tools-jar}</systemPath>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
