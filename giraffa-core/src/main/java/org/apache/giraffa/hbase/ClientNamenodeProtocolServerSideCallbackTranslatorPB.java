@@ -176,7 +176,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.create(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          CreateResponseProto.newBuilder().build());
     }
   }
 
@@ -274,7 +275,10 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.complete(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          CompleteResponseProto.newBuilder()
+              .setResult(false)
+              .build());
     }
   }
 

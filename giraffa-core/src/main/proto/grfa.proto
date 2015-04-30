@@ -17,3 +17,8 @@ message RenameStateProto {
   required bool flag = 1;
   optional bytes src = 2;
 }
+
+message FileLeaseProto {
+  required string holder = 1;
+  optional uint64 lastUpdate = 2;
+}

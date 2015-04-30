@@ -233,15 +233,12 @@ private void removeBlockAction(List<KeyValue> kvs) {
     KeyValue blockKv = findField(kvs, FileField.BLOCK);
     KeyValue locsKv = findField(kvs, FileField.LOCATIONS);
     if(blockKv != null && locsKv != null) {
-      // modifying the block column
-      LOG.info("Altering put edits...");
       // create arrayLists from current KeyValues
       List<UnlocatedBlock> al_blks =
           byteArrayToBlockList(blockKv.getValue());
       List<DatanodeInfo[]> al_locs =
           byteArrayToLocsList(locsKv.getValue());
 
-      LOG.info("al_blks := " + al_blks);
       // get new empty Block, seperate into blocks/locations, and add to lists
       LocatedBlock locatedBlock = allocateBlockFile(al_blks);
       UnlocatedBlock blk = new UnlocatedBlock(locatedBlock);
@@ -265,6 +262,9 @@ private void removeBlockAction(List<KeyValue> kvs) {
       kvs.remove(locsKv);
       kvs.add(blockNkv);
       kvs.add(locsNkv);
+
+      LOG.info("File: " + kvs.get(0).getKeyString() + " Blocks: " +
+          getFileBlocks(kvs));
     }
   }
 

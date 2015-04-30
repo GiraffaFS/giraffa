@@ -6,12 +6,15 @@ Release 0.1.1 - unreleased
 
   NEW FEATURES
 
+    Issue 31: Implement Leases. (Plamen)
+
   IMPROVEMENTS
 
     Issue 96: Move HBase related logic from NamespaceProcessor to new
               class INodeManager. (Milan)
     Issue 101: Adding .idea folder to the .gitignore. (Cos)
     Issue 103: Fix NPE in afterClass(). (shv)
+    Issue 120: Replace System.out.println() and printStackTrace() with LOG statements. (Andrey Stepachev)
 
   DOCUMENTATION
 
