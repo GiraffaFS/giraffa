@@ -32,6 +32,7 @@ import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.hdfs.server.namenode.INodeId;
 
 public class INode {
   // HdfsFileStatus fields
@@ -45,6 +46,8 @@ public class INode {
   private String owner;
   private String group;
   private byte[] symlink;
+  private long fileId = INodeId.GRANDFATHER_INODE_ID;
+  private int childrenNum = 0;
 
   private long dsQuota;
   private long nsQuota;
@@ -89,9 +92,9 @@ public class INode {
   }
 
   public HdfsFileStatus getFileStatus() {
-    return new HdfsFileStatus(length, isdir, block_replication,
-           blocksize, modification_time, access_time, permission,
-           owner, group, symlink, RowKeyBytes.toBytes(key.getPath()));
+    return new HdfsFileStatus(length, isdir, block_replication, blocksize,
+        modification_time, access_time, permission, owner, group, symlink,
+        RowKeyBytes.toBytes(key.getPath()), fileId, childrenNum);
   }
 
   public HdfsFileStatus getLocatedFileStatus() {
@@ -103,9 +106,9 @@ public class INode {
     LocatedBlocks locatedBlocks = new LocatedBlocks(length, isUnderConstruction,
         locatedBlocksList, lastBlock, isLastBlockComplete);
     return new HdfsLocatedFileStatus(length, isdir, block_replication,
-            blocksize, modification_time, access_time, permission,
-            owner, group, symlink, RowKeyBytes.toBytes(key.getPath()),
-                locatedBlocks);
+        blocksize, modification_time, access_time, permission, owner, group,
+        symlink, RowKeyBytes.toBytes(key.getPath()), fileId, locatedBlocks,
+        childrenNum);
   }
 
   public RowKey getRowKey() {

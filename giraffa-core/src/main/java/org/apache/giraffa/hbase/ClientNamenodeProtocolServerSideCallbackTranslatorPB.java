@@ -1,18 +1,36 @@
 package org.apache.giraffa.hbase;
 
-import java.io.IOException;
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
+import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.ModifyAclEntriesRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.ModifyAclEntriesResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveAclEntriesRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveAclEntriesResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveAclRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveAclResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveDefaultAclRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.RemoveDefaultAclResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.SetAclRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.AclProtos.SetAclResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AbandonBlockRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AbandonBlockResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddBlockRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddBlockResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddCacheDirectiveRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddCacheDirectiveResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddCachePoolRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AddCachePoolResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AllowSnapshotRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AllowSnapshotResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AppendRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AppendResponseProto;
-import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenRequestProto;
-import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenResponseProto;
-import org.apache.hadoop.security.proto.SecurityProtos.TokenProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteResponseProto;
@@ -20,10 +38,16 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Concat
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ConcatResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateSnapshotRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateSnapshotResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateSymlinkRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CreateSymlinkResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DeleteRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DeleteResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DeleteSnapshotRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DeleteSnapshotResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DisallowSnapshotRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.DisallowSnapshotResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.FinalizeUpgradeRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.FinalizeUpgradeResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.FsyncRequestProto;
@@ -38,8 +62,6 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetDat
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetDataEncryptionKeyResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetDatanodeReportRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetDatanodeReportResponseProto;
-import org.apache.hadoop.security.proto.SecurityProtos.GetDelegationTokenRequestProto;
-import org.apache.hadoop.security.proto.SecurityProtos.GetDelegationTokenResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetFileInfoRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetFileInfoResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetFileLinkInfoRequestProto;
@@ -54,26 +76,40 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetPre
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetPreferredBlockSizeResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetServerDefaultsRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetServerDefaultsResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetSnapshotDiffReportRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetSnapshotDiffReportResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetSnapshottableDirListingRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.GetSnapshottableDirListingResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.IsFileClosedRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.IsFileClosedResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCacheDirectivesRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCacheDirectivesResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCachePoolsRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCachePoolsResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCorruptFileBlocksRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ListCorruptFileBlocksResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.MetaSaveRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.MetaSaveResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.MkdirsRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.MkdirsResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ModifyCacheDirectiveRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ModifyCacheDirectiveResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ModifyCachePoolRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ModifyCachePoolResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RecoverLeaseRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RecoverLeaseResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RefreshNodesRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RefreshNodesResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RemoveCacheDirectiveRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RemoveCacheDirectiveResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RemoveCachePoolRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RemoveCachePoolResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Rename2RequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Rename2ResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameResponseProto;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ContentSummaryProto;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.FsServerDefaultsProto;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.LocatedBlockProto;
-import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenRequestProto;
-import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameSnapshotRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenameSnapshotResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ReportBadBlocksRequestProto;
@@ -82,6 +118,8 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Restor
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RestoreFailedStorageResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RollEditsRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RollEditsResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RollingUpgradeRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RollingUpgradeResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SaveNamespaceRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SaveNamespaceResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.SetBalancerBandwidthRequestProto;
@@ -102,11 +140,23 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.Update
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdateBlockForPipelineResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.UpdatePipelineResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.GetXAttrsRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.GetXAttrsResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.ListXAttrsRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.ListXAttrsResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.RemoveXAttrRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.RemoveXAttrResponseProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.SetXAttrRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.SetXAttrResponseProto;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolServerSideTranslatorPB;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.RpcCallback;
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
+import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenRequestProto;
+import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenResponseProto;
+import org.apache.hadoop.security.proto.SecurityProtos.GetDelegationTokenRequestProto;
+import org.apache.hadoop.security.proto.SecurityProtos.GetDelegationTokenResponseProto;
+import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenRequestProto;
+import org.apache.hadoop.security.proto.SecurityProtos.RenewDelegationTokenResponseProto;
+
+import java.io.IOException;
 
 /**
  * This class is used on the server side. Calls come across the wire for the
@@ -155,13 +205,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getServerDefaults(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GetServerDefaultsResponseProto.newBuilder().setServerDefaults(
-              FsServerDefaultsProto.newBuilder()
-              .setBlockSize(0)
-              .setBytesPerChecksum(0)
-              .setWritePacketSize(0)
-              .setReplication(0)
-              .setFileBufferSize(0)).build());
+          GiraffaPBHelper.getServerDefaults());
     }
   }
 
@@ -193,7 +237,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.setReplication(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          SetReplicationResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.setReplication());
     }
   }
 
@@ -236,19 +280,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.addBlock(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          AddBlockResponseProto.newBuilder().setBlock(
-              LocatedBlockProto.newBuilder()
-              .setB(ExtendedBlockProto.newBuilder()
-                  .setPoolId("")
-                  .setBlockId(0)
-                  .setGenerationStamp(0))
-              .setOffset(0)
-              .setCorrupt(false)
-              .setBlockToken(TokenProto.newBuilder()
-                  .setIdentifier(ByteString.EMPTY)
-                  .setPassword(ByteString.EMPTY)
-                  .setKind("")
-                  .setService(""))).build());
+          GiraffaPBHelper.addBlock());
     }
   }
 
@@ -259,7 +291,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getAdditionalDatanode(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.getAdditionalDatanode());
     }
   }
 
@@ -269,7 +302,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.complete(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.complete());
     }
   }
 
@@ -301,7 +335,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.rename(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          RenameResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.rename());
     }
   }
 
@@ -322,7 +356,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.delete(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          DeleteResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.delete());
     }
   }
 
@@ -333,7 +367,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.mkdirs(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          MkdirsResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.mkdirs());
     }
   }
 
@@ -343,7 +377,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getListing(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.getListing());
     }
   }
 
@@ -365,7 +400,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.recoverLease(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          RecoverLeaseResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.recoverLease());
     }
   }
 
@@ -375,7 +410,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.getFsStats(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.getFsStats());
     }
   }
 
@@ -398,7 +434,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getPreferredBlockSize(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GetPreferredBlockSizeResponseProto.newBuilder().setBsize(0).build());
+          GiraffaPBHelper.getPreferredBlockSize());
     }
   }
 
@@ -409,7 +445,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.setSafeMode(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          SetSafeModeResponseProto.newBuilder().setResult(false).build());
+          GiraffaPBHelper.setSafeMode());
     }
   }
 
@@ -431,7 +467,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.rollEdits(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          RollEditsResponseProto.newBuilder().setNewSegmentTxId(0).build());
+          GiraffaPBHelper.rollEdits());
     }
   }
 
@@ -443,8 +479,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.restoreFailedStorage(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          RestoreFailedStorageResponseProto.newBuilder()
-          .setResult(false).build());
+          GiraffaPBHelper.restoreFailedStorage());
     }
   }
 
@@ -471,13 +506,25 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
   }
 
   @Override
+  public void rollingUpgrade(RpcController controller,
+                             RollingUpgradeRequestProto req,
+                             RpcCallback<RollingUpgradeResponseProto> done) {
+    try {
+      done.run(blockingTranslator.rollingUpgrade(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
   public void listCorruptFileBlocks(RpcController controller,
       ListCorruptFileBlocksRequestProto req,
       RpcCallback<ListCorruptFileBlocksResponseProto> done) {
     try {
       done.run(blockingTranslator.listCorruptFileBlocks(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.listCorruptFileBlocks());
     }
   }
 
@@ -502,6 +549,101 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
   }
 
   @Override
+  public void addCacheDirective(
+      RpcController controller,
+      AddCacheDirectiveRequestProto req,
+      RpcCallback<AddCacheDirectiveResponseProto> done) {
+    try {
+      done.run(blockingTranslator.addCacheDirective(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.addCacheDirective());
+    }
+  }
+
+  @Override
+  public void modifyCacheDirective(
+      RpcController controller,
+      ModifyCacheDirectiveRequestProto req,
+      RpcCallback<ModifyCacheDirectiveResponseProto> done) {
+    try {
+      done.run(blockingTranslator.modifyCacheDirective(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeCacheDirective(
+      RpcController controller,
+      RemoveCacheDirectiveRequestProto req,
+      RpcCallback<RemoveCacheDirectiveResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeCacheDirective(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void listCacheDirectives(
+      RpcController controller,
+      ListCacheDirectivesRequestProto req,
+      RpcCallback<ListCacheDirectivesResponseProto> done) {
+    try {
+      done.run(blockingTranslator.listCacheDirectives(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.listCacheDirectives());
+    }
+  }
+
+  @Override
+  public void addCachePool(RpcController controller,
+                           AddCachePoolRequestProto req,
+                           RpcCallback<AddCachePoolResponseProto> done) {
+    try {
+      done.run(blockingTranslator.addCachePool(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void modifyCachePool(RpcController controller,
+                              ModifyCachePoolRequestProto req,
+                              RpcCallback<ModifyCachePoolResponseProto> done) {
+    try {
+      done.run(blockingTranslator.modifyCachePool(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeCachePool(RpcController controller,
+                              RemoveCachePoolRequestProto req,
+                              RpcCallback<RemoveCachePoolResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeCachePool(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void listCachePools(RpcController controller,
+                             ListCachePoolsRequestProto req,
+                             RpcCallback<ListCachePoolsResponseProto> done) {
+    try {
+      done.run(blockingTranslator.listCachePools(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.listCachePools());
+    }
+  }
+
+  @Override
   public void getFileLinkInfo(RpcController controller,
       GetFileLinkInfoRequestProto req,
       RpcCallback<GetFileLinkInfoResponseProto> done) {
@@ -520,14 +662,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getContentSummary(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GetContentSummaryResponseProto.newBuilder().setSummary(
-              ContentSummaryProto.newBuilder()
-              .setLength(0)
-              .setFileCount(0)
-              .setDirectoryCount(0)
-              .setQuota(0)
-              .setSpaceConsumed(0)
-              .setSpaceQuota(0)).build());
+          GiraffaPBHelper.getContentSummary());
     }
   }
 
@@ -591,19 +726,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.updateBlockForPipeline(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          UpdateBlockForPipelineResponseProto.newBuilder().setBlock(
-              LocatedBlockProto.newBuilder()
-              .setB(ExtendedBlockProto.newBuilder()
-                  .setPoolId("")
-                  .setBlockId(0)
-                  .setGenerationStamp(0))
-              .setOffset(0)
-              .setCorrupt(false)
-              .setBlockToken(TokenProto.newBuilder()
-                  .setIdentifier(ByteString.EMPTY)
-                  .setPassword(ByteString.EMPTY)
-                  .setKind("")
-                  .setService(""))).build());
+          GiraffaPBHelper.updateBlockForPipeline());
     }
   }
 
@@ -636,7 +759,8 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     try {
       done.run(blockingTranslator.renewDelegationToken(controller, req));
     } catch (ServiceException e) {
-      handleRemoteException(controller, e, done);
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.renewDelegationToken());
     }
   }
 
@@ -668,6 +792,214 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       RpcCallback<GetDataEncryptionKeyResponseProto> done) {
     try {
       done.run(blockingTranslator.getDataEncryptionKey(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void createSnapshot(RpcController controller,
+                             CreateSnapshotRequestProto req,
+                             RpcCallback<CreateSnapshotResponseProto> done) {
+    try {
+      done.run(blockingTranslator.createSnapshot(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.createSnapshot());
+    }
+  }
+
+  @Override
+  public void renameSnapshot(RpcController controller,
+                             RenameSnapshotRequestProto req,
+                             RpcCallback<RenameSnapshotResponseProto> done) {
+    try {
+      done.run(blockingTranslator.renameSnapshot(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void allowSnapshot(RpcController controller,
+                            AllowSnapshotRequestProto req,
+                            RpcCallback<AllowSnapshotResponseProto> done) {
+    try {
+      done.run(blockingTranslator.allowSnapshot(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void disallowSnapshot(
+      RpcController controller,
+      DisallowSnapshotRequestProto req,
+      RpcCallback<DisallowSnapshotResponseProto> done) {
+    try {
+      done.run(blockingTranslator.disallowSnapshot(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void getSnapshottableDirListing(
+      RpcController controller,
+      GetSnapshottableDirListingRequestProto req,
+      RpcCallback<GetSnapshottableDirListingResponseProto> done) {
+    try {
+      done.run(blockingTranslator.getSnapshottableDirListing(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void deleteSnapshot(RpcController controller,
+                             DeleteSnapshotRequestProto req,
+                             RpcCallback<DeleteSnapshotResponseProto> done) {
+    try {
+      done.run(blockingTranslator.deleteSnapshot(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void getSnapshotDiffReport(
+      RpcController controller,
+      GetSnapshotDiffReportRequestProto req,
+      RpcCallback<GetSnapshotDiffReportResponseProto> done) {
+    try {
+      done.run(blockingTranslator.getSnapshotDiffReport(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.getSnapshotDiffReport());
+    }
+  }
+
+  @Override
+  public void isFileClosed(RpcController controller,
+                           IsFileClosedRequestProto req,
+                           RpcCallback<IsFileClosedResponseProto> done) {
+    try {
+      done.run(blockingTranslator.isFileClosed(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.isFileClosed());
+    }
+  }
+
+  @Override
+  public void modifyAclEntries(
+      RpcController controller,
+      ModifyAclEntriesRequestProto req,
+      RpcCallback<ModifyAclEntriesResponseProto> done) {
+    try {
+      done.run(blockingTranslator.modifyAclEntries(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeAclEntries(
+      RpcController controller,
+      RemoveAclEntriesRequestProto req,
+      RpcCallback<RemoveAclEntriesResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeAclEntries(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeDefaultAcl(
+      RpcController controller,
+      RemoveDefaultAclRequestProto req,
+      RpcCallback<RemoveDefaultAclResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeDefaultAcl(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeAcl(RpcController controller,
+                        RemoveAclRequestProto req,
+                        RpcCallback<RemoveAclResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeAcl(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void setAcl(RpcController controller,
+                     SetAclRequestProto req,
+                     RpcCallback<SetAclResponseProto> done) {
+    try {
+      done.run(blockingTranslator.setAcl(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void getAclStatus(RpcController controller,
+                           GetAclStatusRequestProto req,
+                           RpcCallback<GetAclStatusResponseProto> done) {
+    try {
+      done.run(blockingTranslator.getAclStatus(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done,
+          GiraffaPBHelper.getAclStatus());
+    }
+  }
+
+  @Override
+  public void setXAttr(RpcController controller,
+                       SetXAttrRequestProto req,
+                       RpcCallback<SetXAttrResponseProto> done) {
+    try {
+      done.run(blockingTranslator.setXAttr(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void getXAttrs(RpcController controller,
+                        GetXAttrsRequestProto req,
+                        RpcCallback<GetXAttrsResponseProto> done) {
+    try {
+      done.run(blockingTranslator.getXAttrs(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void listXAttrs(RpcController controller,
+                         ListXAttrsRequestProto req,
+                         RpcCallback<ListXAttrsResponseProto> done) {
+    try {
+      done.run(blockingTranslator.listXAttrs(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
+    }
+  }
+
+  @Override
+  public void removeXAttr(RpcController controller,
+                          RemoveXAttrRequestProto req,
+                          RpcCallback<RemoveXAttrResponseProto> done) {
+    try {
+      done.run(blockingTranslator.removeXAttr(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done);
     }
