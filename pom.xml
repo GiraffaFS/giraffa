@@ -18,7 +18,7 @@
         <mavenVersion>2.2.1</mavenVersion>
 
         <hadoop.version>2.5.1</hadoop.version>
-        <hbase.version>0.95.2-hadoop2</hbase.version>
+        <hbase.version>1.0.1</hbase.version>
 
         <!-- maven plugin versions -->
         <maven.surefire.plugin.version>2.13</maven.surefire.plugin.version>
