@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -176,7 +174,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
 
   static KeyValue findField(List<KeyValue> kvs, FileField field) {
     for(KeyValue kv : kvs) {
-      if(matchingColumn(kv, FileField.getFileAttributes(), field.getBytes())) {
+      if(kv.matchingColumn(FileField.getFileAttributes(), field.getBytes())) {
         return kv;
       }
     }

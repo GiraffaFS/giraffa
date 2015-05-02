@@ -24,7 +24,7 @@
     <value>org.apache.giraffa.GiraffaFs</value>
     <description>The AbstractFileSystem for grfa.</description>
   </property>
-  <property>
+   <property>
     <name>hbase.coprocessor.region.classes</name>
     <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
     <description>A comma-separated list of Coprocessors that are loaded by
@@ -36,11 +36,7 @@
     </description>
   </property>
   <property>
-    <name>hbase.client.fast.fail.mode.enabled</name>
-    <value>true</value>
-  </property>
-  <property>
-    <name>hbase.client.fast.fail.interceptor.impl</name>
-    <value>org.apache.hadoop.hbase.client.FileSystemExceptionInterceptor</value>
+	<name>hbase.rpc.callerfactory.class</name>
+	<value>org.apache.giraffa.hbase.GiraffaRpcRetryingCallerFactory</value>
   </property>
 </configuration>
