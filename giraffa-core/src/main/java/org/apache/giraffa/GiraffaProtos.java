@@ -3,7 +3,7 @@
 
 package org.apache.giraffa;
 
-public final class GiraffaProtos {
+@SuppressWarnings("ALL") public final class GiraffaProtos {
   private GiraffaProtos() {}
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {

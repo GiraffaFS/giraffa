@@ -104,6 +104,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     clientName = getClientName();
   }
 
+  @SuppressWarnings("deprecation")
   private String getClientName() {
     String toParse = hdfs.getClient().toString();
     return toParse.substring((toParse.indexOf('='))+1, toParse.lastIndexOf(','));
@@ -315,6 +316,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
     return block;
   }
 
+  @SuppressWarnings("deprecation")
   private void closeBlockFile(ExtendedBlock block) throws IOException {
     boolean isClosed = false;
     while(!isClosed) {

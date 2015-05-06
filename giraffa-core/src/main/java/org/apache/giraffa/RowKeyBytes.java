@@ -35,8 +35,8 @@ public class RowKeyBytes {
       return toConv.getBytes(DEFAULT_ENCODING);
     } catch (UnsupportedEncodingException e) {
       LOG.error(DEFAULT_ENCODING + " not supported?", e);
+      throw new IllegalStateException(e);
     }
-    return null;
   }
   
   // Follows the convention used in HBase Bytes for compatibality.
