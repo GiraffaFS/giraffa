@@ -107,6 +107,8 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is used on the server side. Calls come across the wire for the
@@ -118,6 +120,9 @@ import com.google.protobuf.ServiceException;
  */
 public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
     implements ClientNamenodeProtocol.Interface {
+  private final static Logger LOG =
+      LoggerFactory.getLogger(ClientNamenodeProtocolServerSideCallbackTranslatorPB.class);
+
   private ClientNamenodeProtocol.BlockingInterface blockingTranslator;
 
   /**
@@ -132,7 +137,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       this.blockingTranslator =
           new ClientNamenodeProtocolServerSideTranslatorPB(server);
     } catch (IOException e) { // will never happen
-      e.printStackTrace();
+      LOG.error("BlockingTranslator initialization failed", e);
     }
   }
 

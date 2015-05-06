@@ -29,6 +29,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
 import static org.junit.Assert.assertEquals;
@@ -40,6 +42,8 @@ import static org.junit.Assert.fail;
  * Test common file system use cases.
  */
 public class TestGiraffaFS {
+  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaFS.class);
+
   private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
@@ -189,10 +193,10 @@ public class TestGiraffaFS {
   public void testDirAttributes() throws IOException {
     grfs.mkdirs(new Path("folder2"));
 
-    System.out.println("SETTING PERMISSION OF \"folder2\" TO 755");
+    LOG.debug("SETTING PERMISSION OF \"folder2\" TO 755");
     grfs.setPermission(new Path("folder2"), new FsPermission((short) 0755));
 
-    System.out.println("SETTING TIMES OF \"folder2\" TO M:25, A:30");
+    LOG.debug("SETTING TIMES OF \"folder2\" TO M:25, A:30");
     grfs.setTimes(new Path("folder2"), 25, 30);
 
     FileStatus[] files = grfs.listStatus(new Path("."));
@@ -207,10 +211,10 @@ public class TestGiraffaFS {
   public void testFileAttributes() throws IOException {
     grfs.create(new Path("file2"));
 
-    System.out.println("SETTING PERMISSION OF \"file2\" TO 755");
+    LOG.debug("SETTING PERMISSION OF \"file2\" TO 755");
     grfs.setPermission(new Path("file2"), new FsPermission((short) 0755));
 
-    System.out.println("SETTING TIMES OF \"file2\" TO M:25, A:30");
+    LOG.debug("SETTING TIMES OF \"file2\" TO M:25, A:30");
     grfs.setTimes(new Path("file2"), 25, 30);
 
     FileStatus[] files = grfs.listStatus(new Path("."));
