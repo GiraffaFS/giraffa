@@ -30,6 +30,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
 import static org.junit.Assert.assertEquals;
@@ -41,6 +43,9 @@ import static org.junit.Assert.fail;
  * Tests negative use cases and failure scenarios.
  */
 public class TestGiraffaFSNegative {
+
+  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaFSNegative.class);
+
   private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
@@ -237,7 +242,7 @@ public class TestGiraffaFSNegative {
   public void testDirSettingsOnNonExistentFolder() throws IOException {
     grfs.mkdirs(new Path("folder1/folder2"));
 
-    System.out.println("SETTING PERMISSION OF \"folder2\" TO 777");
+    LOG.debug("SETTING PERMISSION OF \"folder2\" TO 777");
     try {
       grfs.setPermission(new Path("folder2"), new FsPermission((short) 0777));
       fail();
@@ -245,7 +250,7 @@ public class TestGiraffaFSNegative {
       //must catch
     }
 
-    System.out.println("SETTING TIMES OF \"folder2\" TO M:25, A:30");
+    LOG.debug("SETTING TIMES OF \"folder2\" TO M:25, A:30");
     try {
       grfs.setTimes(new Path("folder2"), 25, 30);
       fail();

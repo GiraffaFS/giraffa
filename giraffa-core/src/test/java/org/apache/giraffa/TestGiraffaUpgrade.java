@@ -57,8 +57,12 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestGiraffaUpgrade {
+  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaUpgrade.class);
+
   private static MiniHBaseCluster cluster;
   private static final String TEST_IMAGE_FILE_OUT =
           GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
@@ -129,7 +133,7 @@ public class TestGiraffaUpgrade {
 
     FileStatus[] stats = grfa.listStatus(new Path("/"));
     for (FileStatus stat : stats) {
-      System.out.println(stat.getPath().getName());
+      LOG.debug(stat.getPath().getName());
     }
   }
 
@@ -202,10 +206,9 @@ public class TestGiraffaUpgrade {
             nsQuota, FileState.CLOSED, RenameState.FALSE(), blocks, locations);
         try {
           nodeManager.updateINode(node);
-          System.out.println("COMMITTED: " + path + ", with BLOCKS:" + blocks);
+          LOG.debug("COMMITTED: " + path + ", with BLOCKS:" + blocks);
         } catch(IOException e) {
-          System.err.println("Failed to commit INODE: "+path);
-          e.printStackTrace();
+          LOG.error("Failed to commit INODE: "+path, e);
           fail();
         }
       }

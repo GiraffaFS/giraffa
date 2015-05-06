@@ -28,8 +28,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GiraffaTestUtils {
+
+  private final static Logger LOG = LoggerFactory.getLogger(GiraffaTestUtils.class);
+
   public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
 
   public static URI getGiraffaURI() throws IOException {
@@ -76,19 +81,19 @@ public class GiraffaTestUtils {
 
   public static void printFileStatus(FileStatus fileStat, int i)
       throws IOException {
-    System.out.println(
+    LOG.debug(
         "=============== FILE STATUS " + (i>=0?i:"") + " ===============");
-    System.out.println("OWNER: " + fileStat.getOwner());
-    System.out.println("GROUP: " + fileStat.getGroup());
-    System.out.println("PATH: " + fileStat.getPath());
-    System.out.println("PERMS: " + fileStat.getPermission().toString());
-    System.out.println("LEN: " + fileStat.getLen());
-    System.out.println("ATIME: " + fileStat.getAccessTime());
-    System.out.println("MTIME: " + fileStat.getModificationTime());
-    System.out.println("BLKSIZE: " + fileStat.getBlockSize());
-    System.out.println("REPL: " + fileStat.getReplication());
+    LOG.debug("OWNER: " + fileStat.getOwner());
+    LOG.debug("GROUP: " + fileStat.getGroup());
+    LOG.debug("PATH: " + fileStat.getPath());
+    LOG.debug("PERMS: " + fileStat.getPermission().toString());
+    LOG.debug("LEN: " + fileStat.getLen());
+    LOG.debug("ATIME: " + fileStat.getAccessTime());
+    LOG.debug("MTIME: " + fileStat.getModificationTime());
+    LOG.debug("BLKSIZE: " + fileStat.getBlockSize());
+    LOG.debug("REPL: " + fileStat.getReplication());
     if(fileStat.isSymlink())
-      System.out.println("SYMLINK: " + fileStat.getSymlink());
+      LOG.debug("SYMLINK: " + fileStat.getSymlink());
   }
 
   public static void printFileStatus(FileStatus[] fileStat) throws IOException {
