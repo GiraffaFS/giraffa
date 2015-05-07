@@ -44,9 +44,9 @@ public class TestDirectoryTable {
     assertTrue(dirTable.contains("abc"));
     assertTrue(dirTable.contains("def"));
     assertTrue(dirTable.contains("ghi"));
-    assertEquals("/abc", dirTable.getEntry("abc").getPath().toString());
-    assertEquals("/def", dirTable.getEntry("def").getPath().toString());
-    assertEquals("/ghi", dirTable.getEntry("ghi").getPath().toString());
+    assertEquals("/abc", dirTable.getEntry("abc").getPath());
+    assertEquals("/def", dirTable.getEntry("def").getPath());
+    assertEquals("/ghi", dirTable.getEntry("ghi").getPath());
 
     assertFalse(dirTable.addEntry(new FullPathRowKey("/abc")));
     

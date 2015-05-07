@@ -57,7 +57,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse response)
       throws ServletException, IOException {
-    openTable();
+    HTableInterface table = getTable();
 
     DataTablesRequest dataRequest = new DataTablesRequest(req);
     DataTablesReply dataReply = new DataTablesReply(dataRequest.getSEcho());
@@ -140,9 +140,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
       for (FileField entry : FileField.values()) {
         if (r.containsColumn(FileField.FILE_ATTRIBUTES.getBytes(),
             entry.getBytes())) {
-          if (entry == FileField.PERMISSIONS) {
-            data.put(8, FileFieldDeserializer.getPermissions(r).toString());
-          } else if (entry == FileField.BLOCK) {
+          if (entry == FileField.BLOCK) {
             List<LocatedBlockDescriptor> locatedBlockResult =
                 new ArrayList<LocatedBlockDescriptor>();
             List<LocatedBlock> blockArrayList = new ArrayList<LocatedBlock>();
@@ -198,33 +196,28 @@ public class GiraffaHbaseServlet extends HttpServlet {
 
 
   @Override
-  public void destroy() {
+  public synchronized void destroy() {
     super.destroy();
     try {
       if (table != null) {
-        synchronized (table) {
-          table.close();
-          table = null;
-        }
+        table.close();
+        table = null;
       }
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
     }
   }
 
-  private void openTable() {
-    if (this.table != null) return;
+  private synchronized HTableInterface getTable() throws IOException {
+    if (this.table != null) return this.table;
     MasterCoprocessorEnvironment masterEnv =
         (MasterCoprocessorEnvironment) getServletContext()
             .getAttribute("masterEnvironment");
     String tableName = masterEnv.getConfiguration()
         .get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    try {
-      table = masterEnv.getTable(
-          TableName.valueOf(RowKeyBytes.toBytes(tableName)));
-    } catch (IOException e) {
-      LOG.error("Cannot get table: " + tableName, e);
-    }
+    table = masterEnv.getTable(
+        TableName.valueOf(RowKeyBytes.toBytes(tableName)));
+    return this.table;
   }
 }

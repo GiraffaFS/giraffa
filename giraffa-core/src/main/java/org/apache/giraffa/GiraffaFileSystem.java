@@ -101,6 +101,7 @@ public class GiraffaFileSystem extends FileSystem {
         System.err.println("Format aborted.");
         return;
       }
+      //noinspection StatementWithEmptyBody
       while(System.in.read() != '\n');
     }
     GiraffaClient.format(conf);
@@ -265,6 +266,7 @@ public class GiraffaFileSystem extends FileSystem {
     return grfaClient.rename(getPathName(src), getPathName(dst));
   }
 
+  @SuppressWarnings("deprecation")
   @Override // FileSystem
   public void rename(Path src, Path dst, Options.Rename... options)
       throws IOException {
