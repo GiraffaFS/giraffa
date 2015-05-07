@@ -230,6 +230,8 @@ public class TestGiraffaUpgrade {
       long genStamp =
           Long.parseLong(br.readLine().replace("          GENERATION_STAMP = ", "").trim());
       totalLength += blockLength;
+      assertTrue("Wrong block id", blockID != 0);
+      assertTrue("Wrong block genStamp", genStamp > 0);
     }
     // PJJ: Block locations need to be fetched differently
     // This is just a work around for now to make it work.

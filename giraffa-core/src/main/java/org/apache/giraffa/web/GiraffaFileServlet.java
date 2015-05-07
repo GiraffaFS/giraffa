@@ -107,6 +107,7 @@ public class GiraffaFileServlet extends HttpServlet {
             fItem.setPreview(IOUtils.toString(is));
           }
         } catch (IOException ex) {
+          //noinspection ThrowableResultOfMethodCallIgnored
           response.getWriter().print(String
               .format("Error opening input stream for %s. Details: %s",
                   fileStatus.getPath(),
@@ -167,6 +168,7 @@ public class GiraffaFileServlet extends HttpServlet {
     return file;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {

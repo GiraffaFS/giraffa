@@ -45,9 +45,10 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hdfs.DFSClient;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.HDFSAdapter;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
@@ -101,12 +102,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       throw new IOException(msg);
     }
     temporaryFileId = new AtomicLong(now());
-    clientName = getClientName();
-  }
-
-  private String getClientName() {
-    String toParse = hdfs.getClient().toString();
-    return toParse.substring((toParse.indexOf('='))+1, toParse.lastIndexOf(','));
+    clientName = HDFSAdapter.getClientName(hdfs);
   }
 
   @Override // BaseRegionObserver
@@ -279,18 +275,18 @@ private void removeBlockAction(List<KeyValue> kvs) {
    * @return LocatedBlock
    * @throws IOException
    */
-  @SuppressWarnings("deprecation")
   private LocatedBlock allocateBlockFile(List<UnlocatedBlock> blocks)
   throws IOException {
     String tmpFile = getTemporaryBlockPath().toString();
 
+    ClientProtocol namenode = HDFSAdapter.getClientProtocol(hdfs);
     // create temporary block file
-    DFSClient dfsClient = hdfs.getClient();
-    dfsClient.getNamenode().create(
+    namenode.create(
             tmpFile, FsPermission.getDefault(), clientName,
             new EnumSetWritable<CreateFlag>(EnumSet.of(CreateFlag.CREATE)),
-            true, dfsClient.getDefaultReplication(), dfsClient.getDefaultBlockSize());
-    // assert tmpOut != null : "File create never returns null";
+            true,
+            hdfs.getDefaultReplication(),
+            hdfs.getDefaultBlockSize());
 
     // if previous block exists, get it
     ExtendedBlock previous = null;
@@ -303,14 +299,14 @@ private void removeBlockAction(List<KeyValue> kvs) {
 
     // add block and close previous
     LocatedBlock block = null;
-    block = dfsClient.getNamenode().addBlock(
+    block = namenode.addBlock(
         tmpFile.toString(), clientName, null, null);
     // Update block offset
     long offset = getFileSize(blocks);
     block = new LocatedBlock(block.getBlock(), block.getLocations(), offset);
 
     // rename temporary file to the Giraffa block file
-    dfsClient.getNamenode().rename(tmpFile, getGiraffaBlockPath(block.getBlock()).toString());
+    namenode.rename(tmpFile, getGiraffaBlockPath(block.getBlock()).toString());
     LOG.info("Allocated Giraffa block: " + block);
     return block;
   }
@@ -318,7 +314,7 @@ private void removeBlockAction(List<KeyValue> kvs) {
   private void closeBlockFile(ExtendedBlock block) throws IOException {
     boolean isClosed = false;
     while(!isClosed) {
-      isClosed = hdfs.getClient().getNamenode().complete(
+      isClosed = HDFSAdapter.getClientProtocol(hdfs).complete(
           getGiraffaBlockPathName(block),
           clientName, block);
     }

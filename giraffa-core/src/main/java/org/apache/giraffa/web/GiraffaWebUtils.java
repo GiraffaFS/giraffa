@@ -27,6 +27,7 @@ public class GiraffaWebUtils {
     return grfs;
   }
 
+  @SuppressWarnings("deprecation")
   public static Path extractPath(HttpServletRequest request) {
     String path = request.getPathInfo();
     if (StringUtils.isEmpty(path)) {
