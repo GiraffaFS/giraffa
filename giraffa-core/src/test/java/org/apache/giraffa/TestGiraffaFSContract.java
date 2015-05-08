@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
  * Test filesystem contract
  */
 public class TestGiraffaFSContract extends FileSystemContractBaseTest {
-  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaFSContract.class);
 
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
@@ -111,7 +110,8 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
       @Override
       protected void setUp() throws Exception {
         System.setProperty(
-            HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
+            HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY,
+            GiraffaTestUtils.BASE_TEST_DIRECTORY);
         UTIL.startMiniCluster(1);
       }
 
@@ -123,7 +123,8 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   // TODO: replace with ReflectionUtil when hadoop 2.5 will be used
-  public static List<Method> getDeclaredMethodsIncludingInherited(Class<?> clazz) {
+  public static List<Method>
+  getDeclaredMethodsIncludingInherited(Class<?> clazz) {
     List<Method> methods = new ArrayList<Method>();
     while (clazz != null) {
       Collections.addAll(methods, clazz.getDeclaredMethods());
