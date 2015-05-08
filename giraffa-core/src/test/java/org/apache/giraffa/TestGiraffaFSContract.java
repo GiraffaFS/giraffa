@@ -96,16 +96,7 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   public static Test suite() throws Exception {
-    TestSuite suite = new TestSuite();
-    List<Method> declaredMethods =
-        getDeclaredMethodsIncludingInherited(TestGiraffaFSContract.class);
-
-    for (Method declaredMethod : declaredMethods) {
-      if (declaredMethod.getName().startsWith("test")) {
-        suite.addTest(new TestGiraffaFSContract(declaredMethod.getName()));
-      }
-    }
-
+    TestSuite suite = new TestSuite(TestGiraffaFSContract.class);
     return new TestSetup(suite) {
       @Override
       protected void setUp() throws Exception {
@@ -120,17 +111,5 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
         UTIL.shutdownMiniCluster();
       }
     };
-  }
-
-  // TODO: replace with ReflectionUtil when hadoop 2.5 will be used
-  public static List<Method>
-  getDeclaredMethodsIncludingInherited(Class<?> clazz) {
-    List<Method> methods = new ArrayList<Method>();
-    while (clazz != null) {
-      Collections.addAll(methods, clazz.getDeclaredMethods());
-      clazz = clazz.getSuperclass();
-    }
-
-    return methods;
   }
 }
