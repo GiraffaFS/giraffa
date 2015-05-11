@@ -3,7 +3,7 @@ package org.apache.giraffa.hbase;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
-import org.apache.giraffa.GiraffaPBHelper;
+import org.apache.giraffa.DummyResponsePB;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
@@ -174,7 +174,6 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
    * Constructor
    * 
    * @param server - the NN server
-   * @throws IOException
    */
   public ClientNamenodeProtocolServerSideCallbackTranslatorPB(
       ClientProtocol server) {
@@ -205,7 +204,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getServerDefaults(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getServerDefaults());
+          DummyResponsePB.getServerDefaults());
     }
   }
 
@@ -237,7 +236,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.setReplication(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.setReplication());
+          DummyResponsePB.setReplication());
     }
   }
 
@@ -280,7 +279,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.addBlock(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.addBlock());
+          DummyResponsePB.addBlock());
     }
   }
 
@@ -292,7 +291,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getAdditionalDatanode(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getAdditionalDatanode());
+          DummyResponsePB.getAdditionalDatanode());
     }
   }
 
@@ -303,7 +302,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.complete(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.complete());
+          DummyResponsePB.complete());
     }
   }
 
@@ -335,7 +334,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.rename(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.rename());
+          DummyResponsePB.rename());
     }
   }
 
@@ -356,7 +355,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.delete(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.delete());
+          DummyResponsePB.delete());
     }
   }
 
@@ -367,7 +366,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.mkdirs(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.mkdirs());
+          DummyResponsePB.mkdirs());
     }
   }
 
@@ -378,7 +377,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getListing(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getListing());
+          DummyResponsePB.getListing());
     }
   }
 
@@ -400,7 +399,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.recoverLease(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.recoverLease());
+          DummyResponsePB.recoverLease());
     }
   }
 
@@ -411,7 +410,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getFsStats(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getFsStats());
+          DummyResponsePB.getFsStats());
     }
   }
 
@@ -434,7 +433,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getPreferredBlockSize(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getPreferredBlockSize());
+          DummyResponsePB.getPreferredBlockSize());
     }
   }
 
@@ -445,7 +444,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.setSafeMode(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.setSafeMode());
+          DummyResponsePB.setSafeMode());
     }
   }
 
@@ -467,7 +466,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.rollEdits(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.rollEdits());
+          DummyResponsePB.rollEdits());
     }
   }
 
@@ -479,7 +478,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.restoreFailedStorage(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.restoreFailedStorage());
+          DummyResponsePB.restoreFailedStorage());
     }
   }
 
@@ -524,7 +523,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.listCorruptFileBlocks(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.listCorruptFileBlocks());
+          DummyResponsePB.listCorruptFileBlocks());
     }
   }
 
@@ -557,7 +556,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.addCacheDirective(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.addCacheDirective());
+          DummyResponsePB.addCacheDirective());
     }
   }
 
@@ -594,7 +593,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.listCacheDirectives(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.listCacheDirectives());
+          DummyResponsePB.listCacheDirectives());
     }
   }
 
@@ -639,7 +638,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.listCachePools(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.listCachePools());
+          DummyResponsePB.listCachePools());
     }
   }
 
@@ -662,7 +661,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getContentSummary(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getContentSummary());
+          DummyResponsePB.getContentSummary());
     }
   }
 
@@ -726,7 +725,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.updateBlockForPipeline(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.updateBlockForPipeline());
+          DummyResponsePB.updateBlockForPipeline());
     }
   }
 
@@ -760,7 +759,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.renewDelegationToken(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.renewDelegationToken());
+          DummyResponsePB.renewDelegationToken());
     }
   }
 
@@ -805,7 +804,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.createSnapshot(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.createSnapshot());
+          DummyResponsePB.createSnapshot());
     }
   }
 
@@ -875,7 +874,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getSnapshotDiffReport(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getSnapshotDiffReport());
+          DummyResponsePB.getSnapshotDiffReport());
     }
   }
 
@@ -887,7 +886,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.isFileClosed(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.isFileClosed());
+          DummyResponsePB.isFileClosed());
     }
   }
 
@@ -957,7 +956,7 @@ public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
       done.run(blockingTranslator.getAclStatus(controller, req));
     } catch (ServiceException e) {
       handleRemoteException(controller, e, done,
-          GiraffaPBHelper.getAclStatus());
+          DummyResponsePB.getAclStatus());
     }
   }
 
