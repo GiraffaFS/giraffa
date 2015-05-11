@@ -17,13 +17,6 @@
  */
 package org.apache.giraffa;
 
-import com.google.protobuf.ByteString;
-import org.apache.giraffa.GiraffaProtos.RenameStateProto;
-import org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto;
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeInfosProto;
-import org.apache.hadoop.hdfs.protocolPB.PBHelper;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -31,6 +24,12 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.giraffa.GiraffaProtos.RenameStateProto;
+import org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto;
+import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.DatanodeInfosProto;
+import org.apache.hadoop.hdfs.protocolPB.PBHelper;
+import com.google.protobuf.ByteString;
 
 import static org.apache.giraffa.GiraffaProtos.FileLeaseProto;
 
@@ -39,6 +38,7 @@ import static org.apache.giraffa.GiraffaProtos.FileLeaseProto;
  * and their protos. Also contains serialization/deserialization helpers.
  */
 public class GiraffaPBHelper {
+
   private static UnlocatedBlockProto convert(UnlocatedBlock toConv) {
     UnlocatedBlockProto.Builder builder = UnlocatedBlockProto.newBuilder();
     builder.setBlockToken(PBHelper.convert(toConv.getBlockToken()));
