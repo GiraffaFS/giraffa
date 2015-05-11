@@ -68,6 +68,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.giraffa.GiraffaProtos.FileLeaseProto;
+
 /**
  * Helper class, similar to PBHelper, for converting between Giraffa objects
  * and their protos. Also contains serialization/deserialization helpers.
@@ -117,6 +119,55 @@ public class GiraffaPBHelper {
       return RenameState.TRUE(toConv.getSrc().toByteArray());
     else
       return RenameState.FALSE();
+  }
+
+  public static FileLeaseProto convert(FileLease lease) {
+    return FileLeaseProto.newBuilder()
+        .setHolder(lease.getHolder())
+        .setLastUpdate(lease.getLastUpdate())
+        .build();
+  }
+
+  public static FileLease convert(FileLeaseProto leaseProto, String path) {
+    if(leaseProto == null)
+      return null;
+    String holder = leaseProto.getHolder();
+    long lastUpdate = leaseProto.getLastUpdate();
+    return new FileLease(holder, path, lastUpdate);
+  }
+
+  /**
+   * Serializes an FileLease into a byte array
+   * @param lease
+   * @return
+   * @throws IOException
+   */
+  public static byte[] hdfsLeaseToBytes(FileLease lease)
+      throws IOException {
+    if(lease == null) return null;
+    byte[] retVal = null;
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(baos);
+    try {
+      convert(lease).writeDelimitedTo(out);
+      retVal = baos.toByteArray();
+    } finally {
+      out.close();
+    }
+    return retVal;
+  }
+
+  /**
+   * Deserializes a byte array into an FileLease
+   * @param bytes
+   * @return
+   * @throws IOException
+   */
+  public static FileLease bytesToHdfsLease(byte[] bytes, String path)
+      throws IOException {
+    DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
+    return convert(FileLeaseProto.parseDelimitedFrom(in), path);
   }
 
   /**

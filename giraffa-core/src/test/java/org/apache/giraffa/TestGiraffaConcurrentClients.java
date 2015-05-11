@@ -32,11 +32,15 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
 public class TestGiraffaConcurrentClients {
+
+  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaConcurrentClients.class);
 
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
@@ -106,7 +110,7 @@ public class TestGiraffaConcurrentClients {
         fsUtil.createFiles(grfa, topDir);
         completed = fsUtil.checkFiles(grfa, topDir);
       } catch (IOException e) {
-        e.printStackTrace();
+        LOG.error("Failed", e);
         fail();
       }
     }
@@ -121,15 +125,15 @@ public class TestGiraffaConcurrentClients {
         long timeStarted = System.currentTimeMillis();
         FileStatus[] fileStatuses = grfa.listStatus(topDirPath);
         long timeEnded = System.currentTimeMillis();
-        System.out.println(Arrays.toString(fileStatuses));
-        System.out.println("Time started: " + timeStarted +
+        LOG.debug(Arrays.toString(fileStatuses));
+        LOG.debug("Time started: " + timeStarted +
             ", topDir:" + topDir);
-        System.out.println("Time ended: " + timeEnded +
+        LOG.debug("Time ended: " + timeEnded +
             ", topDir:" + topDir);
-        System.out.println(fileStatuses.length);
+        LOG.debug("files: " + fileStatuses.length);
         completed = fileStatuses.length == 128;
       } catch (IOException e) {
-        e.printStackTrace();
+        LOG.error("Failed", e);
         fail();
       }
     }
@@ -159,7 +163,7 @@ public class TestGiraffaConcurrentClients {
       try {
         threads[i].join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        LOG.error("Failed", e);
         fail();
       }
       assertTrue(clients[i].isComplete());

@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa.hbase;
 
+import java.util.Collection;
+import static org.apache.giraffa.GiraffaConstants.GIRAFFA_SHARED_STATE_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
@@ -41,10 +43,13 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
@@ -101,6 +106,7 @@ import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
+import org.apache.hadoop.hdfs.server.namenode.LeaseExpiredException;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
@@ -123,6 +129,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
   private INodeManager nodeManager;
 
+  private LeaseManager leaseManager;
   private FsServerDefaults serverDefaults;
 
   private int lsLimit;
@@ -144,7 +151,6 @@ public class NamespaceProcessor implements ClientProtocol,
     if (!(env instanceof RegionCoprocessorEnvironment)) {
       throw new CoprocessorException("Must be loaded on a table region!");
     }
-    
     LOG.info("Start NamespaceProcessor...");
     Configuration conf = env.getConfiguration();
     RowKeyFactory.registerRowKey(conf);
@@ -179,6 +185,9 @@ public class NamespaceProcessor implements ClientProtocol,
             DFS_ENCRYPT_DATA_TRANSFER_DEFAULT),
         conf.getLong(FS_TRASH_INTERVAL_KEY, FS_TRASH_INTERVAL_DEFAULT),
         checksumType);
+
+    this.leaseManager = originateSharedLeaseManager(
+        (RegionCoprocessorEnvironment) env);
   }
 
   @Override // Coprocessor
@@ -220,7 +229,7 @@ public class NamespaceProcessor implements ClientProtocol,
     long time = now();
     iNode.setTimes(time, time);
     nodeManager.updateINode(iNode, BlockAction.ALLOCATE);
-    
+
     // grab blocks back from HBase and return the latest one added
     nodeManager.getBlocksAndLocations(iNode);
     List<UnlocatedBlock> al_blks = iNode.getBlocks();
@@ -263,14 +272,20 @@ public class NamespaceProcessor implements ClientProtocol,
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
+    checkLease(src, iNode, clientName);
 
     // set the state and replace the block, then put the iNode
     iNode.setState(FileState.CLOSED);
+    leaseManager.removeLease(iNode.getLease());
+    iNode.setLease(null);
     iNode.setLastBlock(last);
     long time = now();
     iNode.setTimes(time, time);
-    nodeManager.updateINode(iNode, BlockAction.CLOSE);
-    LOG.info("Completed file: "+src+" | BlockID: "+last.getBlockId());
+    if(last != null)
+      nodeManager.updateINode(iNode, BlockAction.CLOSE);
+    else
+      nodeManager.updateINode(iNode);
+    LOG.info("Completed file: " + src + " | Block: " + last);
     return true;
   }
 
@@ -300,20 +315,28 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new IOException("Append is not supported.");
     }
 
-    INode iFile = nodeManager.getINode(src);
-    if(create && !overwrite && iFile != null) {
-      throw new FileAlreadyExistsException("File already exists: " + src);
-    }
-
-    if(iFile != null && iFile.isDir()) {
-      throw new FileAlreadyExistsException("File already exists as directory: "
-          + src);
-    }
-
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    clientName = ugi.getShortUserName();
-    String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
+    String userName = ugi.getShortUserName();
+    String groupName = (ugi.getGroupNames().length == 0) ? "supergroup" :
+        ugi.getGroupNames()[0];
     masked = new FsPermission((short) 0644);
+
+    INode iFile = nodeManager.getINode(src);
+    if(iFile != null) {
+      if(iFile.isDir()) {
+        throw new FileAlreadyExistsException(
+            "File already exists as directory: " + src);
+      } else if(overwrite) {
+        if(!deleteFile(iFile, true)) {
+          throw new IOException("Cannot override existing file: " + src);
+        }
+      } else if(iFile.getFileState().equals(FileState.UNDER_CONSTRUCTION)) {
+        // Opening an existing file for write - may need to recover lease.
+        reassignLease(iFile, src, clientName, false);
+      } else {
+        throw new FileAlreadyExistsException();
+      }
+    }
 
     Path parentPath = new Path(src).getParent();
     assert parentPath != null : "File must have a parent";
@@ -332,23 +355,21 @@ public class NamespaceProcessor implements ClientProtocol,
           + src);
     }
 
-    if(overwrite && iFile != null) {
-      if(!deleteFile(iFile, true)) {
-        throw new IOException("Cannot override existing file: " + src);
-      }
-    }
-
     // if file did not exist, create its INode now
-    if(iFile == null) {
+    if(iFile == null && create) {
       RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
+      FileLease fileLease =
+          leaseManager.addLease(new FileLease(clientName, src, time));
       iFile = new INode(0, false, replication, blockSize, time, time,
-          masked, clientName, machineName, null,
-          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null, null);
+          masked, userName, groupName, null,
+          key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null, null,
+          fileLease);
     }
 
     // add file to HBase (update if already exists)
     nodeManager.updateINode(iFile);
+    LOG.info("Created file: " + src);
     return iFile.getLocatedFileStatus();
   }
 
@@ -649,7 +670,7 @@ public class NamespaceProcessor implements ClientProtocol,
         long time = now();
         inode = new INode(0, true, (short) 0, 0, time, time,
             masked, clientName, machineName, null,
-            key, 0, 0, null, null, null, null);
+            key, 0, 0, null, null, null, null, null);
         nodeManager.updateINode(inode);
       }
       return true;
@@ -676,7 +697,7 @@ public class NamespaceProcessor implements ClientProtocol,
     long time = now();
     inode = new INode(0, true, (short) 0, 0, time, time,
         masked, clientName, machineName, null,
-        key, 0, 0, null, null, null, null);
+        key, 0, 0, null, null, null, null, null);
 
     // add directory to HBase
     nodeManager.updateINode(inode);
@@ -804,7 +825,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws IOException {
     RowKey srcKey = srcNode.getRowKey();
     String src = srcKey.getPath();
-    LOG.debug("Copying "+src+" to "+dst+" with rename flag");
+    LOG.debug("Copying " + src + " to " + dst + " with rename flag");
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
     nodeManager.updateINode(dstNode);
@@ -895,7 +916,15 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override // ClientProtocol
   public void renewLease(String clientName) throws AccessControlException,
       IOException {
-    throw new IOException("renewLease is not supported");
+    Collection<FileLease> leases = leaseManager.renewLease(clientName);
+    // TODO: Bulk put / mutate INodes.
+    for(FileLease lease : leases) {
+      INode iNode = nodeManager.getINode(lease.getPath());
+      if(iNode != null) {
+        iNode.setLease(lease);
+        nodeManager.updateINodeLease(iNode);
+      }
+    }
   }
 
   @Override // ClientProtocol
@@ -1030,6 +1059,62 @@ public class NamespaceProcessor implements ClientProtocol,
                              String[] newStorageIDs)
       throws IOException {
     throw new IOException("updatePipeline is not supported");
+  }
+
+  /**
+   * Check if file is under construction and if lease matches holder's name.
+   * Returns true if INode has no lease or if lease holder matches param
+   * holder's name.
+   * Returns false otherwise.
+   * @param src The path to the INode
+   * @param file INode representing file in File System
+   * @param holder the client's name who should have lease
+   */
+  void checkLease(String src, INode file, String holder)
+      throws LeaseExpiredException {
+    if (file == null || file.isDir()) {
+      throw new LeaseExpiredException(
+          "No lease on " + src + ": File does not exist. Holder " +
+              holder + " does not have any open files.");
+    }
+    if (!file.getFileState().equals(FileState.UNDER_CONSTRUCTION)) {
+      throw new LeaseExpiredException(
+          "No lease on " + src + ": File is not open for writing. Holder " +
+              holder + " does not have any open files.");
+    }
+    if(file.getFileState().equals(FileState.UNDER_CONSTRUCTION) &&
+        !file.getLease().getHolder().equals(holder)) {
+      throw new LeaseExpiredException("Lease mismatch on " +
+          src + " owned by " +
+          file.getLease().getHolder() + " but is accessed by " + holder);
+    }
+  }
+
+  /**
+   * Try to take over the lease on behalf of param clientName.
+   * @param file INode representing a file in the File System
+   * @param src The path to the INode
+   * @param clientName Name of the client taking the lease
+   * @param force Should forcefully take the lease
+   */
+  void reassignLease(INode file, String src, String clientName,
+                     boolean force)
+      throws AlreadyBeingCreatedException {
+    FileLease lease = file.getLease();
+    if (!force && lease != null) {
+      if (lease.getHolder().equals(clientName)) {
+        throw new AlreadyBeingCreatedException("Failed to create file " + src +
+            " for " + clientName + " because current leaseholder is trying to" +
+            " recreate file.");
+      }
+      if(!lease.getHolder().equals(clientName) &&
+          !leaseManager.isLeaseSoftLimitExpired(clientName)) {
+        throw new AlreadyBeingCreatedException("Failed to create file ["
+            + src + "] for [" + clientName + "], because this file is " +
+            "already being created by [" + lease.getHolder() + "].");
+      }
+    }
+    file.setLease(new FileLease(clientName, src, now()));
   }
  
   private static long now() {
@@ -1205,5 +1290,27 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     throw new IOException("Extended Attributes are not supported");
+  }
+
+  /**
+   * Lease manager is a shared state between {@link NamespaceProcessor}.
+   * Any of them can instantiate LeaseManager if it has not been created yet.
+   * Once created its reference is stored in the shared environment.
+   */
+  public static LeaseManager originateSharedLeaseManager(
+      RegionCoprocessorEnvironment env) {
+    ConcurrentMap<String, Object> sharedData = env.getSharedData();
+    LeaseManager leaseManager = (LeaseManager) sharedData.get(
+        GIRAFFA_SHARED_STATE_KEY);
+    if(leaseManager == null) {
+      LOG.info("Creating new LeaseManager for " + env.getRegion());
+      leaseManager = new LeaseManager();
+      return (LeaseManager) sharedData.putIfAbsent(GIRAFFA_SHARED_STATE_KEY,
+          leaseManager);
+    } else {
+      LOG.info("LeaseManager already exists in shared state for "
+          + env.getRegion());
+    }
+    return leaseManager;
   }
 }

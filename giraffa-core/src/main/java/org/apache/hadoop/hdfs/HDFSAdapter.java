@@ -15,14 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa;
+package org.apache.hadoop.hdfs;
 
-public interface GiraffaConstants {
-  public static enum FileState {
-    CLOSED, UNDER_CONSTRUCTION, DELETED
+import org.apache.hadoop.hdfs.protocol.ClientProtocol;
+
+/**
+ * Adapter to HDFS client side APIs.
+ */
+public class HDFSAdapter {
+  @SuppressWarnings("deprecation")
+  private static DFSClient getClient(DistributedFileSystem hdfs) {
+    return hdfs.getClient();
   }
 
-  public static final String UTF8 = "UTF-8";
+  public static String getClientName(DistributedFileSystem hdfs) {
+    return getClient(hdfs).getClientName();
+  }
 
-  public static final String GIRAFFA_SHARED_STATE_KEY = "GiraffaSharedState";
+  public static ClientProtocol getClientProtocol(DistributedFileSystem hdfs) {
+    return getClient(hdfs).getNamenode();
+  }
 }
+

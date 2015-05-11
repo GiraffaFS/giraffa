@@ -1,10 +1,12 @@
 Giraffa Change Log
 
-Release 0.1.1 - unreleased
+Release 0.2.0 - unreleased
 
   INCOMPATIBLE CHANGES
 
   NEW FEATURES
+
+    Issue 31: Implement Leases. (Plamen)
 
   IMPROVEMENTS
 
@@ -12,6 +14,9 @@ Release 0.1.1 - unreleased
               class INodeManager. (Milan)
     Issue 101: Adding .idea folder to the .gitignore. (Cos)
     Issue 103: Fix NPE in afterClass(). (shv)
+    Issue 120: Replace System.out.println() and printStackTrace() with LOG
+               statements. (Andrey Stepachev)
+    Issue 104: Fix Java warnings excluding generated sources. (shv)
 
   DOCUMENTATION
 

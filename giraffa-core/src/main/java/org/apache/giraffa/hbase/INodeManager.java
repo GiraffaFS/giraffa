@@ -106,6 +106,19 @@ public class INodeManager implements Closeable {
   }
 
   /**
+   * Commit only the lease field of the given INode into HBase.
+   */
+  public void updateINodeLease(INode node) throws IOException {
+    long ts = Time.now();
+    Put put = new Put(node.getRowKey().getKey(), ts);
+    // lease update
+    put.add(FileField.getFileAttributes(), FileField.getLease(), ts,
+        node.getLeaseBytes());
+
+    getNSTable().put(put);
+  }
+
+  /**
    * Commit the fields of the given INode into HBase.
    */
   public void updateINode(INode node) throws IOException {
@@ -161,7 +174,9 @@ public class INodeManager implements Closeable {
       put.add(family, FileField.getBlock(), ts, node.getBlocksBytes())
           .add(family, FileField.getLocations(), ts, node.getLocationsBytes())
           .add(family, FileField.getFileState(), ts,
-              Bytes.toBytes(node.getFileState().toString()));
+              Bytes.toBytes(node.getFileState().toString()))
+          .add(family, FileField.getLease(), ts,
+              node.getLeaseBytes());
     }
 
     // block action
@@ -330,7 +345,8 @@ public class INodeManager implements Closeable {
         directory ? null : FileFieldDeserializer.getFileState(result),
         FileFieldDeserializer.getRenameState(result),
         directory ? null : FileFieldDeserializer.getBlocks(result),
-        directory ? null : FileFieldDeserializer.getLocations(result));
+        directory ? null : FileFieldDeserializer.getLocations(result),
+        directory ? null : FileFieldDeserializer.getLease(result, src));
   }
 
   private ResultScanner getListingScanner(RowKey key)

@@ -70,13 +70,17 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotFoundException;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
@@ -100,6 +104,8 @@ import org.apache.hadoop.hdfs.protocol.RollingUpgradeInfo;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseRequestProto;
+import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseResponseProto;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
 import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
@@ -113,6 +119,8 @@ import org.apache.hadoop.ipc.ProtobufHelper;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DataChecksum;
+
+import com.google.protobuf.RpcCallback;
 import com.google.protobuf.ServiceException;
 
  /**
@@ -180,10 +188,10 @@ public class NamespaceAgent implements NamespaceService {
     }
   }
 
-  private ClientProtocol getRegionProxy(String src) throws IOException {    
+  private ClientProtocol getRegionProxy(String src) throws IOException {
     return getRegionProxy(RowKeyFactory.newInstance(src));
   }
-  
+
   private ClientProtocol getRegionProxy(RowKey key) {
     // load blocking stub for protocol based on row key
     CoprocessorRpcChannel channel = nsTable.coprocessorService(key.getKey());
@@ -539,8 +547,29 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   @Override // ClientProtocol
-  public void renewLease(String clientName) throws AccessControlException,
-      IOException {
+  public void renewLease(final String clientName)
+      throws AccessControlException, IOException {
+    try {
+      nsTable.coprocessorService(ClientNamenodeProtocol.class,
+          HConstants.EMPTY_START_ROW,
+          HConstants.EMPTY_START_ROW,
+              new Batch.Call<ClientNamenodeProtocol, Void>() {
+                  @Override
+                  public Void call(ClientNamenodeProtocol instance)
+                      throws IOException {
+                    RenewLeaseRequestProto req =
+                        RenewLeaseRequestProto.newBuilder()
+                            .setClientName(clientName).build();
+                    ServerRpcController controller = new ServerRpcController();
+                    RpcCallback<RenewLeaseResponseProto> rpcCallback =
+                        new BlockingRpcCallback<RenewLeaseResponseProto>();
+                    instance.renewLease(controller, req, rpcCallback);
+                    return null;
+                  }
+              });
+    } catch (Throwable throwable) {
+      throw new IOException(throwable);
+    }
   }
 
   @Override // ClientProtocol

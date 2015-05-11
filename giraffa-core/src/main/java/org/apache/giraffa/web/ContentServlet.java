@@ -4,6 +4,7 @@ import org.mortbay.jetty.servlet.DefaultServlet;
 import org.mortbay.resource.Resource;
 
 public class ContentServlet extends DefaultServlet {
+  private static final long serialVersionUID = -315035973730134486L;
 
   @Override
   public Resource getResource(String pathInContext) {

@@ -58,6 +58,7 @@ public class INode {
   private List<DatanodeInfo[]> locations;
   private FileState fileState;
   private RenameState renameState;
+  private FileLease lease;
 
   public static final Log LOG = LogFactory.getLog(INode.class.getName());
 
@@ -68,7 +69,7 @@ public class INode {
       long mtime, long atime, FsPermission perms, String owner, String group,
       byte[] symlink, RowKey key, long dsQuota, long nsQuota, FileState state,
       RenameState renameState, List<UnlocatedBlock> blocks,
-      List<DatanodeInfo[]> locations) {
+      List<DatanodeInfo[]> locations, FileLease lease) {
     this.length = length;
     this.isdir = directory;
     this.block_replication = replication;
@@ -88,6 +89,7 @@ public class INode {
       this.blocks = (blocks == null ? new ArrayList<UnlocatedBlock>() : blocks);
       this.locations = (locations == null ?
           new ArrayList<DatanodeInfo[]>() : locations);
+      this.lease = (lease == null ? null : lease);
     }
   }
 
@@ -211,6 +213,10 @@ public class INode {
     return renameState;
   }
 
+  public FileLease getLease() {
+    return lease;
+  }
+
   /**
    * Get the blocks member as a byte array.
    * 
@@ -234,6 +240,13 @@ public class INode {
   public byte[] getRenameStateBytes() {
     return renameState == null ? null :
       GiraffaPBHelper.convert(renameState).toByteArray();
+  }
+
+  public byte[] getLeaseBytes() throws IOException {
+    if(isDir())
+      return null;
+    else
+      return GiraffaPBHelper.hdfsLeaseToBytes(lease);
   }
 
   public void setPermission(FsPermission newPermission) {
@@ -294,15 +307,19 @@ public class INode {
     this.locations = locations;
   }
 
+  public void setLease(FileLease lease) {
+    this.lease = lease;
+  }
+
   public INode cloneWithNewRowKey(RowKey newKey) {
     return new INode(length, isdir, block_replication, blocksize,
         modification_time, access_time, permission, owner, group, symlink,
-        newKey, dsQuota, nsQuota, fileState, renameState, blocks, locations);
+        newKey, dsQuota, nsQuota, fileState, renameState, blocks, locations,
+        lease);
   }
 
   @Override
   public String toString() {
     return "\"" + getRowKey().getPath() + "\":" + permission;
   }
-
 }

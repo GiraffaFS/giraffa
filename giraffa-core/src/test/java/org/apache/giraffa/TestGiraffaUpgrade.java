@@ -57,8 +57,12 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestGiraffaUpgrade {
+  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaUpgrade.class);
+
   private static MiniHBaseCluster cluster;
   private static final String TEST_IMAGE_FILE_OUT =
           GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
@@ -129,7 +133,7 @@ public class TestGiraffaUpgrade {
 
     FileStatus[] stats = grfa.listStatus(new Path("/"));
     for (FileStatus stat : stats) {
-      System.out.println(stat.getPath().getName());
+      LOG.debug(stat.getPath().getName());
     }
   }
 
@@ -198,14 +202,13 @@ public class TestGiraffaUpgrade {
         // COMMIT IT!
         INode node = new INode(length, isDirectory, replication, blockSize,
             modTime.getTime(), accessTime.getTime(), perm, userName,
-            groupName, null, RowKeyFactory.newInstance(path), dsQuota,
-            nsQuota, FileState.CLOSED, RenameState.FALSE(), blocks, locations);
+            groupName, null, RowKeyFactory.newInstance(path), dsQuota, nsQuota,
+            FileState.CLOSED, RenameState.FALSE(), blocks, locations, null);
         try {
           nodeManager.updateINode(node);
-          System.out.println("COMMITTED: " + path + ", with BLOCKS:" + blocks);
+          LOG.debug("COMMITTED: " + path + ", with BLOCKS:" + blocks);
         } catch(IOException e) {
-          System.err.println("Failed to commit INODE: "+path);
-          e.printStackTrace();
+          LOG.error("Failed to commit INODE: "+path, e);
           fail();
         }
       }
@@ -227,6 +230,8 @@ public class TestGiraffaUpgrade {
       long genStamp =
           Long.parseLong(br.readLine().replace("          GENERATION_STAMP = ", "").trim());
       totalLength += blockLength;
+      assertTrue("Wrong block id", blockID != 0);
+      assertTrue("Wrong block genStamp", genStamp > 0);
     }
     // PJJ: Block locations need to be fetched differently
     // This is just a work around for now to make it work.
