@@ -10,100 +10,258 @@ public final class GiraffaProtos {
   }
   public interface UnlocatedBlockProtoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
-    
+
     // required .hadoop.hdfs.ExtendedBlockProto b = 1;
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     boolean hasB();
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB();
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder();
-    
+
     // required uint64 offset = 2;
+    /**
+     * <code>required uint64 offset = 2;</code>
+     */
     boolean hasOffset();
+    /**
+     * <code>required uint64 offset = 2;</code>
+     */
     long getOffset();
-    
+
     // required bool corrupt = 3;
+    /**
+     * <code>required bool corrupt = 3;</code>
+     */
     boolean hasCorrupt();
+    /**
+     * <code>required bool corrupt = 3;</code>
+     */
     boolean getCorrupt();
-    
+
     // required .hadoop.common.TokenProto blockToken = 4;
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     boolean hasBlockToken();
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken();
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder();
   }
+  /**
+   * Protobuf type {@code giraffa.UnlocatedBlockProto}
+   */
   public static final class UnlocatedBlockProto extends
       com.google.protobuf.GeneratedMessage
       implements UnlocatedBlockProtoOrBuilder {
     // Use UnlocatedBlockProto.newBuilder() to construct.
-    private UnlocatedBlockProto(Builder builder) {
+    private UnlocatedBlockProto(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
+      this.unknownFields = builder.getUnknownFields();
     }
-    private UnlocatedBlockProto(boolean noInit) {}
-    
+    private UnlocatedBlockProto(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
     private static final UnlocatedBlockProto defaultInstance;
     public static UnlocatedBlockProto getDefaultInstance() {
       return defaultInstance;
     }
-    
+
     public UnlocatedBlockProto getDefaultInstanceForType() {
       return defaultInstance;
     }
-    
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private UnlocatedBlockProto(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000001) == 0x00000001)) {
+                subBuilder = b_.toBuilder();
+              }
+              b_ = input.readMessage(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(b_);
+                b_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000001;
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              offset_ = input.readUInt64();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              corrupt_ = input.readBool();
+              break;
+            }
+            case 34: {
+              org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000008) == 0x00000008)) {
+                subBuilder = blockToken_.toBuilder();
+              }
+              blockToken_ = input.readMessage(org.apache.hadoop.security.proto.SecurityProtos.TokenProto.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(blockToken_);
+                blockToken_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000008;
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_descriptor;
     }
-    
+
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable;
+      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.class, org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.Builder.class);
     }
-    
+
+    public static com.google.protobuf.Parser<UnlocatedBlockProto> PARSER =
+        new com.google.protobuf.AbstractParser<UnlocatedBlockProto>() {
+      public UnlocatedBlockProto parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new UnlocatedBlockProto(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<UnlocatedBlockProto> getParserForType() {
+      return PARSER;
+    }
+
     private int bitField0_;
     // required .hadoop.hdfs.ExtendedBlockProto b = 1;
     public static final int B_FIELD_NUMBER = 1;
     private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_;
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     public boolean hasB() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB() {
       return b_;
     }
+    /**
+     * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+     */
     public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder() {
       return b_;
     }
-    
+
     // required uint64 offset = 2;
     public static final int OFFSET_FIELD_NUMBER = 2;
     private long offset_;
+    /**
+     * <code>required uint64 offset = 2;</code>
+     */
     public boolean hasOffset() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
+    /**
+     * <code>required uint64 offset = 2;</code>
+     */
     public long getOffset() {
       return offset_;
     }
-    
+
     // required bool corrupt = 3;
     public static final int CORRUPT_FIELD_NUMBER = 3;
     private boolean corrupt_;
+    /**
+     * <code>required bool corrupt = 3;</code>
+     */
     public boolean hasCorrupt() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
+    /**
+     * <code>required bool corrupt = 3;</code>
+     */
     public boolean getCorrupt() {
       return corrupt_;
     }
-    
+
     // required .hadoop.common.TokenProto blockToken = 4;
     public static final int BLOCKTOKEN_FIELD_NUMBER = 4;
     private org.apache.hadoop.security.proto.SecurityProtos.TokenProto blockToken_;
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     public boolean hasBlockToken() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     public org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken() {
       return blockToken_;
     }
+    /**
+     * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+     */
     public org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder() {
       return blockToken_;
     }
-    
+
     private void initFields() {
       b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
       offset_ = 0L;
@@ -114,7 +272,7 @@ public final class GiraffaProtos {
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
-      
+
       if (!hasB()) {
         memoizedIsInitialized = 0;
         return false;
@@ -142,7 +300,7 @@ public final class GiraffaProtos {
       memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
@@ -160,12 +318,12 @@ public final class GiraffaProtos {
       }
       getUnknownFields().writeTo(output);
     }
-    
+
     private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
       int size = memoizedSerializedSize;
       if (size != -1) return size;
-    
+
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
@@ -187,14 +345,14 @@ public final class GiraffaProtos {
       memoizedSerializedSize = size;
       return size;
     }
-    
+
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
         throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
-    
+
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -204,7 +362,7 @@ public final class GiraffaProtos {
         return super.equals(obj);
       }
       org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto other = (org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto) obj;
-      
+
       boolean result = true;
       result = result && (hasB() == other.hasB());
       if (hasB()) {
@@ -230,9 +388,13 @@ public final class GiraffaProtos {
           getUnknownFields().equals(other.getUnknownFields());
       return result;
     }
-    
+
+    private int memoizedHashCode = 0;
     @java.lang.Override
     public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasB()) {
@@ -252,89 +414,79 @@ public final class GiraffaProtos {
         hash = (53 * hash) + getBlockToken().hashCode();
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
       return hash;
     }
-    
+
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
-    
+
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder(org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
-    
+
     @java.lang.Override
     protected Builder newBuilderForType(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
+    /**
+     * Protobuf type {@code giraffa.UnlocatedBlockProto}
+     */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
        implements org.apache.giraffa.GiraffaProtos.UnlocatedBlockProtoOrBuilder {
@@ -342,18 +494,21 @@ public final class GiraffaProtos {
           getDescriptor() {
         return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_descriptor;
       }
-      
+
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable;
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.class, org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.Builder.class);
       }
-      
+
       // Construct using org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
-      
-      private Builder(BuilderParent parent) {
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -366,7 +521,7 @@ public final class GiraffaProtos {
       private static Builder create() {
         return new Builder();
       }
-      
+
       public Builder clear() {
         super.clear();
         if (bBuilder_ == null) {
@@ -387,20 +542,20 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
-      
+
       public Builder clone() {
         return create().mergeFrom(buildPartial());
       }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.getDescriptor();
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_UnlocatedBlockProto_descriptor;
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto getDefaultInstanceForType() {
         return org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.getDefaultInstance();
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto build() {
         org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto result = buildPartial();
         if (!result.isInitialized()) {
@@ -408,17 +563,7 @@ public final class GiraffaProtos {
         }
         return result;
       }
-      
-      private org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return result;
-      }
-      
+
       public org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto buildPartial() {
         org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto result = new org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto(this);
         int from_bitField0_ = bitField0_;
@@ -451,7 +596,7 @@ public final class GiraffaProtos {
         onBuilt();
         return result;
       }
-      
+
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto) {
           return mergeFrom((org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto)other);
@@ -460,7 +605,7 @@ public final class GiraffaProtos {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto other) {
         if (other == org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.getDefaultInstance()) return this;
         if (other.hasB()) {
@@ -478,7 +623,7 @@ public final class GiraffaProtos {
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
-      
+
       public final boolean isInitialized() {
         if (!hasB()) {
           
@@ -506,71 +651,39 @@ public final class GiraffaProtos {
         }
         return true;
       }
-      
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              this.setUnknownFields(unknownFields.build());
-              onChanged();
-              return this;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                onChanged();
-                return this;
-              }
-              break;
-            }
-            case 10: {
-              org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder subBuilder = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.newBuilder();
-              if (hasB()) {
-                subBuilder.mergeFrom(getB());
-              }
-              input.readMessage(subBuilder, extensionRegistry);
-              setB(subBuilder.buildPartial());
-              break;
-            }
-            case 16: {
-              bitField0_ |= 0x00000002;
-              offset_ = input.readUInt64();
-              break;
-            }
-            case 24: {
-              bitField0_ |= 0x00000004;
-              corrupt_ = input.readBool();
-              break;
-            }
-            case 34: {
-              org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder subBuilder = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.newBuilder();
-              if (hasBlockToken()) {
-                subBuilder.mergeFrom(getBlockToken());
-              }
-              input.readMessage(subBuilder, extensionRegistry);
-              setBlockToken(subBuilder.buildPartial());
-              break;
-            }
+        org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
           }
         }
+        return this;
       }
-      
       private int bitField0_;
-      
+
       // required .hadoop.hdfs.ExtendedBlockProto b = 1;
       private org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder> bBuilder_;
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public boolean hasB() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto getB() {
         if (bBuilder_ == null) {
           return b_;
@@ -578,6 +691,9 @@ public final class GiraffaProtos {
           return bBuilder_.getMessage();
         }
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public Builder setB(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto value) {
         if (bBuilder_ == null) {
           if (value == null) {
@@ -591,6 +707,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000001;
         return this;
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public Builder setB(
           org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder builderForValue) {
         if (bBuilder_ == null) {
@@ -602,6 +721,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000001;
         return this;
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public Builder mergeB(org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto value) {
         if (bBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001) &&
@@ -618,6 +740,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000001;
         return this;
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public Builder clearB() {
         if (bBuilder_ == null) {
           b_ = org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.getDefaultInstance();
@@ -628,11 +753,17 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder getBBuilder() {
         bitField0_ |= 0x00000001;
         onChanged();
         return getBFieldBuilder().getBuilder();
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       public org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder getBOrBuilder() {
         if (bBuilder_ != null) {
           return bBuilder_.getMessageOrBuilder();
@@ -640,6 +771,9 @@ public final class GiraffaProtos {
           return b_;
         }
       }
+      /**
+       * <code>required .hadoop.hdfs.ExtendedBlockProto b = 1;</code>
+       */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProto.Builder, org.apache.hadoop.hdfs.protocol.proto.HdfsProtos.ExtendedBlockProtoOrBuilder> 
           getBFieldBuilder() {
@@ -653,56 +787,86 @@ public final class GiraffaProtos {
         }
         return bBuilder_;
       }
-      
+
       // required uint64 offset = 2;
       private long offset_ ;
+      /**
+       * <code>required uint64 offset = 2;</code>
+       */
       public boolean hasOffset() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+      /**
+       * <code>required uint64 offset = 2;</code>
+       */
       public long getOffset() {
         return offset_;
       }
+      /**
+       * <code>required uint64 offset = 2;</code>
+       */
       public Builder setOffset(long value) {
         bitField0_ |= 0x00000002;
         offset_ = value;
         onChanged();
         return this;
       }
+      /**
+       * <code>required uint64 offset = 2;</code>
+       */
       public Builder clearOffset() {
         bitField0_ = (bitField0_ & ~0x00000002);
         offset_ = 0L;
         onChanged();
         return this;
       }
-      
+
       // required bool corrupt = 3;
       private boolean corrupt_ ;
+      /**
+       * <code>required bool corrupt = 3;</code>
+       */
       public boolean hasCorrupt() {
         return ((bitField0_ & 0x00000004) == 0x00000004);
       }
+      /**
+       * <code>required bool corrupt = 3;</code>
+       */
       public boolean getCorrupt() {
         return corrupt_;
       }
+      /**
+       * <code>required bool corrupt = 3;</code>
+       */
       public Builder setCorrupt(boolean value) {
         bitField0_ |= 0x00000004;
         corrupt_ = value;
         onChanged();
         return this;
       }
+      /**
+       * <code>required bool corrupt = 3;</code>
+       */
       public Builder clearCorrupt() {
         bitField0_ = (bitField0_ & ~0x00000004);
         corrupt_ = false;
         onChanged();
         return this;
       }
-      
+
       // required .hadoop.common.TokenProto blockToken = 4;
       private org.apache.hadoop.security.proto.SecurityProtos.TokenProto blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.security.proto.SecurityProtos.TokenProto, org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder, org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder> blockTokenBuilder_;
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public boolean hasBlockToken() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public org.apache.hadoop.security.proto.SecurityProtos.TokenProto getBlockToken() {
         if (blockTokenBuilder_ == null) {
           return blockToken_;
@@ -710,6 +874,9 @@ public final class GiraffaProtos {
           return blockTokenBuilder_.getMessage();
         }
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public Builder setBlockToken(org.apache.hadoop.security.proto.SecurityProtos.TokenProto value) {
         if (blockTokenBuilder_ == null) {
           if (value == null) {
@@ -723,6 +890,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000008;
         return this;
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public Builder setBlockToken(
           org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder builderForValue) {
         if (blockTokenBuilder_ == null) {
@@ -734,6 +904,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000008;
         return this;
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public Builder mergeBlockToken(org.apache.hadoop.security.proto.SecurityProtos.TokenProto value) {
         if (blockTokenBuilder_ == null) {
           if (((bitField0_ & 0x00000008) == 0x00000008) &&
@@ -750,6 +923,9 @@ public final class GiraffaProtos {
         bitField0_ |= 0x00000008;
         return this;
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public Builder clearBlockToken() {
         if (blockTokenBuilder_ == null) {
           blockToken_ = org.apache.hadoop.security.proto.SecurityProtos.TokenProto.getDefaultInstance();
@@ -760,11 +936,17 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder getBlockTokenBuilder() {
         bitField0_ |= 0x00000008;
         onChanged();
         return getBlockTokenFieldBuilder().getBuilder();
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       public org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder getBlockTokenOrBuilder() {
         if (blockTokenBuilder_ != null) {
           return blockTokenBuilder_.getMessageOrBuilder();
@@ -772,6 +954,9 @@ public final class GiraffaProtos {
           return blockToken_;
         }
       }
+      /**
+       * <code>required .hadoop.common.TokenProto blockToken = 4;</code>
+       */
       private com.google.protobuf.SingleFieldBuilder<
           org.apache.hadoop.security.proto.SecurityProtos.TokenProto, org.apache.hadoop.security.proto.SecurityProtos.TokenProto.Builder, org.apache.hadoop.security.proto.SecurityProtos.TokenProtoOrBuilder> 
           getBlockTokenFieldBuilder() {
@@ -785,78 +970,174 @@ public final class GiraffaProtos {
         }
         return blockTokenBuilder_;
       }
-      
+
       // @@protoc_insertion_point(builder_scope:giraffa.UnlocatedBlockProto)
     }
-    
+
     static {
       defaultInstance = new UnlocatedBlockProto(true);
       defaultInstance.initFields();
     }
-    
+
     // @@protoc_insertion_point(class_scope:giraffa.UnlocatedBlockProto)
   }
-  
+
   public interface RenameStateProtoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
-    
+
     // required bool flag = 1;
+    /**
+     * <code>required bool flag = 1;</code>
+     */
     boolean hasFlag();
+    /**
+     * <code>required bool flag = 1;</code>
+     */
     boolean getFlag();
-    
+
     // optional bytes src = 2;
+    /**
+     * <code>optional bytes src = 2;</code>
+     */
     boolean hasSrc();
+    /**
+     * <code>optional bytes src = 2;</code>
+     */
     com.google.protobuf.ByteString getSrc();
   }
+  /**
+   * Protobuf type {@code giraffa.RenameStateProto}
+   */
   public static final class RenameStateProto extends
       com.google.protobuf.GeneratedMessage
       implements RenameStateProtoOrBuilder {
     // Use RenameStateProto.newBuilder() to construct.
-    private RenameStateProto(Builder builder) {
+    private RenameStateProto(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
+      this.unknownFields = builder.getUnknownFields();
     }
-    private RenameStateProto(boolean noInit) {}
-    
+    private RenameStateProto(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
     private static final RenameStateProto defaultInstance;
     public static RenameStateProto getDefaultInstance() {
       return defaultInstance;
     }
-    
+
     public RenameStateProto getDefaultInstanceForType() {
       return defaultInstance;
     }
-    
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private RenameStateProto(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              flag_ = input.readBool();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              src_ = input.readBytes();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_descriptor;
     }
-    
+
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_fieldAccessorTable;
+      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.giraffa.GiraffaProtos.RenameStateProto.class, org.apache.giraffa.GiraffaProtos.RenameStateProto.Builder.class);
     }
-    
+
+    public static com.google.protobuf.Parser<RenameStateProto> PARSER =
+        new com.google.protobuf.AbstractParser<RenameStateProto>() {
+      public RenameStateProto parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new RenameStateProto(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<RenameStateProto> getParserForType() {
+      return PARSER;
+    }
+
     private int bitField0_;
     // required bool flag = 1;
     public static final int FLAG_FIELD_NUMBER = 1;
     private boolean flag_;
+    /**
+     * <code>required bool flag = 1;</code>
+     */
     public boolean hasFlag() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
+    /**
+     * <code>required bool flag = 1;</code>
+     */
     public boolean getFlag() {
       return flag_;
     }
-    
+
     // optional bytes src = 2;
     public static final int SRC_FIELD_NUMBER = 2;
     private com.google.protobuf.ByteString src_;
+    /**
+     * <code>optional bytes src = 2;</code>
+     */
     public boolean hasSrc() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
+    /**
+     * <code>optional bytes src = 2;</code>
+     */
     public com.google.protobuf.ByteString getSrc() {
       return src_;
     }
-    
+
     private void initFields() {
       flag_ = false;
       src_ = com.google.protobuf.ByteString.EMPTY;
@@ -865,7 +1146,7 @@ public final class GiraffaProtos {
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
-      
+
       if (!hasFlag()) {
         memoizedIsInitialized = 0;
         return false;
@@ -873,7 +1154,7 @@ public final class GiraffaProtos {
       memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
@@ -885,12 +1166,12 @@ public final class GiraffaProtos {
       }
       getUnknownFields().writeTo(output);
     }
-    
+
     private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
       int size = memoizedSerializedSize;
       if (size != -1) return size;
-    
+
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
@@ -904,14 +1185,14 @@ public final class GiraffaProtos {
       memoizedSerializedSize = size;
       return size;
     }
-    
+
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
         throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
-    
+
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -921,7 +1202,7 @@ public final class GiraffaProtos {
         return super.equals(obj);
       }
       org.apache.giraffa.GiraffaProtos.RenameStateProto other = (org.apache.giraffa.GiraffaProtos.RenameStateProto) obj;
-      
+
       boolean result = true;
       result = result && (hasFlag() == other.hasFlag());
       if (hasFlag()) {
@@ -937,9 +1218,13 @@ public final class GiraffaProtos {
           getUnknownFields().equals(other.getUnknownFields());
       return result;
     }
-    
+
+    private int memoizedHashCode = 0;
     @java.lang.Override
     public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasFlag()) {
@@ -951,89 +1236,79 @@ public final class GiraffaProtos {
         hash = (53 * hash) + getSrc().hashCode();
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
       return hash;
     }
-    
+
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.RenameStateProto parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
-    
+
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder(org.apache.giraffa.GiraffaProtos.RenameStateProto prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
-    
+
     @java.lang.Override
     protected Builder newBuilderForType(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
+    /**
+     * Protobuf type {@code giraffa.RenameStateProto}
+     */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
        implements org.apache.giraffa.GiraffaProtos.RenameStateProtoOrBuilder {
@@ -1041,18 +1316,21 @@ public final class GiraffaProtos {
           getDescriptor() {
         return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_descriptor;
       }
-      
+
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_fieldAccessorTable;
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.giraffa.GiraffaProtos.RenameStateProto.class, org.apache.giraffa.GiraffaProtos.RenameStateProto.Builder.class);
       }
-      
+
       // Construct using org.apache.giraffa.GiraffaProtos.RenameStateProto.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
-      
-      private Builder(BuilderParent parent) {
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -1063,7 +1341,7 @@ public final class GiraffaProtos {
       private static Builder create() {
         return new Builder();
       }
-      
+
       public Builder clear() {
         super.clear();
         flag_ = false;
@@ -1072,20 +1350,20 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
-      
+
       public Builder clone() {
         return create().mergeFrom(buildPartial());
       }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.apache.giraffa.GiraffaProtos.RenameStateProto.getDescriptor();
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_RenameStateProto_descriptor;
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.RenameStateProto getDefaultInstanceForType() {
         return org.apache.giraffa.GiraffaProtos.RenameStateProto.getDefaultInstance();
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.RenameStateProto build() {
         org.apache.giraffa.GiraffaProtos.RenameStateProto result = buildPartial();
         if (!result.isInitialized()) {
@@ -1093,17 +1371,7 @@ public final class GiraffaProtos {
         }
         return result;
       }
-      
-      private org.apache.giraffa.GiraffaProtos.RenameStateProto buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        org.apache.giraffa.GiraffaProtos.RenameStateProto result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return result;
-      }
-      
+
       public org.apache.giraffa.GiraffaProtos.RenameStateProto buildPartial() {
         org.apache.giraffa.GiraffaProtos.RenameStateProto result = new org.apache.giraffa.GiraffaProtos.RenameStateProto(this);
         int from_bitField0_ = bitField0_;
@@ -1120,7 +1388,7 @@ public final class GiraffaProtos {
         onBuilt();
         return result;
       }
-      
+
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.apache.giraffa.GiraffaProtos.RenameStateProto) {
           return mergeFrom((org.apache.giraffa.GiraffaProtos.RenameStateProto)other);
@@ -1129,7 +1397,7 @@ public final class GiraffaProtos {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(org.apache.giraffa.GiraffaProtos.RenameStateProto other) {
         if (other == org.apache.giraffa.GiraffaProtos.RenameStateProto.getDefaultInstance()) return this;
         if (other.hasFlag()) {
@@ -1141,7 +1409,7 @@ public final class GiraffaProtos {
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
-      
+
       public final boolean isInitialized() {
         if (!hasFlag()) {
           
@@ -1149,75 +1417,76 @@ public final class GiraffaProtos {
         }
         return true;
       }
-      
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              this.setUnknownFields(unknownFields.build());
-              onChanged();
-              return this;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                onChanged();
-                return this;
-              }
-              break;
-            }
-            case 8: {
-              bitField0_ |= 0x00000001;
-              flag_ = input.readBool();
-              break;
-            }
-            case 18: {
-              bitField0_ |= 0x00000002;
-              src_ = input.readBytes();
-              break;
-            }
+        org.apache.giraffa.GiraffaProtos.RenameStateProto parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.giraffa.GiraffaProtos.RenameStateProto) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
           }
         }
+        return this;
       }
-      
       private int bitField0_;
-      
+
       // required bool flag = 1;
       private boolean flag_ ;
+      /**
+       * <code>required bool flag = 1;</code>
+       */
       public boolean hasFlag() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
+      /**
+       * <code>required bool flag = 1;</code>
+       */
       public boolean getFlag() {
         return flag_;
       }
+      /**
+       * <code>required bool flag = 1;</code>
+       */
       public Builder setFlag(boolean value) {
         bitField0_ |= 0x00000001;
         flag_ = value;
         onChanged();
         return this;
       }
+      /**
+       * <code>required bool flag = 1;</code>
+       */
       public Builder clearFlag() {
         bitField0_ = (bitField0_ & ~0x00000001);
         flag_ = false;
         onChanged();
         return this;
       }
-      
+
       // optional bytes src = 2;
       private com.google.protobuf.ByteString src_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes src = 2;</code>
+       */
       public boolean hasSrc() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+      /**
+       * <code>optional bytes src = 2;</code>
+       */
       public com.google.protobuf.ByteString getSrc() {
         return src_;
       }
+      /**
+       * <code>optional bytes src = 2;</code>
+       */
       public Builder setSrc(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
@@ -1227,106 +1496,215 @@ public final class GiraffaProtos {
         onChanged();
         return this;
       }
+      /**
+       * <code>optional bytes src = 2;</code>
+       */
       public Builder clearSrc() {
         bitField0_ = (bitField0_ & ~0x00000002);
         src_ = getDefaultInstance().getSrc();
         onChanged();
         return this;
       }
-      
+
       // @@protoc_insertion_point(builder_scope:giraffa.RenameStateProto)
     }
-    
+
     static {
       defaultInstance = new RenameStateProto(true);
       defaultInstance.initFields();
     }
-    
+
     // @@protoc_insertion_point(class_scope:giraffa.RenameStateProto)
   }
-  
+
   public interface FileLeaseProtoOrBuilder
       extends com.google.protobuf.MessageOrBuilder {
-    
+
     // required string holder = 1;
+    /**
+     * <code>required string holder = 1;</code>
+     */
     boolean hasHolder();
-    String getHolder();
-    
+    /**
+     * <code>required string holder = 1;</code>
+     */
+    java.lang.String getHolder();
+    /**
+     * <code>required string holder = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getHolderBytes();
+
     // optional uint64 lastUpdate = 2;
+    /**
+     * <code>optional uint64 lastUpdate = 2;</code>
+     */
     boolean hasLastUpdate();
+    /**
+     * <code>optional uint64 lastUpdate = 2;</code>
+     */
     long getLastUpdate();
   }
+  /**
+   * Protobuf type {@code giraffa.FileLeaseProto}
+   */
   public static final class FileLeaseProto extends
       com.google.protobuf.GeneratedMessage
       implements FileLeaseProtoOrBuilder {
     // Use FileLeaseProto.newBuilder() to construct.
-    private FileLeaseProto(Builder builder) {
+    private FileLeaseProto(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
+      this.unknownFields = builder.getUnknownFields();
     }
-    private FileLeaseProto(boolean noInit) {}
-    
+    private FileLeaseProto(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
     private static final FileLeaseProto defaultInstance;
     public static FileLeaseProto getDefaultInstance() {
       return defaultInstance;
     }
-    
+
     public FileLeaseProto getDefaultInstanceForType() {
       return defaultInstance;
     }
-    
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private FileLeaseProto(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              holder_ = input.readBytes();
+              break;
+            }
+            case 16: {
+              bitField0_ |= 0x00000002;
+              lastUpdate_ = input.readUInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_descriptor;
     }
-    
+
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_fieldAccessorTable;
+      return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.apache.giraffa.GiraffaProtos.FileLeaseProto.class, org.apache.giraffa.GiraffaProtos.FileLeaseProto.Builder.class);
     }
-    
+
+    public static com.google.protobuf.Parser<FileLeaseProto> PARSER =
+        new com.google.protobuf.AbstractParser<FileLeaseProto>() {
+      public FileLeaseProto parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new FileLeaseProto(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<FileLeaseProto> getParserForType() {
+      return PARSER;
+    }
+
     private int bitField0_;
     // required string holder = 1;
     public static final int HOLDER_FIELD_NUMBER = 1;
     private java.lang.Object holder_;
+    /**
+     * <code>required string holder = 1;</code>
+     */
     public boolean hasHolder() {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
-    public String getHolder() {
+    /**
+     * <code>required string holder = 1;</code>
+     */
+    public java.lang.String getHolder() {
       java.lang.Object ref = holder_;
-      if (ref instanceof String) {
-        return (String) ref;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
       } else {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
-        String s = bs.toStringUtf8();
-        if (com.google.protobuf.Internal.isValidUtf8(bs)) {
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
           holder_ = s;
         }
         return s;
       }
     }
-    private com.google.protobuf.ByteString getHolderBytes() {
+    /**
+     * <code>required string holder = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getHolderBytes() {
       java.lang.Object ref = holder_;
-      if (ref instanceof String) {
+      if (ref instanceof java.lang.String) {
         com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8((String) ref);
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
         holder_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
-    
+
     // optional uint64 lastUpdate = 2;
     public static final int LASTUPDATE_FIELD_NUMBER = 2;
     private long lastUpdate_;
+    /**
+     * <code>optional uint64 lastUpdate = 2;</code>
+     */
     public boolean hasLastUpdate() {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
+    /**
+     * <code>optional uint64 lastUpdate = 2;</code>
+     */
     public long getLastUpdate() {
       return lastUpdate_;
     }
-    
+
     private void initFields() {
       holder_ = "";
       lastUpdate_ = 0L;
@@ -1335,7 +1713,7 @@ public final class GiraffaProtos {
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized != -1) return isInitialized == 1;
-      
+
       if (!hasHolder()) {
         memoizedIsInitialized = 0;
         return false;
@@ -1343,7 +1721,7 @@ public final class GiraffaProtos {
       memoizedIsInitialized = 1;
       return true;
     }
-    
+
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
@@ -1355,12 +1733,12 @@ public final class GiraffaProtos {
       }
       getUnknownFields().writeTo(output);
     }
-    
+
     private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
       int size = memoizedSerializedSize;
       if (size != -1) return size;
-    
+
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
@@ -1374,14 +1752,14 @@ public final class GiraffaProtos {
       memoizedSerializedSize = size;
       return size;
     }
-    
+
     private static final long serialVersionUID = 0L;
     @java.lang.Override
     protected java.lang.Object writeReplace()
         throws java.io.ObjectStreamException {
       return super.writeReplace();
     }
-    
+
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -1391,7 +1769,7 @@ public final class GiraffaProtos {
         return super.equals(obj);
       }
       org.apache.giraffa.GiraffaProtos.FileLeaseProto other = (org.apache.giraffa.GiraffaProtos.FileLeaseProto) obj;
-      
+
       boolean result = true;
       result = result && (hasHolder() == other.hasHolder());
       if (hasHolder()) {
@@ -1407,9 +1785,13 @@ public final class GiraffaProtos {
           getUnknownFields().equals(other.getUnknownFields());
       return result;
     }
-    
+
+    private int memoizedHashCode = 0;
     @java.lang.Override
     public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
       int hash = 41;
       hash = (19 * hash) + getDescriptorForType().hashCode();
       if (hasHolder()) {
@@ -1421,89 +1803,79 @@ public final class GiraffaProtos {
         hash = (53 * hash) + hashLong(getLastUpdate());
       }
       hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
       return hash;
     }
-    
+
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data).buildParsed();
+      return PARSER.parseFrom(data);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      return newBuilder().mergeFrom(data, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(data, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      Builder builder = newBuilder();
-      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
-        return builder.buildParsed();
-      } else {
-        return null;
-      }
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input).buildParsed();
+      return PARSER.parseFrom(input);
     }
     public static org.apache.giraffa.GiraffaProtos.FileLeaseProto parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return newBuilder().mergeFrom(input, extensionRegistry)
-               .buildParsed();
+      return PARSER.parseFrom(input, extensionRegistry);
     }
-    
+
     public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder(org.apache.giraffa.GiraffaProtos.FileLeaseProto prototype) {
       return newBuilder().mergeFrom(prototype);
     }
     public Builder toBuilder() { return newBuilder(this); }
-    
+
     @java.lang.Override
     protected Builder newBuilderForType(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
+    /**
+     * Protobuf type {@code giraffa.FileLeaseProto}
+     */
     public static final class Builder extends
         com.google.protobuf.GeneratedMessage.Builder<Builder>
        implements org.apache.giraffa.GiraffaProtos.FileLeaseProtoOrBuilder {
@@ -1511,18 +1883,21 @@ public final class GiraffaProtos {
           getDescriptor() {
         return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_descriptor;
       }
-      
+
       protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_fieldAccessorTable;
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.apache.giraffa.GiraffaProtos.FileLeaseProto.class, org.apache.giraffa.GiraffaProtos.FileLeaseProto.Builder.class);
       }
-      
+
       // Construct using org.apache.giraffa.GiraffaProtos.FileLeaseProto.newBuilder()
       private Builder() {
         maybeForceBuilderInitialization();
       }
-      
-      private Builder(BuilderParent parent) {
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
@@ -1533,7 +1908,7 @@ public final class GiraffaProtos {
       private static Builder create() {
         return new Builder();
       }
-      
+
       public Builder clear() {
         super.clear();
         holder_ = "";
@@ -1542,20 +1917,20 @@ public final class GiraffaProtos {
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
-      
+
       public Builder clone() {
         return create().mergeFrom(buildPartial());
       }
-      
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.apache.giraffa.GiraffaProtos.FileLeaseProto.getDescriptor();
+        return org.apache.giraffa.GiraffaProtos.internal_static_giraffa_FileLeaseProto_descriptor;
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.FileLeaseProto getDefaultInstanceForType() {
         return org.apache.giraffa.GiraffaProtos.FileLeaseProto.getDefaultInstance();
       }
-      
+
       public org.apache.giraffa.GiraffaProtos.FileLeaseProto build() {
         org.apache.giraffa.GiraffaProtos.FileLeaseProto result = buildPartial();
         if (!result.isInitialized()) {
@@ -1563,17 +1938,7 @@ public final class GiraffaProtos {
         }
         return result;
       }
-      
-      private org.apache.giraffa.GiraffaProtos.FileLeaseProto buildParsed()
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        org.apache.giraffa.GiraffaProtos.FileLeaseProto result = buildPartial();
-        if (!result.isInitialized()) {
-          throw newUninitializedMessageException(
-            result).asInvalidProtocolBufferException();
-        }
-        return result;
-      }
-      
+
       public org.apache.giraffa.GiraffaProtos.FileLeaseProto buildPartial() {
         org.apache.giraffa.GiraffaProtos.FileLeaseProto result = new org.apache.giraffa.GiraffaProtos.FileLeaseProto(this);
         int from_bitField0_ = bitField0_;
@@ -1590,7 +1955,7 @@ public final class GiraffaProtos {
         onBuilt();
         return result;
       }
-      
+
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.apache.giraffa.GiraffaProtos.FileLeaseProto) {
           return mergeFrom((org.apache.giraffa.GiraffaProtos.FileLeaseProto)other);
@@ -1599,11 +1964,13 @@ public final class GiraffaProtos {
           return this;
         }
       }
-      
+
       public Builder mergeFrom(org.apache.giraffa.GiraffaProtos.FileLeaseProto other) {
         if (other == org.apache.giraffa.GiraffaProtos.FileLeaseProto.getDefaultInstance()) return this;
         if (other.hasHolder()) {
-          setHolder(other.getHolder());
+          bitField0_ |= 0x00000001;
+          holder_ = other.holder_;
+          onChanged();
         }
         if (other.hasLastUpdate()) {
           setLastUpdate(other.getLastUpdate());
@@ -1611,7 +1978,7 @@ public final class GiraffaProtos {
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
-      
+
       public final boolean isInitialized() {
         if (!hasHolder()) {
           
@@ -1619,62 +1986,69 @@ public final class GiraffaProtos {
         }
         return true;
       }
-      
+
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder(
-            this.getUnknownFields());
-        while (true) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              this.setUnknownFields(unknownFields.build());
-              onChanged();
-              return this;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                this.setUnknownFields(unknownFields.build());
-                onChanged();
-                return this;
-              }
-              break;
-            }
-            case 10: {
-              bitField0_ |= 0x00000001;
-              holder_ = input.readBytes();
-              break;
-            }
-            case 16: {
-              bitField0_ |= 0x00000002;
-              lastUpdate_ = input.readUInt64();
-              break;
-            }
+        org.apache.giraffa.GiraffaProtos.FileLeaseProto parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.apache.giraffa.GiraffaProtos.FileLeaseProto) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
           }
         }
+        return this;
       }
-      
       private int bitField0_;
-      
+
       // required string holder = 1;
       private java.lang.Object holder_ = "";
+      /**
+       * <code>required string holder = 1;</code>
+       */
       public boolean hasHolder() {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
-      public String getHolder() {
+      /**
+       * <code>required string holder = 1;</code>
+       */
+      public java.lang.String getHolder() {
         java.lang.Object ref = holder_;
-        if (!(ref instanceof String)) {
-          String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
           holder_ = s;
           return s;
         } else {
-          return (String) ref;
+          return (java.lang.String) ref;
         }
       }
-      public Builder setHolder(String value) {
+      /**
+       * <code>required string holder = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getHolderBytes() {
+        java.lang.Object ref = holder_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          holder_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>required string holder = 1;</code>
+       */
+      public Builder setHolder(
+          java.lang.String value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -1683,50 +2057,73 @@ public final class GiraffaProtos {
         onChanged();
         return this;
       }
+      /**
+       * <code>required string holder = 1;</code>
+       */
       public Builder clearHolder() {
         bitField0_ = (bitField0_ & ~0x00000001);
         holder_ = getDefaultInstance().getHolder();
         onChanged();
         return this;
       }
-      void setHolder(com.google.protobuf.ByteString value) {
-        bitField0_ |= 0x00000001;
+      /**
+       * <code>required string holder = 1;</code>
+       */
+      public Builder setHolderBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
         holder_ = value;
         onChanged();
+        return this;
       }
-      
+
       // optional uint64 lastUpdate = 2;
       private long lastUpdate_ ;
+      /**
+       * <code>optional uint64 lastUpdate = 2;</code>
+       */
       public boolean hasLastUpdate() {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
+      /**
+       * <code>optional uint64 lastUpdate = 2;</code>
+       */
       public long getLastUpdate() {
         return lastUpdate_;
       }
+      /**
+       * <code>optional uint64 lastUpdate = 2;</code>
+       */
       public Builder setLastUpdate(long value) {
         bitField0_ |= 0x00000002;
         lastUpdate_ = value;
         onChanged();
         return this;
       }
+      /**
+       * <code>optional uint64 lastUpdate = 2;</code>
+       */
       public Builder clearLastUpdate() {
         bitField0_ = (bitField0_ & ~0x00000002);
         lastUpdate_ = 0L;
         onChanged();
         return this;
       }
-      
+
       // @@protoc_insertion_point(builder_scope:giraffa.FileLeaseProto)
     }
-    
+
     static {
       defaultInstance = new FileLeaseProto(true);
       defaultInstance.initFields();
     }
-    
+
     // @@protoc_insertion_point(class_scope:giraffa.FileLeaseProto)
   }
-  
+
   private static com.google.protobuf.Descriptors.Descriptor
     internal_static_giraffa_UnlocatedBlockProto_descriptor;
   private static
@@ -1742,7 +2139,7 @@ public final class GiraffaProtos {
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_giraffa_FileLeaseProto_fieldAccessorTable;
-  
+
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
@@ -1771,25 +2168,19 @@ public final class GiraffaProtos {
           internal_static_giraffa_UnlocatedBlockProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_giraffa_UnlocatedBlockProto_descriptor,
-              new java.lang.String[] { "B", "Offset", "Corrupt", "BlockToken", },
-              org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.class,
-              org.apache.giraffa.GiraffaProtos.UnlocatedBlockProto.Builder.class);
+              new java.lang.String[] { "B", "Offset", "Corrupt", "BlockToken", });
           internal_static_giraffa_RenameStateProto_descriptor =
             getDescriptor().getMessageTypes().get(1);
           internal_static_giraffa_RenameStateProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_giraffa_RenameStateProto_descriptor,
-              new java.lang.String[] { "Flag", "Src", },
-              org.apache.giraffa.GiraffaProtos.RenameStateProto.class,
-              org.apache.giraffa.GiraffaProtos.RenameStateProto.Builder.class);
+              new java.lang.String[] { "Flag", "Src", });
           internal_static_giraffa_FileLeaseProto_descriptor =
             getDescriptor().getMessageTypes().get(2);
           internal_static_giraffa_FileLeaseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_giraffa_FileLeaseProto_descriptor,
-              new java.lang.String[] { "Holder", "LastUpdate", },
-              org.apache.giraffa.GiraffaProtos.FileLeaseProto.class,
-              org.apache.giraffa.GiraffaProtos.FileLeaseProto.Builder.class);
+              new java.lang.String[] { "Holder", "LastUpdate", });
           return null;
         }
       };
@@ -1800,6 +2191,6 @@ public final class GiraffaProtos {
           org.apache.hadoop.security.proto.SecurityProtos.getDescriptor(),
         }, assigner);
   }
-  
+
   // @@protoc_insertion_point(outer_class_scope)
 }
