@@ -257,9 +257,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public boolean complete(String src, String clientName,
                           ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
-             UnresolvedLinkException, IOException {
-    if(last == null)
-      return true;
+      UnresolvedLinkException, IOException {
     INode iNode = nodeManager.getINode(src);
 
     if(iNode == null) {
