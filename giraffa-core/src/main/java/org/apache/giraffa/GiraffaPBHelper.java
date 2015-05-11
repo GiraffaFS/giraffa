@@ -76,7 +76,7 @@ import static org.apache.giraffa.GiraffaProtos.FileLeaseProto;
  */
 public class GiraffaPBHelper {
   private final static LocatedBlockProto LOCATED_BLOCK_PROTO = PBHelper.convert(
-      new LocatedBlock(new ExtendedBlock(), new DatanodeInfo[0]));
+      new LocatedBlock(new ExtendedBlock("", 0), new DatanodeInfo[0]));
 
   private static UnlocatedBlockProto convert(UnlocatedBlock toConv) {
     UnlocatedBlockProto.Builder builder = UnlocatedBlockProto.newBuilder();
