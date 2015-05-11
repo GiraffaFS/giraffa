@@ -115,13 +115,39 @@ public class TestGiraffaFileStatus {
 
     out.close();
 
-    assertTrue("Returned FileStatus was not HdfsLocatedFileStatus.", 
+    assertTrue("Returned FileStatus was not HdfsLocatedFileStatus.",
         status instanceof HdfsLocatedFileStatus);
     
     LocatedBlocks blocks = ((HdfsLocatedFileStatus) status).getBlockLocations();
     assertTrue("Not marked under construction.", blocks.isUnderConstruction());
     assertFalse("Last block marked complete.", blocks.isLastBlockComplete());
     assertEquals("File size by blocks differs from status.", blocks.getFileLength(), status.getLen());
+
+    assertTrue(grfs.delete(file, false));
+  }
+
+  @Test
+  public void testEmptyFileLocatedFileStatus() throws IOException {
+    Path file = new Path("/fileA");
+    FSDataOutputStream out = grfs.create(file, true, 5000, (short) 3, 512);
+    out.close();
+
+    DirectoryListing listing = grfaClient.listPaths("/fileA", null, true);
+    assertTrue("DirectoryListing.getPartialListing() returned empty result.",
+        listing.getPartialListing().length > 0);
+    HdfsFileStatus status = listing.getPartialListing()[0];
+
+    assertTrue("Returned FileStatus was not HdfsLocatedFileStatus.",
+        status instanceof HdfsLocatedFileStatus);
+
+    LocatedBlocks blocks = ((HdfsLocatedFileStatus) status).getBlockLocations();
+    assertEquals("Incorrect number of blocks returned.", 0,
+        blocks.getLocatedBlocks().size());
+    assertFalse("Marked under construction.", blocks.isUnderConstruction());
+    assertTrue("Last block not complete.", blocks.isLastBlockComplete());
+
+    assertTrue("File size by blocks differs from status.",
+        blocks.getFileLength() == status.getLen());
 
     assertTrue(grfs.delete(file, false));
   }
