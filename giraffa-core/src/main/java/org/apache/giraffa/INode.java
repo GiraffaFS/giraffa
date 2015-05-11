@@ -99,7 +99,8 @@ public class INode {
   public HdfsFileStatus getLocatedFileStatus() {
     List<LocatedBlock> locatedBlocksList =
         UnlocatedBlock.toLocatedBlocks(blocks, locations);
-    LocatedBlock lastBlock = locatedBlocksList.get(locatedBlocksList.size()-1);
+    int blks = locatedBlocksList.size();
+    LocatedBlock lastBlock = blks == 0 ? null : locatedBlocksList.get(blks-1);
     boolean isUnderConstruction = (fileState == FileState.UNDER_CONSTRUCTION);
     boolean isLastBlockComplete = (fileState == FileState.CLOSED);
     LocatedBlocks locatedBlocks = new LocatedBlocks(length, isUnderConstruction,
