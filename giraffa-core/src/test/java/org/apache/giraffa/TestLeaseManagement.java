@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 
 import org.apache.giraffa.hbase.INodeManager;
+import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -34,7 +35,9 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Time;
@@ -66,8 +69,12 @@ public class TestLeaseManagement {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    CoprocessorEnvironment env = new CoprocessorHost.Environment(
-        null, 0, 0, cluster.getConfiguration());
+    TableName tableName =
+        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
+            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+    HRegion hRegion = UTIL.getHBaseCluster().getRegions(tableName).get(0);
+    CoprocessorEnvironment env = hRegion.getCoprocessorHost()
+        .findCoprocessorEnvironment(NamespaceProcessor.class.getName());
     nodeManager = new INodeManager(conf, env);
   }
 
