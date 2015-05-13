@@ -27,7 +27,9 @@ Release 0.2.0 - unreleased
   BUG FIXES
 
     Issue 130: ArrayIndexOutOfBoundsException when calling getLocatedFileStatus
-    on empty file. (Milan)
+               on empty file. (Milan)
+    Issue 114: Make tool.jar available as dependency on different platforms.
+               (Andrey Stepachev)
 
 Release 0.1.0 - 2014-11-07
 
