@@ -69,7 +69,7 @@ public class GiraffaClient extends DFSClient {
 
   @Override // DFSClient
   public void close() throws IOException {
-    getNamespaceService().close();
     super.close();
+    getNamespaceService().close();
   }
 }
