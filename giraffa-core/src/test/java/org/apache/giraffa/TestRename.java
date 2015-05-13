@@ -39,11 +39,8 @@ import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -51,7 +48,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestRename {
-  private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -62,7 +58,7 @@ public class TestRename {
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -72,9 +68,7 @@ public class TestRename {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    CoprocessorEnvironment env = new CoprocessorHost.Environment(
-        null, 0, 0, cluster.getConfiguration());
-    nodeManager = new INodeManager(conf, env);
+    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
   }
 
   @After

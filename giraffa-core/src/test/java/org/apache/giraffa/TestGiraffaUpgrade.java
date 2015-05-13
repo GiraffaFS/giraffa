@@ -35,15 +35,11 @@ import java.util.List;
 
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.hbase.INodeManager;
-import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -92,13 +88,7 @@ public class TestGiraffaUpgrade {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
-    TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
-    HRegion hRegion = UTIL.getHBaseCluster().getRegions(tableName).get(0);
-    CoprocessorEnvironment env = hRegion.getCoprocessorHost()
-        .findCoprocessorEnvironment(NamespaceProcessor.class.getName());
-    nodeManager = new INodeManager(conf, env);
+    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
   }
 
   @After

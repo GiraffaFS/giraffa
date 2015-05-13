@@ -27,17 +27,11 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 
 import org.apache.giraffa.hbase.INodeManager;
-import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Time;
@@ -48,7 +42,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestLeaseManagement {
-  private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -59,7 +52,7 @@ public class TestLeaseManagement {
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -69,13 +62,7 @@ public class TestLeaseManagement {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
-    HRegion hRegion = UTIL.getHBaseCluster().getRegions(tableName).get(0);
-    CoprocessorEnvironment env = hRegion.getCoprocessorHost()
-        .findCoprocessorEnvironment(NamespaceProcessor.class.getName());
-    nodeManager = new INodeManager(conf, env);
+    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
   }
 
   @After
@@ -85,8 +72,8 @@ public class TestLeaseManagement {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
-    if (cluster != null) cluster.shutdown();
+  public static void afterClass() throws Exception {
+    UTIL.shutdownMiniCluster();
   }
 
   @Test
