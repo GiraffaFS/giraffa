@@ -22,7 +22,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hdfs.GiraffaClient;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
@@ -39,7 +38,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TestGiraffaFileStatus {
-  private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -49,7 +47,7 @@ public class TestGiraffaFileStatus {
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -69,7 +67,7 @@ public class TestGiraffaFileStatus {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    if(cluster != null) cluster.shutdown();
+    UTIL.shutdownMiniCluster();
   }
 
   @Test

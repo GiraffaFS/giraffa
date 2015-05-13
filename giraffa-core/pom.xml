@@ -46,10 +46,6 @@
                     <groupId>javax.servlet.jsp</groupId>
                     <artifactId>jsp-api</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -85,10 +81,6 @@
                 <exclusion>
                     <groupId>javax.servlet.jsp</groupId>
                     <artifactId>jsp-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -128,10 +120,6 @@
                     <groupId>javax.servlet.jsp</groupId>
                     <artifactId>jsp-api</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -145,10 +133,6 @@
                 <exclusion>
                     <groupId>javax.servlet.jsp</groupId>
                     <artifactId>jsp-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -260,10 +244,6 @@
                 <exclusion>
                 	<groupId>org.apache.hadoop</groupId>
                 	<artifactId>hadoop-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>tomcat</groupId>
-                    <artifactId>jasper-runtime</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

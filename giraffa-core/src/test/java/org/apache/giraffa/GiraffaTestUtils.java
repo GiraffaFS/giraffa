@@ -26,7 +26,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +52,10 @@ public class GiraffaTestUtils {
   }
 
   public static HBaseTestingUtility getHBaseTestingUtility() {
-    Configuration conf = new Configuration();
+    Configuration conf = HBaseConfiguration.create();
+    conf.setInt(
+        HConstants.HBASE_CLIENT_OPERATION_TIMEOUT,
+        HConstants.DEFAULT_HBASE_RPC_TIMEOUT);
     conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
         DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
     return new HBaseTestingUtility(conf);

@@ -41,7 +41,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -63,7 +62,6 @@ import org.slf4j.LoggerFactory;
 public class TestGiraffaUpgrade {
   private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaUpgrade.class);
 
-  private static MiniHBaseCluster cluster;
   private static final String TEST_IMAGE_FILE_OUT =
           GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
   private static final HBaseTestingUtility UTIL =
@@ -82,7 +80,7 @@ public class TestGiraffaUpgrade {
     // setup MiniCluster properties
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -93,7 +91,7 @@ public class TestGiraffaUpgrade {
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
     CoprocessorEnvironment env = new CoprocessorHost.Environment(
-        null, 0, 0, cluster.getConfiguration());
+        null, 0, 0, UTIL.getConfiguration());
     nodeManager = new INodeManager(conf, env);
   }
 
@@ -104,8 +102,8 @@ public class TestGiraffaUpgrade {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
-    if (cluster != null) cluster.shutdown();
+  public static void afterClass() throws Exception {
+    UTIL.shutdownMiniCluster();
   }
 
   @Test

@@ -18,7 +18,7 @@
         <mavenVersion>2.2.1</mavenVersion>
 
         <hadoop.version>2.5.1</hadoop.version>
-        <hbase.version>0.95.2-hadoop2</hbase.version>
+        <hbase.version>1.0.1</hbase.version>
 
         <!-- ProtocolBuffer version, used to verify the protoc version and -->
         <!-- define the protobuf JAR version                               -->

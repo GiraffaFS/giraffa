@@ -84,8 +84,8 @@ public class TestRename {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
-    if(cluster != null) cluster.shutdown();
+  public static void afterClass() throws Exception {
+    UTIL.shutdownMiniCluster();
   }
 
   private void createTestFile(String srcStr, char c) throws IOException {

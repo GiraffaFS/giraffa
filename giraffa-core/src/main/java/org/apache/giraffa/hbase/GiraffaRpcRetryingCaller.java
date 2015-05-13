@@ -18,7 +18,6 @@
 package org.apache.giraffa.hbase;
 
 import java.io.IOException;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.RetryingCallable;
 import org.apache.hadoop.hbase.client.RpcRetryingCaller;
@@ -29,19 +28,20 @@ import org.apache.hadoop.hbase.client.RpcRetryingCaller;
  * exceptions are passed to the RPC.
  */
 public class GiraffaRpcRetryingCaller<T> extends RpcRetryingCaller<T> {
-  public GiraffaRpcRetryingCaller(Configuration conf) {
-    super(conf);
+  public GiraffaRpcRetryingCaller(long pause, int retries,
+      int startLogErrorsCnt) {
+    super(pause, retries, startLogErrorsCnt);
   }
 
   @Override
-  public synchronized T callWithRetries(RetryingCallable<T> callable)
+  public synchronized T callWithRetries(RetryingCallable<T> callable, int callTimeout)
       throws IOException, RuntimeException {
     try {
-      return this.callWithoutRetries(callable);
+      return this.callWithoutRetries(callable, callTimeout);
     }catch(IOException e) {
       if(e instanceof NotServingRegionException) {
         callable.prepare(true); // reload regions to avoid error
-        return this.callWithoutRetries(callable);
+        return this.callWithoutRetries(callable, callTimeout);
       }else {
         throw e;
       }
