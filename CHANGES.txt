@@ -32,6 +32,7 @@ Release 0.2.0 - unreleased
                (Andrey Stepachev)
     Issue 134: GiraffaClient should close namespace after closing DFSClient.
                (Andrey Stepachev)
+    Issue 136: Fix NPE in NamespaceProcessor.renewLease(). (Plamen)
 
 Release 0.1.0 - 2014-11-07
 
