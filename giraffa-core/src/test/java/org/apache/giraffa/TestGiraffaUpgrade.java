@@ -45,10 +45,12 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
+import org.apache.hadoop.hdfs.server.namenode.FSNamesystem;
 import org.apache.hadoop.hdfs.server.namenode.NNStorage;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
 import org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer;
+import org.apache.hadoop.hdfs.util.Canceler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -61,7 +63,7 @@ public class TestGiraffaUpgrade {
   private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaUpgrade.class);
 
   private static final String TEST_IMAGE_FILE_OUT =
-          GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
+      GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private DFSTestUtil fsUtil;
@@ -134,64 +136,65 @@ public class TestGiraffaUpgrade {
   private String generateFsImage() throws IOException {
     MiniDFSCluster dfsCluster = UTIL.getDFSCluster();
     NameNode nn = dfsCluster.getNameNode();
+    FSNamesystem ns = NameNodeAdapter.getNamesystem(nn);
     FileSystem dfs = dfsCluster.getFileSystem();
+
+    // create test files
     fsUtil = new DFSTestUtil("generateFsImage", 100, 5, 4096, 0);
     fsUtil.createFiles(dfs, "generateFsImage");
-    NameNodeAdapter.enterSafeMode(nn, false);
-    NameNodeAdapter.saveNamespace(nn);
-    NameNodeAdapter.leaveSafeMode(nn);
+
+    // get directory to save image
     Collection<URI> namespaceDirs = dfsCluster.getNameDirs(0);
     String namespaceDir = namespaceDirs.iterator().next().getRawPath();
-    long txid = nn.getNamesystem().getFSImage().getMostRecentCheckpointTxId();
-    return namespaceDir + "/current/" + NNStorage.getImageFileName(txid);
+    String targetDir = namespaceDir + "/current/";
+
+    // save image in legacy format
+    NameNodeAdapter.enterSafeMode(nn, false);
+    ns.getFSImage().saveLegacyOIVImage(ns, targetDir, new Canceler());
+    NameNodeAdapter.leaveSafeMode(nn);
+
+    // return image file path
+    long txid = ns.getFSImage().getLastAppliedOrWrittenTxId();
+    return targetDir + NNStorage.getLegacyOIVImageFileName(txid);
   }
 
   private boolean parseIndentedFsImageOut(BufferedReader br)
       throws IOException, ParseException {
     while(br.ready()) {
-      String line = br.readLine();
-      if(line.equals("    INODE")) {
-        String path = br.readLine().replace("      INODE_PATH = ", "").trim();
+      String line = br.readLine().trim();
+      if(line.equals("INODE")) {
+        String path = parseLine(br, "INODE_PATH");
         if(path.isEmpty()) continue;
-        short replication =
-            Short.parseShort(br.readLine().replace("      REPLICATION = ", "").trim());
+        parseLine(br, "INODE_ID");
+        short replication = Short.parseShort(parseLine(br, "REPLICATION"));
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd kk:mm");
-        Date modTime =
-            df.parse(br.readLine().replace("      MODIFICATION_TIME = ", "").trim());
-        Date accessTime =
-            df.parse(br.readLine().replace("      ACCESS_TIME = ", "").trim());
-        long blockSize =
-            Long.parseLong(br.readLine().replace("      BLOCK_SIZE = ", "").trim());
+        Date modTime = df.parse(parseLine(br, "MODIFICATION_TIME"));
+        Date accessTime = df.parse(parseLine(br, "ACCESS_TIME"));
+        long blockSize = Long.parseLong(parseLine(br, "BLOCK_SIZE"));
         int numOfBlocks = getNumberOfBlocks(br);
         List<UnlocatedBlock> blocks = new ArrayList<UnlocatedBlock>(1);
         List<DatanodeInfo[]> locations = new ArrayList<DatanodeInfo[]>(1);
-        boolean isDirectory = false;
-        long length = 0;
-        if(numOfBlocks != -1) {
-          length = parseBlocks(numOfBlocks, blocks, locations, br, path);
-        } else {
-          isDirectory = true;
-        }
+        boolean isDirectory = numOfBlocks == -1;
 
+        long length = 0;
         long nsQuota = -1;
         long dsQuota = -1;
-
-        // When numOfBlocks == 0 there is no Quota information
-        if(numOfBlocks != 0) {
-          nsQuota =
-              Long.parseLong(br.readLine().replace("      NS_QUOTA = ", "").trim());
-          dsQuota =
-              Long.parseLong(br.readLine().replace("      DS_QUOTA = ", "").trim());
+        if(isDirectory) {
+          nsQuota = Long.parseLong(parseLine(br, "NS_QUOTA"));
+          dsQuota = Long.parseLong(parseLine(br, "DS_QUOTA"));
+          parseLine(br, "IS_WITHSNAPSHOT_DIR");
+        } else {
+          length = parseBlocks(numOfBlocks, blocks, locations, br, path);
         }
 
         // Fetch permissions information
-        String perms = br.readLine();
+        String perms = br.readLine().trim();
         assertTrue("Permissions were not next; corrupt FsImageOut?",
-            perms.equals("      PERMISSIONS"));
-        String userName = br.readLine().replace("        USER_NAME = ", "").trim();
-        String groupName = br.readLine().replace("        GROUP_NAME = ", "").trim();
-        FsPermission perm = FsPermission.valueOf("-"+br.readLine()
-             .replace("        PERMISSION_STRING = ","").trim());
+            perms.equals("PERMISSIONS"));
+        String userName = parseLine(br, "USER_NAME");
+        String groupName = parseLine(br, "GROUP_NAME");
+        FsPermission perm = FsPermission.valueOf("-" +
+            parseLine(br, "PERMISSION_STRING"));
 
         // COMMIT IT!
         INode node = new INode(length, isDirectory, replication, blockSize,
@@ -210,19 +213,21 @@ public class TestGiraffaUpgrade {
     return true;
   }
 
+  private static String parseLine(BufferedReader br, String key)
+      throws IOException {
+    return br.readLine().replace(key + " = ", "").trim();
+  }
+
   private long parseBlocks(int numOfBlocks, List<UnlocatedBlock> blocks,
       List<DatanodeInfo[]> locations, BufferedReader br, String path)
           throws IOException {
     long totalLength = 0;
     for(int i = 0; i < numOfBlocks; i++) {
-      String blockLine = br.readLine();
-      assertTrue(blockLine.equals("        BLOCK"));
-      long blockID =
-          Long.parseLong(br.readLine().replace("          BLOCK_ID = ", "").trim());
-      long blockLength =
-          Long.parseLong(br.readLine().replace("          NUM_BYTES = ", "").trim());
-      long genStamp =
-          Long.parseLong(br.readLine().replace("          GENERATION_STAMP = ", "").trim());
+      String blockLine = br.readLine().trim();
+      assertTrue(blockLine.equals("BLOCK"));
+      long blockID = Long.parseLong(parseLine(br, "BLOCK_ID"));
+      long blockLength = Long.parseLong(parseLine(br, "NUM_BYTES"));
+      long genStamp = Long.parseLong(parseLine(br, "GENERATION_STAMP"));
       totalLength += blockLength;
       assertTrue("Wrong block id", blockID != 0);
       assertTrue("Wrong block genStamp", genStamp > 0);
@@ -241,8 +246,7 @@ public class TestGiraffaUpgrade {
   }
 
   private int getNumberOfBlocks(BufferedReader br) throws IOException {
-    String line = br.readLine().replace("      BLOCKS [NUM_BLOCKS = ", "")
-        .replace("]", "").trim();
+    String line = parseLine(br, "BLOCKS [NUM_BLOCKS").replace("]", "");
     return Integer.parseInt(line);
   }
 }
