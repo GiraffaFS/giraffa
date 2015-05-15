@@ -30,6 +30,9 @@ Release 0.2.0 - unreleased
                on empty file. (Milan)
     Issue 114: Make tool.jar available as dependency on different platforms.
                (Andrey Stepachev)
+    Issue 134: GiraffaClient should close namespace after closing DFSClient.
+               (Andrey Stepachev)
+    Issue 136: Fix NPE in NamespaceProcessor.renewLease(). (Plamen)
 
 Release 0.1.0 - 2014-11-07
 

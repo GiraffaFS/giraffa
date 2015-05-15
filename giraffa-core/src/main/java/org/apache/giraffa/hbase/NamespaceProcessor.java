@@ -917,6 +917,8 @@ public class NamespaceProcessor implements ClientProtocol,
   public void renewLease(String clientName) throws AccessControlException,
       IOException {
     Collection<FileLease> leases = leaseManager.renewLease(clientName);
+    if(leases == null || leases.isEmpty())
+      return;
     // TODO: Bulk put / mutate INodes.
     for(FileLease lease : leases) {
       INode iNode = nodeManager.getINode(lease.getPath());
