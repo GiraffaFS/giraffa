@@ -171,7 +171,8 @@ public class NamespaceProcessor implements ClientProtocol,
         checksumType);
 
     this.leaseManager =
-        LeaseManager.getLeaseManager(e.getRegionServerServices());
+        LeaseManager.originateSharedLeaseManager(
+            e.getRegionServerServices().getRpcServer().getListenerAddress());
   }
 
   @Override // Coprocessor

@@ -120,7 +120,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
     clientName = HDFSAdapter.getClientName(hdfs);
 
     this.leaseManager =
-        LeaseManager.getLeaseManager(e.getRegionServerServices());
+        LeaseManager.originateSharedLeaseManager(
+            e.getRegionServerServices().getRpcServer().getListenerAddress());
   }
 
   @Override // BaseRegionObserver
@@ -151,7 +152,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       do {
         kvs.clear();
         hasNextRow = scanner.nextRaw(kvs);
-        FileLease lease = getLease(kvs);
+        FileLease lease = getFileLease(kvs);
         if(lease != null) {
           LOG.info("Migrated FileLease: " + lease);
           leaseManager.addLease(lease);
@@ -166,7 +167,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
   }
 
-  private boolean isNamespaceTable(HRegion region, Configuration conf) {
+  static boolean isNamespaceTable(HRegion region, Configuration conf) {
     TableName tableName = region.getRegionInfo().getTableName();
     String namespaceTableName = conf.get(GRFA_TABLE_NAME_KEY,
         GRFA_TABLE_NAME_DEFAULT);
@@ -243,7 +244,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       byteArrayToBlockList(kv.getValue());
   }
 
-  static FileLease getLease(List<KeyValue> kvs) {
+  static FileLease getFileLease(List<KeyValue> kvs) {
     KeyValue kv = findField(kvs, FileField.LEASE);
     return kv == null ? null : byteArrayToLease(kv.getValue());
   }
@@ -470,7 +471,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
   /**
    * Convert a byte array into a FileLease.
    * @param lease
-   * @return FileLease representation of byte array of FileLease,
+   * @return FileLease representation of byte array,
    *  returns null if fails.
    */
   static FileLease byteArrayToLease(byte[] lease) {

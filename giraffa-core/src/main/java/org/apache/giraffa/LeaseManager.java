@@ -47,18 +47,18 @@ public class LeaseManager {
    * Any of them can instantiate LeaseManager if it has not been created yet.
    * Once created its reference is stored in a shared environment.
    */
-  public synchronized static LeaseManager getLeaseManager(Object key) {
+  public synchronized static LeaseManager originateSharedLeaseManager(Object key) {
     LeaseManager leaseManager = leaseManagerMap.get(key);
-    if(leaseManager == null) {
-      leaseManager = new LeaseManager();
-      LOG.info("Creating new LeaseManager for " + key);
-      LeaseManager prevLeaseManager =
-          leaseManagerMap.putIfAbsent(key, leaseManager);
-      if(prevLeaseManager != null) {
-        leaseManager = prevLeaseManager;
-      }
-    } else {
+    if(leaseManager != null) {
       LOG.info("LeaseManager already exists in shared state for " + key);
+      return leaseManager;
+    }
+    leaseManager = new LeaseManager();
+    LOG.info("Creating new LeaseManager for " + key);
+    LeaseManager prevLeaseManager =
+        leaseManagerMap.putIfAbsent(key, leaseManager);
+    if(prevLeaseManager != null) {
+      leaseManager = prevLeaseManager;
     }
     return leaseManager;
   }
@@ -86,7 +86,6 @@ public class LeaseManager {
     return hlmAdapter.getLeases(clientName);
   }
 
-  @VisibleForTesting
   public Collection<FileLease> getLeases(String holder) {
     return hlmAdapter.getLeases(holder);
   }

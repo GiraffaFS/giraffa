@@ -133,6 +133,11 @@ public class TestLeaseManagement {
     assertThat(lease, is(nullValue()));
   }
 
+  /**
+   * This test shows that if a Region is to "migrate", either by split
+   * or by RegionServer shutdown, that an incomplete file with a lease migrates
+   * with the Region and that the lease is reloaded upon open and stays valid.
+   */
   @Test
   public void testLeaseMigration() throws IOException {
     String src = "/testLeaseFailure";
@@ -148,7 +153,9 @@ public class TestLeaseManagement {
       INode iNode = nodeManager.getINode(src);
       FileLease rowLease = iNode.getLease();
       LeaseManager leaseManager =
-          LeaseManager.getLeaseManager(regionServerThread.getRegionServer());
+          LeaseManager.originateSharedLeaseManager(
+              regionServerThread.getRegionServer().getRpcServer()
+                  .getListenerAddress());
       Collection<FileLease> leases =
           leaseManager.getLeases(rowLease.getHolder());
       assertThat(leases.size(), is(1));
@@ -188,7 +195,6 @@ public class TestLeaseManagement {
     assertThat(lease, is(notNullValue()));
     assertThat(lease.getHolder(), is(grfs.grfaClient.getClientName()));
     assertThat(lease.getPath(), is(src));
-    assertThat(lease.getLastUpdate(), is(not(FileLease.NO_LAST_UPDATE)));
     assertThat(lease.getLastUpdate() >= currentTime, is(true));
   }
 }
