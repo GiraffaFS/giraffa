@@ -152,10 +152,9 @@ public class TestLeaseManagement {
 
       INode iNode = nodeManager.getINode(src);
       FileLease rowLease = iNode.getLease();
-      LeaseManager leaseManager =
-          LeaseManager.originateSharedLeaseManager(
-              regionServerThread.getRegionServer().getRpcServer()
-                  .getListenerAddress());
+      LeaseManager leaseManager = LeaseManager.originateSharedLeaseManager(
+          regionServerThread.getRegionServer().getRpcServer()
+          .getListenerAddress().toString());
       Collection<FileLease> leases =
           leaseManager.getLeases(rowLease.getHolder());
       assertThat(leases.size(), is(1));

@@ -120,8 +120,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
     clientName = HDFSAdapter.getClientName(hdfs);
 
     this.leaseManager =
-        LeaseManager.originateSharedLeaseManager(
-            e.getRegionServerServices().getRpcServer().getListenerAddress());
+        LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
+            .getRpcServer().getListenerAddress().toString());
   }
 
   @Override // BaseRegionObserver
@@ -244,9 +244,9 @@ public class BlockManagementAgent extends BaseRegionObserver {
       byteArrayToBlockList(kv.getValue());
   }
 
-  static FileLease getFileLease(List<KeyValue> kvs) {
+  static FileLease getFileLease(List<KeyValue> kvs) throws IOException {
     KeyValue kv = findField(kvs, FileField.LEASE);
-    return kv == null ? null : byteArrayToLease(kv.getValue());
+    return kv == null ? null : GiraffaPBHelper.bytesToHdfsLease(kv.getValue());
   }
 
   private void completeBlocks(List<KeyValue> kvs) throws IOException {
@@ -462,21 +462,6 @@ public class BlockManagementAgent extends BaseRegionObserver {
   static List<DatanodeInfo[]> byteArrayToLocsList(byte[] locsArray) {
     try {
       return GiraffaPBHelper.bytesToBlockLocations(locsArray);
-    } catch (IOException e) {
-      LOG.info("Error with serialization!", e);
-    }
-    return null;
-  }
-
-  /**
-   * Convert a byte array into a FileLease.
-   * @param lease
-   * @return FileLease representation of byte array,
-   *  returns null if fails.
-   */
-  static FileLease byteArrayToLease(byte[] lease) {
-    try {
-      return GiraffaPBHelper.bytesToHdfsLease(lease);
     } catch (IOException e) {
       LOG.info("Error with serialization!", e);
     }

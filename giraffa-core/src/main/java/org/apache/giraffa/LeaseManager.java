@@ -17,10 +17,10 @@
  */
 package org.apache.giraffa;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.BlockManagementAgent;
@@ -34,12 +34,15 @@ import org.apache.hadoop.hdfs.server.namenode.HLMAdapter;
  * Implemented as HDFS.LeaseManager, which is accessed through HLMAdapter.
  */
 public class LeaseManager {
+  static final Log LOG = LogFactory.getLog(LeaseManager.class.getName());
 
-  private static final Log LOG =
-      LogFactory.getLog(LeaseManager.class.getName());
-
-  private static final ConcurrentMap<Object, LeaseManager> leaseManagerMap =
-      new ConcurrentHashMap<Object, LeaseManager>();
+  /**
+   * The map is needed in unit tests with MiniCluster.
+   * When multiple RegionServers run in the same JVM they should have
+   * different instances of LeaseManager.
+   */
+  private static final ConcurrentMap<String, LeaseManager> leaseManagerMap =
+      new ConcurrentHashMap<String, LeaseManager>();
 
   /**
    * Lease manager is a shared state between {@link NamespaceProcessor} and
@@ -47,7 +50,8 @@ public class LeaseManager {
    * Any of them can instantiate LeaseManager if it has not been created yet.
    * Once created its reference is stored in a shared environment.
    */
-  public synchronized static LeaseManager originateSharedLeaseManager(Object key) {
+  public synchronized static LeaseManager originateSharedLeaseManager(
+      String key) {
     LeaseManager leaseManager = leaseManagerMap.get(key);
     if(leaseManager != null) {
       LOG.info("LeaseManager already exists in shared state for " + key);
