@@ -17,6 +17,9 @@
  */
 package org.apache.giraffa;
 
+import java.util.Collection;
+import org.apache.hadoop.hbase.util.JVMClusterUtil;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -130,6 +133,59 @@ public class TestLeaseManagement {
     assertThat(lease, is(nullValue()));
   }
 
+  /**
+   * This test shows that if a Region is to "migrate", either by split
+   * or by RegionServer shutdown, that an incomplete file with a lease migrates
+   * with the Region and that the lease is reloaded upon open and stays valid.
+   */
+  @Test
+  public void testLeaseMigration() throws IOException {
+    String src = "/testLeaseFailure";
+    Path path = new Path(src);
+    FSDataOutputStream outputStream = grfs.create(path);
+    try {
+      // keep stream open intentionally
+      cluster.stopRegionServer(0);
+      JVMClusterUtil.RegionServerThread regionServerThread =
+          cluster.startRegionServer();
+      regionServerThread.waitForServerOnline();
+
+      INode iNode = nodeManager.getINode(src);
+      FileLease rowLease = iNode.getLease();
+      LeaseManager leaseManager = LeaseManager.originateSharedLeaseManager(
+          regionServerThread.getRegionServer().getRpcServer()
+          .getListenerAddress().toString());
+      Collection<FileLease> leases =
+          leaseManager.getLeases(rowLease.getHolder());
+      assertThat(leases.size(), is(1));
+      FileLease leaseManagerLease = leases.iterator().next();
+      // The following asserts are here to highlight that as a result of
+      // migrating the FileLease across RegionServers we lose expiration date
+      // consistency between the row field and the LeaseManager.
+      assertThat(rowLease, is(not(equalTo(leaseManagerLease))));
+      assertThat(rowLease.getHolder(),
+          is(equalTo(leaseManagerLease.getHolder())));
+      assertThat(rowLease.getPath(), is(equalTo(leaseManagerLease.getPath())));
+      assertThat(rowLease.getLastUpdate(),
+          is(not(equalTo(leaseManagerLease.getLastUpdate()))));
+      // Renewing the lease restores the consistency.
+      grfs.grfaClient.getNamespaceService().renewLease(
+          grfs.grfaClient.getClientName());
+      iNode = nodeManager.getINode(src);
+      rowLease = iNode.getLease();
+      leases = leaseManager.getLeases(rowLease.getHolder());
+      assertThat(leases.size(), is(1));
+      leaseManagerLease = leases.iterator().next();
+      assertThat(rowLease, is(equalTo(leaseManagerLease)));
+    } finally {
+      IOUtils.closeStream(outputStream);
+    }
+    INode iNode = nodeManager.getINode(src);
+    assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));
+    FileLease lease = iNode.getLease();
+    assertThat(lease, is(nullValue()));
+  }
+
   void checkLease(String src, long currentTime) throws IOException {
     INode iNode = nodeManager.getINode(src);
     FileLease lease = iNode.getLease();
@@ -138,7 +194,6 @@ public class TestLeaseManagement {
     assertThat(lease, is(notNullValue()));
     assertThat(lease.getHolder(), is(grfs.grfaClient.getClientName()));
     assertThat(lease.getPath(), is(src));
-    assertThat(lease.getLastUpdate(), is(not(FileLease.NO_LAST_UPDATE)));
     assertThat(lease.getLastUpdate() >= currentTime, is(true));
   }
 }
