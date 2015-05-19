@@ -22,11 +22,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import org.apache.giraffa.hbase.INodeManager;
+import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +57,24 @@ public class GiraffaTestUtils {
   }
 
   public static HBaseTestingUtility getHBaseTestingUtility() {
-    Configuration conf = new Configuration();
+    Configuration conf = HBaseConfiguration.create();
+    conf.setInt(
+        HConstants.HBASE_CLIENT_OPERATION_TIMEOUT,
+        HConstants.DEFAULT_HBASE_RPC_TIMEOUT);
     conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
         DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
     return new HBaseTestingUtility(conf);
+  }
+
+  public static INodeManager getNodeManager(HBaseTestingUtility util,
+                                            GiraffaConfiguration conf) {
+    TableName tableName =
+        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
+            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+    HRegion hRegion = util.getHBaseCluster().getRegions(tableName).get(0);
+    CoprocessorEnvironment env = hRegion.getCoprocessorHost()
+        .findCoprocessorEnvironment(NamespaceProcessor.class.getName());
+    return new INodeManager(conf, env);
   }
 
   static void listStatusRecursive(

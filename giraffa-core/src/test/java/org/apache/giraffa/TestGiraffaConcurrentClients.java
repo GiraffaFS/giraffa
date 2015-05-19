@@ -24,7 +24,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.junit.After;
@@ -44,7 +43,6 @@ public class TestGiraffaConcurrentClients {
 
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
-  private static MiniHBaseCluster cluster;
   private GiraffaFileSystem grfa;
 
   @BeforeClass
@@ -52,7 +50,7 @@ public class TestGiraffaConcurrentClients {
     // setup MiniCluster properties
     System.setProperty(HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -71,8 +69,8 @@ public class TestGiraffaConcurrentClients {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
-    if (cluster != null) cluster.shutdown();
+  public static void afterClass() throws Exception {
+    UTIL.shutdownMiniCluster();
   }
 
   private enum OPERATION { CREATE, DIR_LISTING }

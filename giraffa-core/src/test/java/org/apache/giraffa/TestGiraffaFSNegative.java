@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -46,7 +45,6 @@ public class TestGiraffaFSNegative {
 
   private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaFSNegative.class);
 
-  private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
   private static GiraffaFileSystem grfs;
@@ -55,7 +53,7 @@ public class TestGiraffaFSNegative {
   public static void beforeClass() throws Exception {
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -68,10 +66,12 @@ public class TestGiraffaFSNegative {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
+  public static void afterClass() throws Exception {
+    // TODO: fix issue with unstoppable giraffa
     if(grfs != null) grfs.close();
-    if(cluster != null) cluster.shutdown();
+    UTIL.shutdownMiniCluster();
   }
+
 
   @Test
   public void testFileCreationNoParentDir() throws IOException {
@@ -234,7 +234,7 @@ public class TestGiraffaFSNegative {
     assertEquals(3, files.length);
   }
 
-  // @Test
+  @Test
   // FileNotFoundException does not work now.
   // setTime(), setPermissions() don't throw since HBase RPC
   // treats all exceptions as errors, and does not pass the legal ones 
