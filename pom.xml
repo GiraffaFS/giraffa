@@ -17,8 +17,13 @@
         <compileSource>1.6</compileSource>
         <mavenVersion>2.2.1</mavenVersion>
 
-        <hadoop.version>2.0.5-alpha</hadoop.version>
+        <hadoop.version>2.5.1</hadoop.version>
         <hbase.version>0.95.2-hadoop2</hbase.version>
+
+        <!-- ProtocolBuffer version, used to verify the protoc version and -->
+        <!-- define the protobuf JAR version                               -->
+        <protobuf.version>2.5.0</protobuf.version>
+        <protoc.path>${env.HADOOP_PROTOC_PATH}</protoc.path>
 
         <!-- maven plugin versions -->
         <maven.surefire.plugin.version>2.13</maven.surefire.plugin.version>
@@ -137,8 +142,16 @@
 	                    <xmlOutput>true</xmlOutput>
 	                    <excludeFilterFile>${basedir}/src/main/resources/findbugs-exclude.xml</excludeFilterFile>
 	                </configuration>
-            	</plugin>
-
+            	  </plugin>
+                <plugin>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-maven-plugins</artifactId>
+                    <version>${hadoop.version}</version>
+                    <configuration>
+                        <protocVersion>${protobuf.version}</protocVersion>
+                        <protocCommand>${protoc.path}</protocCommand>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>

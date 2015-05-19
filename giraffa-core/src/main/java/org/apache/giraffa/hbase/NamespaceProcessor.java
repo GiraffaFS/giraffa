@@ -57,6 +57,8 @@ import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.hbase.INodeManager.Function;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.BatchedRemoteIterator;
+import org.apache.hadoop.fs.CacheFlag;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
@@ -65,6 +67,10 @@ import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.fs.Options.Rename;
+import org.apache.hadoop.fs.XAttr;
+import org.apache.hadoop.fs.XAttrSetFlag;
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -72,6 +78,10 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
+import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
+import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
+import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
+import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
@@ -80,12 +90,17 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants.RollingUpgradeAction;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.DatanodeReportType;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants.SafeModeAction;
+import org.apache.hadoop.hdfs.protocol.RollingUpgradeInfo;
+import org.apache.hadoop.hdfs.protocol.SnapshotAccessControlException;
+import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
+import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
@@ -182,18 +197,21 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public void abandonBlock(ExtendedBlock b, String src, String holder)
+  public void abandonBlock(ExtendedBlock b, long fileId, String src,
+                           String holder)
       throws AccessControlException, FileNotFoundException,
-      UnresolvedLinkException, IOException {
+             UnresolvedLinkException, IOException {
     throw new IOException("abandonBlock is not supported");
   }
 
   @Override // ClientProtocol
-  public LocatedBlock addBlock(
-      String src, String clientName, ExtendedBlock previous, DatanodeInfo[] excludeNodes)
+  public LocatedBlock addBlock(String src, String clientName,
+                               ExtendedBlock previous,
+                               DatanodeInfo[] excludeNodes, long fileId,
+                               String[] favoredNodes)
       throws AccessControlException, FileNotFoundException,
-      NotReplicatedYetException, SafeModeException, UnresolvedLinkException,
-      IOException {
+             NotReplicatedYetException, SafeModeException,
+             UnresolvedLinkException, IOException {
     INode iNode = nodeManager.getINode(src);
 
     if(iNode == null) {
@@ -245,7 +263,8 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean complete(String src, String clientName, ExtendedBlock last)
+  public boolean complete(String src, String clientName,
+                          ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
     INode iNode = nodeManager.getINode(src);
@@ -277,14 +296,16 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public void create(
-      String src, FsPermission masked, String clientName,
-      EnumSetWritable<CreateFlag> createFlag, boolean createParent,
-      short replication, long blockSize) throws AccessControlException,
-      AlreadyBeingCreatedException, DSQuotaExceededException,
-      NSQuotaExceededException, FileAlreadyExistsException,
-      FileNotFoundException, ParentNotDirectoryException, SafeModeException,
-      UnresolvedLinkException, IOException {
+  public HdfsFileStatus create(String src, FsPermission masked,
+                               String clientName,
+                               EnumSetWritable<CreateFlag> createFlag,
+                               boolean createParent, short replication,
+                               long blockSize)
+      throws AccessControlException, AlreadyBeingCreatedException,
+             DSQuotaExceededException, FileAlreadyExistsException,
+             FileNotFoundException, NSQuotaExceededException,
+             ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
+             SnapshotAccessControlException, IOException {
     EnumSet<CreateFlag> flag = createFlag.get();
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
     boolean append = flag.contains(CreateFlag.APPEND);
@@ -349,6 +370,7 @@ public class NamespaceProcessor implements ClientProtocol,
     // add file to HBase (update if already exists)
     nodeManager.updateINode(iFile);
     LOG.info("Created file: " + src);
+    return iFile.getLocatedFileStatus();
   }
 
   @Override // ClientProtocol
@@ -467,10 +489,17 @@ public class NamespaceProcessor implements ClientProtocol,
     throw new IOException("upgrade is not supported");
   }
 
+  @Override
+  public RollingUpgradeInfo rollingUpgrade(RollingUpgradeAction action)
+      throws IOException {
+    throw new IOException("rollingUpgrade is not supported");
+  }
+
   @Override // ClientProtocol
-  public void fsync(String src, String client, long lastBlockLength) throws
-      AccessControlException, FileNotFoundException, UnresolvedLinkException,
-      IOException {
+  public void fsync(String src, long inodeId, String client,
+                    long lastBlockLength)
+      throws AccessControlException, FileNotFoundException,
+             UnresolvedLinkException, IOException {
     throw new IOException("fsync is not supported.");
   }
 
@@ -540,6 +569,17 @@ public class NamespaceProcessor implements ClientProtocol,
     return node.getFileStatus();
   }
 
+  @Override
+  public boolean isFileClosed(String src)
+      throws AccessControlException, FileNotFoundException,
+             UnresolvedLinkException, IOException {
+    INode node = nodeManager.getINode(src);
+    if(node == null) {
+      throw new FileNotFoundException("File does not exist: " + src);
+    }
+    return node.getFileState() == FileState.CLOSED;
+  }
+
   @Override // ClientProtocol
   public HdfsFileStatus getFileLinkInfo(String src)
       throws AccessControlException, UnresolvedLinkException, IOException {
@@ -578,6 +618,12 @@ public class NamespaceProcessor implements ClientProtocol,
     // We can say there is no more entries if the lsLimit is exhausted,
     // otherwise we know only that there could be one more entry
     return new DirectoryListing(retVal, list.size() < lsLimit ? 0 : 1);
+  }
+
+  @Override
+  public SnapshottableDirectoryStatus[] getSnapshottableDirListing()
+      throws IOException {
+    throw new IOException("snapshots are not supported");
   }
 
   @Override // ClientProtocol
@@ -1010,8 +1056,9 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public void updatePipeline(
-      String clientName, ExtendedBlock oldBlock, ExtendedBlock newBlock, DatanodeID[] newNodes)
+  public void updatePipeline(String clientName, ExtendedBlock oldBlock,
+                             ExtendedBlock newBlock, DatanodeID[] newNodes,
+                             String[] newStorageIDs)
       throws IOException {
     throw new IOException("updatePipeline is not supported");
   }
@@ -1077,10 +1124,15 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override
-  public LocatedBlock getAdditionalDatanode(String arg0, ExtendedBlock arg1,
-      DatanodeInfo[] arg2, DatanodeInfo[] arg3, int arg4, String arg5)
-      throws AccessControlException, FileNotFoundException,
-      SafeModeException, UnresolvedLinkException, IOException {
+  public LocatedBlock getAdditionalDatanode(String src, long fileId,
+                                            ExtendedBlock blk,
+                                            DatanodeInfo[] existings,
+                                            String[] existingStorageIds,
+                                            DatanodeInfo[] excludes,
+                                            int numAdditionalNodes,
+                                            String clientName)
+      throws AccessControlException, FileNotFoundException, SafeModeException,
+             UnresolvedLinkException, IOException {
     throw new IOException("getAdditionalDatanode is not supported");
   }
 
@@ -1103,5 +1155,142 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public DataEncryptionKey getDataEncryptionKey() throws IOException {
     throw new IOException("data encryption is not supported");
+  }
+
+  @Override
+  public String createSnapshot(String snapshotRoot, String snapshotName)
+      throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public void deleteSnapshot(String snapshotRoot, String snapshotName)
+      throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public void renameSnapshot(String snapshotRoot, String snapshotOldName,
+                             String snapshotNewName)
+      throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public void allowSnapshot(String snapshotRoot) throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public void disallowSnapshot(String snapshotRoot) throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public SnapshotDiffReport getSnapshotDiffReport(String snapshotRoot,
+                                                  String fromSnapshot,
+                                                  String toSnapshot)
+      throws IOException {
+    throw new IOException("snapshots are not supported");
+  }
+
+  @Override
+  public long addCacheDirective(CacheDirectiveInfo directive,
+                                EnumSet<CacheFlag> flags)
+      throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void modifyCacheDirective(CacheDirectiveInfo directive,
+                                   EnumSet<CacheFlag> flags)
+      throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void removeCacheDirective(long id) throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public BatchedRemoteIterator.BatchedEntries<CacheDirectiveEntry> listCacheDirectives(
+      long prevId, CacheDirectiveInfo filter) throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void addCachePool(CachePoolInfo info) throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void modifyCachePool(CachePoolInfo req) throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void removeCachePool(String pool) throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public BatchedRemoteIterator.BatchedEntries<CachePoolEntry> listCachePools(String prevPool)
+      throws IOException {
+    throw new IOException("caching is not supported");
+  }
+
+  @Override
+  public void modifyAclEntries(String src, List<AclEntry> aclSpec)
+      throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public void removeAclEntries(String src, List<AclEntry> aclSpec)
+      throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public void removeDefaultAcl(String src) throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public void removeAcl(String src) throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public void setAcl(String src, List<AclEntry> aclSpec) throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public AclStatus getAclStatus(String src) throws IOException {
+    throw new IOException("ACLs are not supported");
+  }
+
+  @Override
+  public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
+      throws IOException {
+    throw new IOException("Extended Attributes are not supported");
+  }
+
+  @Override
+  public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
+      throws IOException {
+    throw new IOException("Extended Attributes are not supported");
+  }
+
+  @Override
+  public List<XAttr> listXAttrs(String src) throws IOException {
+    throw new IOException("Extended Attributes are not supported");
+  }
+
+  @Override
+  public void removeXAttr(String src, XAttr xAttr) throws IOException {
+    throw new IOException("Extended Attributes are not supported");
   }
 }
