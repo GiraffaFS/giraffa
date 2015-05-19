@@ -18,7 +18,6 @@
 package org.apache.giraffa.hbase;
 
 import java.util.Collection;
-import static org.apache.giraffa.GiraffaConstants.GIRAFFA_SHARED_STATE_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
@@ -43,7 +42,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -151,8 +149,9 @@ public class NamespaceProcessor implements ClientProtocol,
     if (!(env instanceof RegionCoprocessorEnvironment)) {
       throw new CoprocessorException("Must be loaded on a table region!");
     }
+    RegionCoprocessorEnvironment e = (RegionCoprocessorEnvironment) env;
     LOG.info("Start NamespaceProcessor...");
-    Configuration conf = env.getConfiguration();
+    Configuration conf = e.getConfiguration();
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
@@ -173,7 +172,7 @@ public class NamespaceProcessor implements ClientProtocol,
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
 
-    this.nodeManager = new INodeManager(conf, env);
+    this.nodeManager = new INodeManager(conf, e);
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),
@@ -186,8 +185,9 @@ public class NamespaceProcessor implements ClientProtocol,
         conf.getLong(FS_TRASH_INTERVAL_KEY, FS_TRASH_INTERVAL_DEFAULT),
         checksumType);
 
-    this.leaseManager = originateSharedLeaseManager(
-        (RegionCoprocessorEnvironment) env);
+    this.leaseManager =
+        LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
+            .getRpcServer().getListenerAddress().toString());
   }
 
   @Override // Coprocessor
@@ -917,6 +917,8 @@ public class NamespaceProcessor implements ClientProtocol,
   public void renewLease(String clientName) throws AccessControlException,
       IOException {
     Collection<FileLease> leases = leaseManager.renewLease(clientName);
+    if(leases == null || leases.isEmpty())
+      return;
     // TODO: Bulk put / mutate INodes.
     for(FileLease lease : leases) {
       INode iNode = nodeManager.getINode(lease.getPath());
@@ -1290,27 +1292,5 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     throw new IOException("Extended Attributes are not supported");
-  }
-
-  /**
-   * Lease manager is a shared state between {@link NamespaceProcessor}.
-   * Any of them can instantiate LeaseManager if it has not been created yet.
-   * Once created its reference is stored in the shared environment.
-   */
-  public static LeaseManager originateSharedLeaseManager(
-      RegionCoprocessorEnvironment env) {
-    ConcurrentMap<String, Object> sharedData = env.getSharedData();
-    LeaseManager leaseManager = (LeaseManager) sharedData.get(
-        GIRAFFA_SHARED_STATE_KEY);
-    if(leaseManager == null) {
-      LOG.info("Creating new LeaseManager for " + env.getRegion());
-      leaseManager = new LeaseManager();
-      return (LeaseManager) sharedData.putIfAbsent(GIRAFFA_SHARED_STATE_KEY,
-          leaseManager);
-    } else {
-      LOG.info("LeaseManager already exists in shared state for "
-          + env.getRegion());
-    }
-    return leaseManager;
   }
 }

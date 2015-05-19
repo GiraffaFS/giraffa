@@ -26,7 +26,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaPBHelper;
+import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
@@ -38,11 +40,16 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValueUtil;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -55,6 +62,9 @@ import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.io.EnumSetWritable;
+
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT;
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_KEY;
 
 /**
  * BlockManagementAgent provides access to underlying block management layer.
@@ -83,10 +93,15 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   private DistributedFileSystem hdfs;
   private AtomicLong temporaryFileId;
+  private LeaseManager leaseManager;
   private String clientName;
 
   @Override // BaseRegionObserver
-  public void start(CoprocessorEnvironment e) throws IOException {
+  public void start(CoprocessorEnvironment env) throws IOException {
+    if (!(env instanceof RegionCoprocessorEnvironment)) {
+      throw new CoprocessorException("Must be loaded on a table region!");
+    }
+    RegionCoprocessorEnvironment e = (RegionCoprocessorEnvironment) env;
     LOG.info("Start BlockManagementAgent...");
     Configuration conf = e.getConfiguration();
     String bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
@@ -105,6 +120,10 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
     temporaryFileId = new AtomicLong(now());
     clientName = HDFSAdapter.getClientName(hdfs);
+
+    this.leaseManager =
+        LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
+            .getRpcServer().getListenerAddress().toString());
   }
 
   @Override // BaseRegionObserver
@@ -117,6 +136,44 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
     hdfs = null;
     */
+  }
+
+  @Override
+  public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
+    RegionCoprocessorEnvironment env = e.getEnvironment();
+    HRegion region = env.getRegion();
+    Configuration conf = env.getConfiguration();
+    if(!isNamespaceTable(region, conf)) {
+      return;
+    }
+    try {
+      RegionScanner scanner =
+          region.getScanner(new Scan(region.getStartKey(), region.getEndKey()));
+      List<KeyValue> kvs = new ArrayList<KeyValue>();
+      boolean hasNextRow;
+      do {
+        kvs.clear();
+        hasNextRow = scanner.nextRaw(kvs);
+        FileLease lease = getFileLease(kvs);
+        if(lease != null) {
+          LOG.info("Migrated FileLease: " + lease);
+          leaseManager.addLease(lease);
+          // LeaseManager will update lease with a new, higher, expiration date.
+          // Until a lease renewal or expiration happens, the lease of the row
+          // vs the lease in the LeaseManager will differ in expiration date.
+        }
+      } while(hasNextRow);
+    } catch (IOException exception) {
+      LOG.error("Failed to scan INodes cleanly post open of region: " + region,
+          exception);
+    }
+  }
+
+  static boolean isNamespaceTable(HRegion region, Configuration conf) {
+    TableName tableName = region.getRegionInfo().getTableName();
+    String namespaceTableName = conf.get(GRFA_TABLE_NAME_KEY,
+        GRFA_TABLE_NAME_DEFAULT);
+    return tableName.getNameAsString().equals(namespaceTableName);
   }
 
   @Override // BaseRegionObserver
@@ -163,10 +220,10 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
   }
 
-private void removeBlockAction(List<KeyValue> kvs) {
+  private void removeBlockAction(List<KeyValue> kvs) {
     KeyValue kv = findField(kvs, FileField.ACTION);
     kvs.remove(kv);
-}
+  }
 
   static KeyValue findField(List<KeyValue> kvs, FileField field) {
     for(KeyValue kv : kvs) {
@@ -187,6 +244,11 @@ private void removeBlockAction(List<KeyValue> kvs) {
     KeyValue kv = findField(kvs, FileField.BLOCK);
     return kv == null ? new ArrayList<UnlocatedBlock>() :
       byteArrayToBlockList(kv.getValue());
+  }
+
+  static FileLease getFileLease(List<KeyValue> kvs) throws IOException {
+    KeyValue kv = findField(kvs, FileField.LEASE);
+    return kv == null ? null : GiraffaPBHelper.bytesToHdfsLease(kv.getValue());
   }
 
   private void completeBlocks(List<KeyValue> kvs) throws IOException {
@@ -408,8 +470,8 @@ private void removeBlockAction(List<KeyValue> kvs) {
     }
     return null;
   }
-  
-  private static long now(){
+
+  private static long now() {
     return System.currentTimeMillis();
   }
 }

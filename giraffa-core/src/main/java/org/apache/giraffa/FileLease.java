@@ -21,10 +21,9 @@ package org.apache.giraffa;
  * Leases provide exclusive access to files for write.
  */
 public class FileLease {
-  public static final long NO_LAST_UPDATE = -1L;
 
   public final String holder;
-  public final transient String path;
+  public final String path;
   public final long lastUpdate;
 
   /**
