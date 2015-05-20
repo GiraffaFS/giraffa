@@ -15,20 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase;
+package org.apache.hadoop.hbase.client;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.FileSystemExceptionInterceptor;
-import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
+import org.apache.hadoop.hbase.NotServingRegionException;
 
-/**
- * Hook for loading our own FileSystemExceptionInterceptor to block filesystem
- * operations from being retried and properly handle exceptions. The name of
- * this class is specified in the property "hbase.rpc.callerfactory.class"
- */
-public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
+import java.io.IOException;
 
-  public GiraffaRpcRetryingCallerFactory(Configuration conf) {
-    super(conf, new FileSystemExceptionInterceptor());
+public class FileSystemExceptionInterceptor
+    extends NoOpRetryableCallerInterceptor {
+
+  @Override // RetryingCallerInterceptor
+  public void handleFailure(RetryingCallerInterceptorContext context,
+                            Throwable t)
+      throws IOException {
+    // detect and throw any filesystem-related IOExceptions
+    if(t instanceof IOException && !(t instanceof NotServingRegionException)) {
+      throw (IOException) t;
+    }
   }
 }
