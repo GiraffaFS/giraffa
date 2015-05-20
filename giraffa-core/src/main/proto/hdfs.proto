@@ -16,6 +16,12 @@
  * limitations under the License.
  */
 
+/**
+ * These .proto interfaces are private and stable.
+ * Please see http://wiki.apache.org/hadoop/Compatibility
+ * for what changes are allowed for a *stable* .proto interface.
+ */
+
 // This file contains protocol buffers that are used throughout HDFS -- i.e.
 // by the client, server, and data transfer protocols.
 
@@ -44,10 +50,23 @@ message ExtendedBlockProto {
 message DatanodeIDProto {
   required string ipAddr = 1;    // IP address
   required string hostName = 2;  // hostname
-  required string storageID = 3; // unique storage id
+  required string datanodeUuid = 3;     // UUID assigned to the Datanode. For
+                                        // upgraded clusters this is the same
+                                        // as the original StorageID of the
+                                        // Datanode.
   required uint32 xferPort = 4;  // data streaming port
-  required uint32 infoPort = 5;  // info server port
+  required uint32 infoPort = 5;  // datanode http port
   required uint32 ipcPort = 6;   // ipc server port
+  optional uint32 infoSecurePort = 7 [default = 0]; // datanode https port
+}
+
+/**
+ * Datanode local information
+ */
+message DatanodeLocalInfoProto {
+  required string softwareVersion = 1;
+  required string configVersion = 2;
+  required uint64 uptime = 3;
 }
 
 /**
@@ -76,6 +95,8 @@ message DatanodeInfoProto {
   }
 
   optional AdminState adminState = 10 [default = NORMAL];
+  optional uint64 cacheCapacity = 11 [default = 0];
+  optional uint64 cacheUsed = 12 [default = 0];
 }
 
 /**
@@ -107,6 +128,20 @@ message FsPermissionProto {
   required uint32 perm = 1;       // Actually a short - only 16bits used
 }
 
+/**
+ * Types of recognized storage media.
+ */
+enum StorageTypeProto {
+  DISK = 1;
+  SSD = 2;
+}
+
+/**
+ * A list of storage IDs. 
+ */
+message StorageUuidsProto {
+  repeated string storageUuids = 1;
+}
 
 /**
  * A LocatedBlock gives information about a block and its location.
@@ -120,6 +155,9 @@ message LocatedBlockProto {
                                         // their locations are not part of this object
 
   required hadoop.common.TokenProto blockToken = 5;
+  repeated bool isCached = 6 [packed=true]; // if a location in locs is cached
+  repeated StorageTypeProto storageTypes = 7;
+  repeated string storageIDs = 8;
 }
 
 message DataEncryptionKeyProto {
@@ -145,7 +183,7 @@ message LocatedBlocksProto {
 
 
 /**
- * Status of a file, directory  or symlink
+ * Status of a file, directory or symlink
  * Optionally includes a file's block locations if requested by client on the rpc call.
  */
 message HdfsFileStatusProto {
@@ -170,6 +208,10 @@ message HdfsFileStatusProto {
   optional uint32 block_replication = 10 [default = 0]; // only 16bits used
   optional uint64 blocksize = 11 [default = 0];
   optional LocatedBlocksProto locations = 12;  // suppled only if asked by client
+
+  // Optional field for fileId
+  optional uint64 fileId = 13 [default = 0]; // default as an invalid id
+  optional int32 childrenNum = 14 [default = -1];
 } 
 
 /**
@@ -204,6 +246,47 @@ message FsServerDefaultsProto {
 message DirectoryListingProto {
   repeated HdfsFileStatusProto partialListing = 1;
   required uint32 remainingEntries  = 2;
+}
+
+/**
+ * Status of a snapshottable directory: besides the normal information for 
+ * a directory status, also include snapshot quota, number of snapshots, and
+ * the full path of the parent directory. 
+ */
+message SnapshottableDirectoryStatusProto {
+  required HdfsFileStatusProto dirStatus = 1;
+
+  // Fields specific for snapshottable directory
+  required uint32 snapshot_quota = 2;
+  required uint32 snapshot_number = 3;
+  required bytes parent_fullpath = 4;
+}
+
+/**
+ * Snapshottable directory listing
+ */
+message SnapshottableDirectoryListingProto {
+  repeated SnapshottableDirectoryStatusProto snapshottableDirListing = 1;
+}
+
+/**
+ * Snapshot diff report entry
+ */
+message SnapshotDiffReportEntryProto {
+  required bytes fullpath = 1;
+  required string modificationLabel = 2;
+  optional bytes targetPath = 3;
+}
+
+/**
+ * Snapshot diff report
+ */
+message SnapshotDiffReportProto {
+  // full path of the directory where snapshots were taken
+  required string snapshotRoot = 1;
+  required string fromSnapshot = 2;
+  required string toSnapshot = 3;
+  repeated SnapshotDiffReportEntryProto diffReportEntries = 4;
 }
 
 /**
@@ -270,6 +353,12 @@ message CheckpointCommandProto {
 
 /**
  * Block information
+ *
+ * Please be wary of adding additional fields here, since INodeFiles
+ * need to fit in PB's default max message size of 64MB.
+ * We restrict the max # of blocks per file
+ * (dfs.namenode.fs-limits.max-blocks-per-file), but it's better
+ * to avoid changing this.
  */
 message BlockProto {
   required uint64 blockId = 1;
@@ -282,7 +371,8 @@ message BlockProto {
  */
 message BlockWithLocationsProto {
   required BlockProto block = 1;   // Block
-  repeated string storageIDs = 2;  // Datanodes with replicas of the block
+  repeated string datanodeUuids = 2; // Datanodes with replicas of the block
+  repeated string storageUuids = 3;  // Storages with replicas of the block
 }
 
 /**
@@ -371,3 +461,23 @@ message VersionResponseProto {
   required NamespaceInfoProto info = 1;
 }
 
+/**
+ * Information related to a snapshot
+ * TODO: add more information
+ */
+message SnapshotInfoProto {
+  required string snapshotName = 1;
+  required string snapshotRoot = 2;
+  required FsPermissionProto permission = 3;
+  required string owner = 4;
+  required string group = 5;
+  required string createTime = 6;
+  // TODO: do we need access time?
+}
+
+/**
+ * Rolling upgrade status
+ */
+message RollingUpgradeStatusProto {
+  required string blockPoolId = 1;
+}

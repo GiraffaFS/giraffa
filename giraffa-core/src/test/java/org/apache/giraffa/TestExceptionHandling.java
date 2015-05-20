@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -97,6 +98,7 @@ public class TestExceptionHandling {
 
   @Test(expected = FileNotFoundException.class)
   public void testAddBlock() throws IOException {
-    grfs.grfaClient.getNamenode().addBlock("/file.txt", "client", null, null);
+    grfs.grfaClient.getNamenode().addBlock("/file.txt", "client", null, null,
+        INodeId.GRANDFATHER_INODE_ID, null);
   }
 }

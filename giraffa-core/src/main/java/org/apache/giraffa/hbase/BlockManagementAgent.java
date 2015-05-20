@@ -51,7 +51,9 @@ import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
+import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
+import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.io.EnumSetWritable;
 
 /**
@@ -281,12 +283,13 @@ private void removeBlockAction(List<KeyValue> kvs) {
 
     ClientProtocol namenode = HDFSAdapter.getClientProtocol(hdfs);
     // create temporary block file
-    namenode.create(
+    HdfsFileStatus tmpOut = namenode.create(
             tmpFile, FsPermission.getDefault(), clientName,
             new EnumSetWritable<CreateFlag>(EnumSet.of(CreateFlag.CREATE)),
             true,
             hdfs.getDefaultReplication(),
             hdfs.getDefaultBlockSize());
+    assert tmpOut != null : "File create never returns null";
 
     // if previous block exists, get it
     ExtendedBlock previous = null;
@@ -298,12 +301,12 @@ private void removeBlockAction(List<KeyValue> kvs) {
     }
 
     // add block and close previous
-    LocatedBlock block = null;
-    block = namenode.addBlock(
-        tmpFile.toString(), clientName, null, null);
+    LocatedBlock block = namenode.addBlock(tmpFile, clientName, null, null,
+        tmpOut.getFileId(), null);
     // Update block offset
     long offset = getFileSize(blocks);
-    block = new LocatedBlock(block.getBlock(), block.getLocations(), offset);
+    block = new LocatedBlock(block.getBlock(), block.getLocations(), offset,
+        false);
 
     // rename temporary file to the Giraffa block file
     namenode.rename(tmpFile, getGiraffaBlockPath(block.getBlock()).toString());
@@ -315,8 +318,8 @@ private void removeBlockAction(List<KeyValue> kvs) {
     boolean isClosed = false;
     while(!isClosed) {
       isClosed = HDFSAdapter.getClientProtocol(hdfs).complete(
-          getGiraffaBlockPathName(block),
-          clientName, block);
+          getGiraffaBlockPathName(block), clientName, block,
+          INodeId.GRANDFATHER_INODE_ID);
     }
   }
 
