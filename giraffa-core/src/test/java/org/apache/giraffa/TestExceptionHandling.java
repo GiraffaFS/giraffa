@@ -26,7 +26,6 @@ import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -40,7 +39,6 @@ import org.junit.Test;
  * {@link ClientNamenodeProtocolServerSideCallbackTranslatorPB}
  */
 public class TestExceptionHandling {
-  private static MiniHBaseCluster cluster;
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -50,7 +48,7 @@ public class TestExceptionHandling {
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    cluster = UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1);
   }
 
   @Before
@@ -68,8 +66,8 @@ public class TestExceptionHandling {
   }
 
   @AfterClass
-  public static void afterClass() throws IOException {
-    if(cluster != null) cluster.shutdown();
+  public static void afterClass() throws Exception {
+    UTIL.shutdownMiniCluster();
   }
 
   @Test(expected = FileNotFoundException.class)

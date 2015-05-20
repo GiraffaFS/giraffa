@@ -20,6 +20,7 @@ Release 0.2.0 - unreleased
     Issue 104: Fix Java warnings excluding generated sources. (shv)
     Issue 127: Add FileSystemContractTestBase for Giraffa. (Andrey Stepachev)
     Issue 94: Upgrade Giraffa to Hadoop 2.5.1. (Milan)
+    Issue 122: Upgrade Giraffa to HBase 1.0.1. (Andrey Stepachev, Milan, shv)
 
   DOCUMENTATION
 
