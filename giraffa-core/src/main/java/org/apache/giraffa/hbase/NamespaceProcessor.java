@@ -73,6 +73,7 @@ import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.XAttrSetFlag;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -138,7 +139,8 @@ public class NamespaceProcessor implements ClientProtocol,
       LogFactory.getLog(NamespaceProcessor.class.getName());
    
   static final FsPermission UMASK = FsPermission.createImmutable((short)0111);
-  
+  private boolean isPermissionEnabled;
+
   public NamespaceProcessor() {}
   
   @Override // CoprocessorService
@@ -154,6 +156,9 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("Start NamespaceProcessor...");
     Configuration conf = env.getConfiguration();
     RowKeyFactory.registerRowKey(conf);
+    this.isPermissionEnabled = conf.getBoolean(
+        GiraffaConfiguration.GRFA_PERMISSIONS_ENABLED_KEY,
+        GiraffaConfiguration.GRFA_PERMISSIONS_ENABLED_DEFAULT);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
@@ -218,12 +223,16 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new FileNotFoundException("File does not exist: " + src);
     }
 
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(iNode, FsAction.WRITE);
+    }
+
     // Calls addBlock on HDFS by putting another empty Block in HBase
     if(previous != null) {
       // we need to update in HBase the previous block
       iNode.setLastBlock(previous);
     }
-    
+
     // add a Block and modify times
     // (if there was a previous block this call with add it in as well)
     long time = now();
@@ -315,13 +324,19 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new IOException("Append is not supported.");
     }
 
-    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String userName = ugi.getShortUserName();
-    String groupName = (ugi.getGroupNames().length == 0) ? "supergroup" :
-        ugi.getGroupNames()[0];
     masked = new FsPermission((short) 0644);
 
     INode iFile = nodeManager.getINode(src);
+
+    FsPermissionChecker checker = getFsPermissionChecker();
+    if (isPermissionEnabled) {
+      if (overwrite && iFile != null) {
+        checker.checkPathAccess(src, FsAction.WRITE);
+      } else {
+        checker.checkAncestorAccess(src, FsAction.WRITE);
+      }
+    }
+
     if(iFile != null) {
       if(iFile.isDir()) {
         throw new FileAlreadyExistsException(
@@ -362,7 +377,7 @@ public class NamespaceProcessor implements ClientProtocol,
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
       iFile = new INode(0, false, replication, blockSize, time, time,
-          masked, userName, groupName, null,
+          masked, checker.getUser(), checker.getPrimaryGroup(), null,
           key, 0, 0, FileState.UNDER_CONSTRUCTION, null, null, null,
           fileLease);
     }
@@ -400,13 +415,18 @@ public class NamespaceProcessor implements ClientProtocol,
 
     INode node = nodeManager.getINode(src);
     if(node == null) return false;
-
     // then check parent inode
     INode parent = nodeManager.getINode(parentPath.toString());
     if(parent == null)
       throw new FileNotFoundException("Parent does not exist.");
     if(!parent.isDir())
       throw new ParentNotDirectoryException("Parent is not a directory.");
+
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().checkPermission(src, false, null,
+          FsAction.WRITE, null,
+          FsAction.ALL, true, false);
+    }
 
     if(node.isDir())
       return deleteDirectory(node, recursive, true);
@@ -512,6 +532,10 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new FileNotFoundException("File does not exist: " + src);
     }
 
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(iNode, FsAction.READ);
+    }
+
     List<LocatedBlock> al = UnlocatedBlock.toLocatedBlocks(iNode.getBlocks(),
         iNode.getLocations());
     boolean underConstruction = (iNode.getFileState().equals(FileState.CLOSED));
@@ -540,6 +564,9 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node == null) {
       throw new FileNotFoundException("Path does not exist: " + path);
     }
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(node, FsAction.READ);
+    }
     if(node.isDir()) {
       return new ContentSummary(0L, 0L, 1L, node.getNsQuota(), 
           0L, node.getDsQuota());
@@ -566,6 +593,9 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(node, FsAction.READ);
+    }
     return node.getFileStatus();
   }
 
@@ -576,6 +606,9 @@ public class NamespaceProcessor implements ClientProtocol,
     INode node = nodeManager.getINode(src);
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
+    }
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(node, FsAction.READ);
     }
     return node.getFileState() == FileState.CLOSED;
   }
@@ -601,6 +634,15 @@ public class NamespaceProcessor implements ClientProtocol,
 
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
+    }
+
+    if (isPermissionEnabled) {
+      FsPermissionChecker pc = getFsPermissionChecker();
+      if (node.isDir()) {
+        pc.checkPathAccess(src, FsAction.READ_EXECUTE);
+      } else {
+        pc.checkTraverse(src);
+      }
     }
 
     if(!node.isDir()) {
@@ -633,6 +675,9 @@ public class NamespaceProcessor implements ClientProtocol,
     if(inode == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().check(inode, FsAction.READ);
+    }
     return inode.getBlockSize();
   }
 
@@ -658,9 +703,7 @@ public class NamespaceProcessor implements ClientProtocol,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
       IOException {
     Path parentPath = new Path(src).getParent();
-    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String clientName = ugi.getShortUserName();
-    String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
+    FsPermissionChecker checker = getFsPermissionChecker();
 
     RowKey key = RowKeyFactory.newInstance(src);
     INode inode = nodeManager.getINode(key);
@@ -669,7 +712,8 @@ public class NamespaceProcessor implements ClientProtocol,
       if(inode == null) {
         long time = now();
         inode = new INode(0, true, (short) 0, 0, time, time,
-            masked, clientName, machineName, null,
+            FsPermission.createImmutable((short) 0777),
+            checker.getSuperUser(), checker.getSuperGroup(), null,
             key, 0, 0, null, null, null, null, null);
         nodeManager.updateINode(inode);
       }
@@ -692,11 +736,15 @@ public class NamespaceProcessor implements ClientProtocol,
     if(createParent && iParent == null) {
       //make the parent directories
       mkdirs(parent, masked, true);
-    } 
+    }
+
+    if (isPermissionEnabled) {
+      checker.check(iParent, FsAction.WRITE);
+    }
 
     long time = now();
     inode = new INode(0, true, (short) 0, 0, time, time,
-        masked, clientName, machineName, null,
+        masked, checker.getUser(), checker.getPrimaryGroup(), null,
         key, 0, 0, null, null, null, null, null);
 
     // add directory to HBase
@@ -748,6 +796,18 @@ public class NamespaceProcessor implements ClientProtocol,
         rootDstNode != null && rootDstNode.isDir();
     if(directoryRename)
       LOG.debug("Detected directory rename");
+
+    if (isPermissionEnabled) {
+      FsPermissionChecker checker = getFsPermissionChecker();
+      // Rename does not operates on link targets
+      // Do not resolveLink when checking permissions of src and dst
+      // Check write access to parent of src
+      checker.checkPermission(src, false, null, FsAction.WRITE, null, null,
+          false, false);
+      // Check write access to ancestor of dst
+      checker.checkPermission(dst, false, FsAction.WRITE, null, null, null,
+          false, false);
+    }
 
     if(rootDstNode != null && !rootDstNode.getRenameState().getFlag() &&
         overwrite) {
@@ -956,7 +1016,20 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
-
+    if (isPermissionEnabled) {
+      FsPermissionChecker pc = getFsPermissionChecker();
+      pc.checkOwner(src);
+      if (!pc.isSuperUser()) {
+        if (username != null && !pc.getUser().equals(username)) {
+          throw new AccessControlException(
+              "Non-super user cannot change owner");
+        }
+        if (groupname != null && !pc.containsGroup(groupname)) {
+          throw new AccessControlException(
+              "User does not belong to " + groupname);
+        }
+      }
+    }
     node.setOwner(username, groupname);
     nodeManager.updateINode(node);
   }
@@ -971,7 +1044,11 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node == null) {
       throw new FileNotFoundException("File does not exist: " + src);
     }
-    
+    if (isPermissionEnabled) {
+      FsPermissionChecker pc = getFsPermissionChecker();
+      pc.checkOwner(src);
+    }
+
     if(!node.isDir()) {
       permission = permission.applyUMask(UMASK);
     }
@@ -984,7 +1061,8 @@ public class NamespaceProcessor implements ClientProtocol,
   public void setQuota(String src, long namespaceQuota, long diskspaceQuota)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
-    
+    checkSuperuserPrivilege();
+
     INode node = nodeManager.getINode(src);
 
     if(node == null) {
@@ -1022,6 +1100,11 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node.isDir())
       return false;
 
+    if (isPermissionEnabled) {
+      FsPermissionChecker pc = getFsPermissionChecker();
+      pc.check(node, FsAction.WRITE);
+    }
+
     node.setReplication(replication);
     nodeManager.updateINode(node);
     return true;
@@ -1044,6 +1127,10 @@ public class NamespaceProcessor implements ClientProtocol,
     }
     if(node.isDir())
       return;
+    if (isPermissionEnabled) {
+      FsPermissionChecker pc = getFsPermissionChecker();
+      pc.check(node, FsAction.WRITE);
+    }
 
     node.setTimes(mtime, atime);
     nodeManager.updateINode(node);
@@ -1315,4 +1402,18 @@ public class NamespaceProcessor implements ClientProtocol,
     }
     return leaseManager;
   }
+
+  public void checkSuperuserPrivilege()
+      throws IOException {
+    if (isPermissionEnabled) {
+      getFsPermissionChecker().checkSuperuserPrivilege();
+    }
+  }
+
+  private FsPermissionChecker getFsPermissionChecker() throws IOException {
+    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
+    return new FsPermissionChecker(ugi,
+        FsPermissionChecker.getResolver(nodeManager));
+  }
+
 }
