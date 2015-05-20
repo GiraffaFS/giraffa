@@ -85,16 +85,14 @@ public class GiraffaPBHelper {
   public static FileLeaseProto convert(FileLease lease) {
     return FileLeaseProto.newBuilder()
         .setHolder(lease.getHolder())
-        .setPath(lease.getPath())
         .setLastUpdate(lease.getLastUpdate())
         .build();
   }
 
-  public static FileLease convert(FileLeaseProto leaseProto) {
+  public static FileLease convert(FileLeaseProto leaseProto, String path) {
     if(leaseProto == null)
       return null;
     String holder = leaseProto.getHolder();
-    String path = leaseProto.getPath();
     long lastUpdate = leaseProto.getLastUpdate();
     return new FileLease(holder, path, lastUpdate);
   }
@@ -127,10 +125,10 @@ public class GiraffaPBHelper {
    * @return
    * @throws IOException
    */
-  public static FileLease bytesToHdfsLease(byte[] bytes)
+  public static FileLease bytesToHdfsLease(byte[] bytes, String path)
       throws IOException {
     DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
-    return convert(FileLeaseProto.parseDelimitedFrom(in));
+    return convert(FileLeaseProto.parseDelimitedFrom(in), path);
   }
 
   /**

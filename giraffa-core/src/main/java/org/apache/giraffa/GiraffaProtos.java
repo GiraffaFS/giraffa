@@ -1252,11 +1252,7 @@ public final class GiraffaProtos {
     boolean hasHolder();
     String getHolder();
     
-    // required string path = 2;
-    boolean hasPath();
-    String getPath();
-    
-    // required uint64 lastUpdate = 3;
+    // optional uint64 lastUpdate = 2;
     boolean hasLastUpdate();
     long getLastUpdate();
   }
@@ -1321,43 +1317,11 @@ public final class GiraffaProtos {
       }
     }
     
-    // required string path = 2;
-    public static final int PATH_FIELD_NUMBER = 2;
-    private java.lang.Object path_;
-    public boolean hasPath() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
-    }
-    public String getPath() {
-      java.lang.Object ref = path_;
-      if (ref instanceof String) {
-        return (String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        String s = bs.toStringUtf8();
-        if (com.google.protobuf.Internal.isValidUtf8(bs)) {
-          path_ = s;
-        }
-        return s;
-      }
-    }
-    private com.google.protobuf.ByteString getPathBytes() {
-      java.lang.Object ref = path_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8((String) ref);
-        path_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    
-    // required uint64 lastUpdate = 3;
-    public static final int LASTUPDATE_FIELD_NUMBER = 3;
+    // optional uint64 lastUpdate = 2;
+    public static final int LASTUPDATE_FIELD_NUMBER = 2;
     private long lastUpdate_;
     public boolean hasLastUpdate() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     public long getLastUpdate() {
       return lastUpdate_;
@@ -1365,7 +1329,6 @@ public final class GiraffaProtos {
     
     private void initFields() {
       holder_ = "";
-      path_ = "";
       lastUpdate_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
@@ -1374,14 +1337,6 @@ public final class GiraffaProtos {
       if (isInitialized != -1) return isInitialized == 1;
       
       if (!hasHolder()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasPath()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasLastUpdate()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -1396,10 +1351,7 @@ public final class GiraffaProtos {
         output.writeBytes(1, getHolderBytes());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getPathBytes());
-      }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeUInt64(3, lastUpdate_);
+        output.writeUInt64(2, lastUpdate_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -1416,11 +1368,7 @@ public final class GiraffaProtos {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getPathBytes());
-      }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeUInt64Size(3, lastUpdate_);
+          .computeUInt64Size(2, lastUpdate_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1450,11 +1398,6 @@ public final class GiraffaProtos {
         result = result && getHolder()
             .equals(other.getHolder());
       }
-      result = result && (hasPath() == other.hasPath());
-      if (hasPath()) {
-        result = result && getPath()
-            .equals(other.getPath());
-      }
       result = result && (hasLastUpdate() == other.hasLastUpdate());
       if (hasLastUpdate()) {
         result = result && (getLastUpdate()
@@ -1472,10 +1415,6 @@ public final class GiraffaProtos {
       if (hasHolder()) {
         hash = (37 * hash) + HOLDER_FIELD_NUMBER;
         hash = (53 * hash) + getHolder().hashCode();
-      }
-      if (hasPath()) {
-        hash = (37 * hash) + PATH_FIELD_NUMBER;
-        hash = (53 * hash) + getPath().hashCode();
       }
       if (hasLastUpdate()) {
         hash = (37 * hash) + LASTUPDATE_FIELD_NUMBER;
@@ -1599,10 +1538,8 @@ public final class GiraffaProtos {
         super.clear();
         holder_ = "";
         bitField0_ = (bitField0_ & ~0x00000001);
-        path_ = "";
-        bitField0_ = (bitField0_ & ~0x00000002);
         lastUpdate_ = 0L;
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
       
@@ -1648,10 +1585,6 @@ public final class GiraffaProtos {
         if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
-        result.path_ = path_;
-        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
-          to_bitField0_ |= 0x00000004;
-        }
         result.lastUpdate_ = lastUpdate_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -1672,9 +1605,6 @@ public final class GiraffaProtos {
         if (other.hasHolder()) {
           setHolder(other.getHolder());
         }
-        if (other.hasPath()) {
-          setPath(other.getPath());
-        }
         if (other.hasLastUpdate()) {
           setLastUpdate(other.getLastUpdate());
         }
@@ -1684,14 +1614,6 @@ public final class GiraffaProtos {
       
       public final boolean isInitialized() {
         if (!hasHolder()) {
-          
-          return false;
-        }
-        if (!hasPath()) {
-          
-          return false;
-        }
-        if (!hasLastUpdate()) {
           
           return false;
         }
@@ -1726,13 +1648,8 @@ public final class GiraffaProtos {
               holder_ = input.readBytes();
               break;
             }
-            case 18: {
+            case 16: {
               bitField0_ |= 0x00000002;
-              path_ = input.readBytes();
-              break;
-            }
-            case 24: {
-              bitField0_ |= 0x00000004;
               lastUpdate_ = input.readUInt64();
               break;
             }
@@ -1778,58 +1695,22 @@ public final class GiraffaProtos {
         onChanged();
       }
       
-      // required string path = 2;
-      private java.lang.Object path_ = "";
-      public boolean hasPath() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
-      }
-      public String getPath() {
-        java.lang.Object ref = path_;
-        if (!(ref instanceof String)) {
-          String s = ((com.google.protobuf.ByteString) ref).toStringUtf8();
-          path_ = s;
-          return s;
-        } else {
-          return (String) ref;
-        }
-      }
-      public Builder setPath(String value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        path_ = value;
-        onChanged();
-        return this;
-      }
-      public Builder clearPath() {
-        bitField0_ = (bitField0_ & ~0x00000002);
-        path_ = getDefaultInstance().getPath();
-        onChanged();
-        return this;
-      }
-      void setPath(com.google.protobuf.ByteString value) {
-        bitField0_ |= 0x00000002;
-        path_ = value;
-        onChanged();
-      }
-      
-      // required uint64 lastUpdate = 3;
+      // optional uint64 lastUpdate = 2;
       private long lastUpdate_ ;
       public boolean hasLastUpdate() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       public long getLastUpdate() {
         return lastUpdate_;
       }
       public Builder setLastUpdate(long value) {
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000002;
         lastUpdate_ = value;
         onChanged();
         return this;
       }
       public Builder clearLastUpdate() {
-        bitField0_ = (bitField0_ & ~0x00000004);
+        bitField0_ = (bitField0_ & ~0x00000002);
         lastUpdate_ = 0L;
         onChanged();
         return this;
@@ -1876,9 +1757,9 @@ public final class GiraffaProtos {
       "\006offset\030\002 \002(\004\022\017\n\007corrupt\030\003 \002(\010\022-\n\nblockT" +
       "oken\030\004 \002(\0132\031.hadoop.common.TokenProto\"-\n" +
       "\020RenameStateProto\022\014\n\004flag\030\001 \002(\010\022\013\n\003src\030\002" +
-      " \001(\014\"B\n\016FileLeaseProto\022\016\n\006holder\030\001 \002(\t\022\014" +
-      "\n\004path\030\002 \002(\t\022\022\n\nlastUpdate\030\003 \002(\004B&\n\022org." +
-      "apache.giraffaB\rGiraffaProtos\240\001\001"
+      " \001(\014\"4\n\016FileLeaseProto\022\016\n\006holder\030\001 \002(\t\022\022" +
+      "\n\nlastUpdate\030\002 \001(\004B&\n\022org.apache.giraffa" +
+      "B\rGiraffaProtos\240\001\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -1906,7 +1787,7 @@ public final class GiraffaProtos {
           internal_static_giraffa_FileLeaseProto_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_giraffa_FileLeaseProto_descriptor,
-              new java.lang.String[] { "Holder", "Path", "LastUpdate", },
+              new java.lang.String[] { "Holder", "LastUpdate", },
               org.apache.giraffa.GiraffaProtos.FileLeaseProto.class,
               org.apache.giraffa.GiraffaProtos.FileLeaseProto.Builder.class);
           return null;

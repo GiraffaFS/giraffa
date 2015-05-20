@@ -346,7 +346,7 @@ public class INodeManager implements Closeable {
         FileFieldDeserializer.getRenameState(result),
         directory ? null : FileFieldDeserializer.getBlocks(result),
         directory ? null : FileFieldDeserializer.getLocations(result),
-        directory ? null : FileFieldDeserializer.getLease(result));
+        directory ? null : FileFieldDeserializer.getLease(result, src));
   }
 
   private ResultScanner getListingScanner(RowKey key)
