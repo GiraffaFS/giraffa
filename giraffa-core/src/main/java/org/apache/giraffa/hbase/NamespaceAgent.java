@@ -68,7 +68,6 @@ import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -77,9 +76,10 @@ import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
@@ -142,8 +142,8 @@ public class NamespaceAgent implements NamespaceService {
     CLOSE, ALLOCATE, DELETE
   }
 
-  private HBaseAdmin hbAdmin;
-  private HTableInterface nsTable;
+  private Admin hbAdmin;
+  private Table nsTable;
   private FsServerDefaults serverDefaults;
 
   private static final Log LOG =
@@ -154,7 +154,8 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
     RowKeyFactory.registerRowKey(conf);
-    this.hbAdmin = new HBaseAdmin(conf);
+    Connection connection = ConnectionFactory.createConnection(conf);
+    this.hbAdmin = connection.getAdmin();
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     
@@ -182,7 +183,7 @@ public class NamespaceAgent implements NamespaceService {
         checksumType);
 
     try {
-      this.nsTable = new HTable(hbAdmin.getConfiguration(), tableName);
+      this.nsTable = connection.getTable(TableName.valueOf(tableName));
     } catch(TableNotFoundException tnfe) {
       throw new IOException("Giraffa is not formatted.", tnfe);
     }
@@ -350,17 +351,19 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void format(GiraffaConfiguration conf) throws IOException {
     LOG.info("Format started...");
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
+    String tblString = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
                                 GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    TableName tableName = TableName.valueOf(tblString);
     URI gURI = FileSystem.getDefaultUri(conf);
 
     if( ! GiraffaConfiguration.GRFA_URI_SCHEME.equals(gURI.getScheme()))
         throw new IOException("Cannot format. Non-Giraffa URI found: " + gURI);
-    HBaseAdmin hbAdmin = new HBaseAdmin(HBaseConfiguration.create(conf));
+    Connection connection = ConnectionFactory.createConnection(conf);
+    Admin hbAdmin = connection.getAdmin();
     if(hbAdmin.tableExists(tableName)) {
       // remove existing table to renew it
       if(hbAdmin.isTableEnabled(tableName)) {
-    	  hbAdmin.disableTable(tableName);
+        hbAdmin.disableTable(tableName);
       }
       hbAdmin.deleteTable(tableName);
     }

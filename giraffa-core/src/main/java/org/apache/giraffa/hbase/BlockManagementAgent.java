@@ -37,9 +37,9 @@ import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
@@ -124,7 +124,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
   @Override // BaseRegionObserver
   public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put,
                      WALEdit edit, Durability durability) throws IOException {
-    List<KeyValue> kvs = getKeyValues(put);
+    List<Cell> kvs = getKeyValues(put);
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
       return;
@@ -139,17 +139,17 @@ public class BlockManagementAgent extends BaseRegionObserver {
         new ArrayList<Cell>(kvs));
   }
 
-  private List<KeyValue> getKeyValues(Put put) {
+  private List<Cell> getKeyValues(Put put) {
     List<Cell> cells =
         put.getFamilyCellMap().get(FileField.getFileAttributes());
-    List<KeyValue> kvs = new ArrayList<KeyValue>(cells.size());
+    List<Cell> kvs = new ArrayList<Cell>(cells.size());
     for(Cell cell : cells) {
-      kvs.add(KeyValueUtil.ensureKeyValue(cell));
+      kvs.add(cell);
     }
     return kvs;
   }
 
-  private void deleteBlocks(List<KeyValue> kvs) {
+  private void deleteBlocks(List<Cell> kvs) {
     // remove the blockAction
     removeBlockAction(kvs);
 
@@ -165,13 +165,13 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
   }
 
-private void removeBlockAction(List<KeyValue> kvs) {
-    KeyValue kv = findField(kvs, FileField.ACTION);
+  private void removeBlockAction(List<Cell> kvs) {
+    Cell kv = findField(kvs, FileField.ACTION);
     kvs.remove(kv);
-}
+  }
 
-  static KeyValue findField(List<KeyValue> kvs, FileField field) {
-    for(KeyValue kv : kvs) {
+  static Cell findField(List<Cell> kvs, FileField field) {
+    for(Cell kv : kvs) {
       if(matchingColumn(kv, FileField.getFileAttributes(), field.getBytes())) {
         return kv;
       }
@@ -179,19 +179,19 @@ private void removeBlockAction(List<KeyValue> kvs) {
     return null;
   }
 
-  static BlockAction getBlockAction(List<KeyValue> kvs) {
-    KeyValue kv = findField(kvs, FileField.ACTION);
+  static BlockAction getBlockAction(List<Cell> kvs) {
+    Cell kv = findField(kvs, FileField.ACTION);
     return kv == null ? null : 
-      BlockAction.valueOf(Bytes.toString(kv.getValue()));
+      BlockAction.valueOf(Bytes.toString(CellUtil.cloneValue(kv)));
   }
 
-  static List<UnlocatedBlock> getFileBlocks(List<KeyValue> kvs) {
-    KeyValue kv = findField(kvs, FileField.BLOCK);
+  static List<UnlocatedBlock> getFileBlocks(List<Cell> kvs) {
+    Cell kv = findField(kvs, FileField.BLOCK);
     return kv == null ? new ArrayList<UnlocatedBlock>() :
-      byteArrayToBlockList(kv.getValue());
+      byteArrayToBlockList(CellUtil.cloneValue(kv));
   }
 
-  private void completeBlocks(List<KeyValue> kvs) throws IOException {
+  private void completeBlocks(List<Cell> kvs) throws IOException {
     // remove the blockAction
     removeBlockAction(kvs);
 
@@ -204,16 +204,16 @@ private void removeBlockAction(List<KeyValue> kvs) {
     updateFileSize(kvs, getFileSize(al));
   }
 
-  private void updateFileSize(List<KeyValue> kvs, long fileSize) {
-    KeyValue kv = findField(kvs, FileField.LENGTH);
+  private void updateFileSize(List<Cell> kvs, long fileSize) {
+    Cell kv = findField(kvs, FileField.LENGTH);
     if(kv == null) return;
-    byte[] row = kv.getRow();
+    byte[] row = CellUtil.cloneRow(kv);
     long timestamp = kv.getTimestamp();
-    KeyValue nkv = new KeyValue(row,
+    Cell nkv = new KeyValue(row,
         FileField.getFileAttributes(), FileField.getLength(),
         timestamp, Bytes.toBytes(fileSize));
 
-    //replace this KeyValue with new KeyValue
+    //replace this Cell with new Cell
     kvs.remove(kv);
     kvs.add(nkv);
   }
@@ -226,18 +226,18 @@ private void removeBlockAction(List<KeyValue> kvs) {
    * @param kvs
    * @throws IOException
    */
-  private void allocateBlock(List<KeyValue> kvs) throws IOException {
+  private void allocateBlock(List<Cell> kvs) throws IOException {
     // remove the blockAction
     removeBlockAction(kvs);
 
-    KeyValue blockKv = findField(kvs, FileField.BLOCK);
-    KeyValue locsKv = findField(kvs, FileField.LOCATIONS);
+    Cell blockKv = findField(kvs, FileField.BLOCK);
+    Cell locsKv = findField(kvs, FileField.LOCATIONS);
     if(blockKv != null && locsKv != null) {
       // create arrayLists from current KeyValues
       List<UnlocatedBlock> al_blks =
-          byteArrayToBlockList(blockKv.getValue());
+          byteArrayToBlockList(CellUtil.cloneValue(blockKv));
       List<DatanodeInfo[]> al_locs =
-          byteArrayToLocsList(locsKv.getValue());
+          byteArrayToLocsList(CellUtil.cloneValue(locsKv));
 
       // get new empty Block, seperate into blocks/locations, and add to lists
       LocatedBlock locatedBlock = allocateBlockFile(al_blks);
@@ -246,15 +246,15 @@ private void removeBlockAction(List<KeyValue> kvs) {
       al_blks.add(blk);
       al_locs.add(locs);
 
-      // grab old KeyValue data and create new KeyValue for blocks
-      byte[] row = blockKv.getRow();
+      // grab old Cell data and create new Cell for blocks
+      byte[] row = CellUtil.cloneRow(blockKv);
       long blk_timestamp = blockKv.getTimestamp();
-      KeyValue blockNkv = new KeyValue(row, FileField.getFileAttributes(),
+      Cell blockNkv = new KeyValue(row, FileField.getFileAttributes(),
           FileField.getBlock(), blk_timestamp, blockArrayToBytes(al_blks));
       
       // repeat for locations
       long loc_timestamp = locsKv.getTimestamp();
-      KeyValue locsNkv = new KeyValue(row, FileField.getFileAttributes(),
+      Cell locsNkv = new KeyValue(row, FileField.getFileAttributes(),
           FileField.getLocations(), loc_timestamp, locsArrayToBytes(al_locs));
 
       // replace original KeyValues with new KeyValues
@@ -263,8 +263,8 @@ private void removeBlockAction(List<KeyValue> kvs) {
       kvs.add(blockNkv);
       kvs.add(locsNkv);
 
-      LOG.info("File: " + kvs.get(0).getKeyString() + " Blocks: " +
-          getFileBlocks(kvs));
+      LOG.info("File: " + CellUtil.getCellKeyAsString(kvs.get(0))
+          + " Blocks: " + getFileBlocks(kvs));
     }
   }
 

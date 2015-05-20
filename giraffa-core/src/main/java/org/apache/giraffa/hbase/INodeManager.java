@@ -39,7 +39,7 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -58,8 +58,8 @@ import com.google.common.collect.Iterables;
 public class INodeManager implements Closeable {
   private final CoprocessorEnvironment env;
   private final String nsTableName;
-  private final ThreadLocal<HTableInterface> nsTable =
-      new ThreadLocal<HTableInterface>();
+  private final ThreadLocal<Table> nsTable =
+      new ThreadLocal<Table>();
 
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
 
@@ -71,7 +71,7 @@ public class INodeManager implements Closeable {
 
   @Override
   public void close() {
-    HTableInterface client = nsTable.get();
+    Table client = nsTable.get();
     try {
       if(client != null) {
         client.close();
@@ -112,7 +112,7 @@ public class INodeManager implements Closeable {
     long ts = Time.now();
     Put put = new Put(node.getRowKey().getKey(), ts);
     // lease update
-    put.add(FileField.getFileAttributes(), FileField.getLease(), ts,
+    put.addColumn(FileField.getFileAttributes(), FileField.getLease(), ts,
         node.getLeaseBytes());
 
     getNSTable().put(put);
@@ -135,53 +135,53 @@ public class INodeManager implements Closeable {
     RowKey key = node.getRowKey();
     byte[] family = FileField.getFileAttributes();
     Put put = new Put(node.getRowKey().getKey(), ts);
-    put.add(family, FileField.getFileName(), ts,
+    put.addColumn(family, FileField.getFileName(), ts,
             RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
-        .add(family, FileField.getUserName(), ts,
+        .addColumn(family, FileField.getUserName(), ts,
             RowKeyBytes.toBytes(node.getOwner()))
-        .add(family, FileField.getGroupName(), ts,
+        .addColumn(family, FileField.getGroupName(), ts,
             RowKeyBytes.toBytes(node.getGroup()))
-        .add(family, FileField.getLength(), ts,
+        .addColumn(family, FileField.getLength(), ts,
             Bytes.toBytes(node.getLen()))
-        .add(family, FileField.getPermissions(), ts,
+        .addColumn(family, FileField.getPermissions(), ts,
             Bytes.toBytes(node.getPermission().toShort()))
-        .add(family, FileField.getMTime(), ts,
+        .addColumn(family, FileField.getMTime(), ts,
             Bytes.toBytes(node.getModificationTime()))
-        .add(family, FileField.getATime(), ts,
+        .addColumn(family, FileField.getATime(), ts,
             Bytes.toBytes(node.getAccessTime()))
-        .add(family, FileField.getDsQuota(), ts,
+        .addColumn(family, FileField.getDsQuota(), ts,
             Bytes.toBytes(node.getDsQuota()))
-        .add(family, FileField.getNsQuota(), ts,
+        .addColumn(family, FileField.getNsQuota(), ts,
             Bytes.toBytes(node.getNsQuota()))
-        .add(family, FileField.getReplication(), ts,
+        .addColumn(family, FileField.getReplication(), ts,
             Bytes.toBytes(node.getReplication()))
-        .add(family, FileField.getBlockSize(), ts,
+        .addColumn(family, FileField.getBlockSize(), ts,
             Bytes.toBytes(node.getBlockSize()))
-        .add(family, FileField.getRenameState(), ts,
+        .addColumn(family, FileField.getRenameState(), ts,
             node.getRenameStateBytes());
 
     // symlink
     if(node.getSymlink() != null) {
-      put.add(family, FileField.getSymlink(), ts, node.getSymlink());
+      put.addColumn(family, FileField.getSymlink(), ts, node.getSymlink());
     }
 
     // file/directory specific columns
     if(node.isDir()) {
-      put.add(family, FileField.getDirectory(), ts,
+      put.addColumn(family, FileField.getDirectory(), ts,
           Bytes.toBytes(node.isDir()));
     }
     else {
-      put.add(family, FileField.getBlock(), ts, node.getBlocksBytes())
-          .add(family, FileField.getLocations(), ts, node.getLocationsBytes())
-          .add(family, FileField.getFileState(), ts,
+      put.addColumn(family, FileField.getBlock(), ts, node.getBlocksBytes())
+          .addColumn(family, FileField.getLocations(), ts, node.getLocationsBytes())
+          .addColumn(family, FileField.getFileState(), ts,
               Bytes.toBytes(node.getFileState().toString()))
-          .add(family, FileField.getLease(), ts,
+          .addColumn(family, FileField.getLease(), ts,
               node.getLeaseBytes());
     }
 
     // block action
     if(ba != null) {
-      put.add(family, FileField.getAction(), ts, Bytes.toBytes(ba.toString()));
+      put.addColumn(family, FileField.getAction(), ts, Bytes.toBytes(ba.toString()));
     }
 
     getNSTable().put(put);
@@ -303,13 +303,13 @@ public class INodeManager implements Closeable {
     node.setLocations(FileFieldDeserializer.getLocations(result));
   }
 
-  private HTableInterface getNSTable() {
+  private Table getNSTable() {
     openTable();
     return nsTable.get();
   }
 
   private void openTable() {
-    HTableInterface client = nsTable.get();
+    Table client = nsTable.get();
     if(client != null)
       return;
     try {

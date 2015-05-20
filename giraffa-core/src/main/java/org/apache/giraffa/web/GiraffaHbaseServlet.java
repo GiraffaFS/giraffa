@@ -12,7 +12,7 @@ import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.hbase.FileFieldDeserializer;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -42,7 +42,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
   private static final Log LOG = LogFactory.getLog(GiraffaFileServlet.class);
   private static final long serialVersionUID = 1L;
 
-  private transient HTableInterface table;
+  private transient Table table;
   private transient ObjectMapper mapper = new ObjectMapper();
 
   private static final long BLOCK_RESULT_LIMIT = 20;
