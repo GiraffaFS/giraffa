@@ -22,6 +22,8 @@ Release 0.2.0 - unreleased
     Issue 94: Upgrade Giraffa to Hadoop 2.5.1. (Milan)
     Issue 122: Upgrade Giraffa to HBase 1.0.1. (Andrey Stepachev, Milan, shv)
     Issue 140: Fix post-upgrade warnings. (shv)
+    Issue 153: NamespaceAgent can fail operations when RegionServer
+               dies. (Plamen)
 
   DOCUMENTATION
 
