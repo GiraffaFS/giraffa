@@ -4,8 +4,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -35,8 +36,8 @@ public class GiraffaWebObserver extends BaseMasterObserver {
 
     LOG.info("Start GiraffaWebObserver...");
     Configuration conf = ctx.getEnvironment().getConfiguration();
-
-    HBaseAdmin hBaseAdmin = new HBaseAdmin(HBaseConfiguration.create(conf));
+    Connection connection = ConnectionFactory.createConnection(conf);
+    Admin hBaseAdmin = connection.getAdmin();
 
     final InetSocketAddress infoSocAddr = getHttpServerAddress(conf);
 
