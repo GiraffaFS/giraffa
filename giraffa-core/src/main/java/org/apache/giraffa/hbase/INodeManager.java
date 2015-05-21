@@ -18,7 +18,6 @@
 package org.apache.giraffa.hbase;
 
 import java.io.Closeable;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +33,6 @@ import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
@@ -46,7 +44,6 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
-import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.util.Time;
 
 import com.google.common.collect.Iterables;
@@ -224,8 +221,7 @@ public class INodeManager implements Closeable {
    * @return a list of INodes representing the children of the given directory
    */
   public List<INode> getListing(INode dir, byte[] startAfter, int limit)
-      throws AccessControlException, FileNotFoundException,
-      UnresolvedLinkException, IOException {
+      throws IOException {
     final List<INode> nodes = new ArrayList<INode>();
     map(dir, startAfter, limit, new Function() {
       @Override

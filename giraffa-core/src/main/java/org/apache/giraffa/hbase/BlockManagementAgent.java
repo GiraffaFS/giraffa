@@ -49,7 +49,6 @@ import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.HDFSAdapter;
-import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
@@ -124,7 +123,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
   @Override // BaseRegionObserver
   public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put,
                      WALEdit edit, Durability durability) throws IOException {
-    List<Cell> kvs = getKeyValues(put);
+    List<Cell> kvs = put.getFamilyCellMap().get(FileField.getFileAttributes());
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
       return;
@@ -137,16 +136,6 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
     put.getFamilyCellMap().put(FileField.getFileAttributes(),
         new ArrayList<Cell>(kvs));
-  }
-
-  private List<Cell> getKeyValues(Put put) {
-    List<Cell> cells =
-        put.getFamilyCellMap().get(FileField.getFileAttributes());
-    List<Cell> kvs = new ArrayList<Cell>(cells.size());
-    for(Cell cell : cells) {
-      kvs.add(cell);
-    }
-    return kvs;
   }
 
   private void deleteBlocks(List<Cell> kvs) {
@@ -336,10 +325,6 @@ public class BlockManagementAgent extends BaseRegionObserver {
   private Path getTemporaryBlockPath() {
     return new Path(GRFA_TMP_BLOCKS_DIR,
         GRFA_TMP_FILE_PREFFIX + temporaryFileId.incrementAndGet());
-  }
-
-  String getGiraffaBlockName(Block block) {
-    return GRFA_BLOCK_FILE_PREFFIX + block.getBlockName();
   }
 
   private String getGiraffaBlockPathName(ExtendedBlock block) {
