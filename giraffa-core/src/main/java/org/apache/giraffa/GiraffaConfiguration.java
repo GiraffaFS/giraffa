@@ -48,6 +48,10 @@ public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_WEB_ADDRESS_KEY = "grfa.http-address";
   public static final String  GRFA_WEB_ADDRESS_DEFAULT = "0.0.0.0:40010";
 
+  public static final String  GRFA_PERMISSIONS_ENABLED_KEY = "dfs.permissions.enabled";
+  public static final boolean GRFA_PERMISSIONS_ENABLED_DEFAULT = true;
+
+
   static {
     // adds the default resources
     Configuration.addDefaultResource("giraffa-default.xml");
