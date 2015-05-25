@@ -27,6 +27,6 @@
   </property>
   <property>
 	<name>hbase.rpc.callerfactory.class</name>
-	<value>org.apache.giraffa.hbase.GiraffaRpcRetryingCallerFactory</value>
+	<value>org.apache.hadoop.hbase.client.GiraffaRpcRetryingCallerFactory</value>
   </property>
 </configuration>
