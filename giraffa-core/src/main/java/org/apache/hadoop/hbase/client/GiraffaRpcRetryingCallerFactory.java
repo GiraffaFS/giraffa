@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase;
+package org.apache.hadoop.hbase.client;
+
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.FileSystemExceptionInterceptor;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
 
 /**
@@ -30,5 +32,19 @@ public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
 
   public GiraffaRpcRetryingCallerFactory(Configuration conf) {
     super(conf, new FileSystemExceptionInterceptor());
+  }
+
+  public static class FileSystemExceptionInterceptor
+  extends NoOpRetryableCallerInterceptor {
+
+    @Override // RetryingCallerInterceptor
+    public void handleFailure(RetryingCallerInterceptorContext context,
+        Throwable t)
+            throws IOException {
+      // detect and throw any filesystem-related IOExceptions
+      if(t instanceof IOException && !(t instanceof NotServingRegionException)) {
+        throw (IOException) t;
+      }
+    }
   }
 }
