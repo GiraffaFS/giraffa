@@ -20,6 +20,7 @@ package org.apache.giraffa;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -34,6 +35,7 @@ import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -130,6 +132,18 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
     } finally {
       UTIL.shutdownMiniCluster();
     }
+  }
+
+  @AfterClass
+  public static void cleanUp() throws IOException {
+    File dataFile = new File("data");
+    if(dataFile.exists())
+      dataFile.delete();
+    if(System.getProperty("test.cache.data") != null)
+      return;
+    File testCacheDir = new File(TEST_CACHE_DATA_DIR);
+    if(testCacheDir.exists())
+      FileUtils.deleteDirectory(testCacheDir);
   }
 
   @Override
