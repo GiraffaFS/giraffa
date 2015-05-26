@@ -15,33 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase;
+package org.apache.hadoop.hbase.client;
+
+import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.RpcRetryingCaller;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
 
 /**
- * Hook for loading our own RpcRetryingCaller to block filesystem operations
- * from being retried and properly handle exceptions. The name of this class
- * is specified in the property "hbase.rpc.callerfactory.class"
+ * Hook for loading our own FileSystemExceptionInterceptor to block filesystem
+ * operations from being retried and properly handle exceptions. The name of
+ * this class is specified in the property "hbase.rpc.callerfactory.class"
  */
 public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
 
-  public static final int START_LOG_ERRORS_CNT = 9;
-
   public GiraffaRpcRetryingCallerFactory(Configuration conf) {
-    super(conf);
+    super(conf, new FileSystemExceptionInterceptor());
   }
 
-  @Override
-  public <T> RpcRetryingCaller<T> newCaller() {
-    long pause = conf.getLong(HConstants.HBASE_CLIENT_PAUSE,
-        HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
-    int retries = conf.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
-        HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-    int startLogErrorsCnt = START_LOG_ERRORS_CNT;
-    return new GiraffaRpcRetryingCaller<T>(pause, retries, startLogErrorsCnt);
+  public static class FileSystemExceptionInterceptor
+  extends NoOpRetryableCallerInterceptor {
+
+    @Override // RetryingCallerInterceptor
+    public void handleFailure(RetryingCallerInterceptorContext context,
+        Throwable t)
+            throws IOException {
+      // detect and throw any filesystem-related IOExceptions
+      if(t instanceof IOException && !(t instanceof NotServingRegionException)) {
+        throw (IOException) t;
+      }
+    }
   }
 }
