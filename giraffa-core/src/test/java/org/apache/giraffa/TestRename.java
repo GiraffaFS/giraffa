@@ -68,7 +68,7 @@ public class TestRename {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf);
   }
 
   @After

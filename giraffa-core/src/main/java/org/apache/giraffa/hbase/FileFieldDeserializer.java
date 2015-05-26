@@ -124,13 +124,13 @@ public class FileFieldDeserializer {
         FileField.getLength()));
   }
 
-  public static FileLease getLease(Result res, String path) throws IOException {
+  public static FileLease getLease(Result res) throws IOException {
     if(getDirectory(res))
       return null;
     byte[] leaseByteArray = res.getValue(FileField.getFileAttributes(),
         FileField.getLease());
     if(leaseByteArray == null || leaseByteArray.length == 0)
       return null;
-    return GiraffaPBHelper.bytesToHdfsLease(leaseByteArray, path);
+    return GiraffaPBHelper.bytesToHdfsLease(leaseByteArray);
   }
 }

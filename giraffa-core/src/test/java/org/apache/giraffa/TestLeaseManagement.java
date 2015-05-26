@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa;
 
+import java.net.ConnectException;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -25,13 +27,17 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.giraffa.hbase.INodeManager;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Time;
@@ -45,6 +51,7 @@ public class TestLeaseManagement {
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
+  private GiraffaConfiguration conf;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -52,17 +59,24 @@ public class TestLeaseManagement {
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
+    Configuration hbaseConf = UTIL.getConfiguration();
+    hbaseConf.setInt("hbase.assignment.maximum.attempts", 3);
+    // Put meta on master to avoid meta server shutdown handling
+    hbaseConf.set("hbase.balancer.tablesOnMaster", "hbase:meta");
+    hbaseConf.setInt("hbase.master.maximum.ping.server.attempts", 3);
+    hbaseConf.setInt("hbase.master.ping.server.retry.sleep.interval", 1);
+    hbaseConf.setBoolean("hbase.assignment.usezk", false);
     UTIL.startMiniCluster(1);
   }
 
   @Before
   public void before() throws IOException {
-    GiraffaConfiguration conf =
-        new GiraffaConfiguration(UTIL.getConfiguration());
+    conf = new GiraffaConfiguration(UTIL.getConfiguration());
+    conf.setBoolean("fs.grfa.impl.disable.cache", true);
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf);
   }
 
   @After
@@ -124,6 +138,67 @@ public class TestLeaseManagement {
     assertThat(lease, is(nullValue()));
   }
 
+  /**
+   * This test shows that if a Region is to "migrate", either by split
+   * or by RegionServer shutdown, that an incomplete file with a lease migrates
+   * with the Region and that the lease is reloaded upon open and stays valid.
+   */
+  @Test
+  public void testLeaseMigration() throws Exception {
+    String src = "/testLeaseFailure";
+    Path path = new Path(src);
+    FSDataOutputStream outputStream = grfs.create(path);
+    MiniHBaseCluster cluster = UTIL.getHBaseCluster();
+    try {
+      // keep stream open intentionally
+      HRegionServer newServer = cluster.startRegionServer().getRegionServer();
+      newServer.waitForServerOnline();
+      HRegionServer dyingServer = cluster.getRegionServer(0);
+      cluster.stopRegionServer(dyingServer.getServerName());
+      cluster.waitForRegionServerToStop(dyingServer.getServerName(), 10000L);
+
+      INode iNode = null;
+      do {
+        try {
+          nodeManager = GiraffaTestUtils.getNodeManager(conf);
+          iNode = nodeManager.getINode(src);
+        } catch (ConnectException ignored) {}
+      } while(iNode == null);
+
+      FileLease rowLease = iNode.getLease();
+      LeaseManager leaseManager = LeaseManager.originateSharedLeaseManager(
+          newServer.getRpcServer().getListenerAddress().toString());
+      Collection<FileLease> leases =
+          leaseManager.getLeases(rowLease.getHolder());
+      assertThat(leases.size(), is(1));
+      FileLease leaseManagerLease = leases.iterator().next();
+      // The following asserts are here to highlight that as a result of
+      // migrating the FileLease across RegionServers we lose expiration date
+      // consistency between the row field and the LeaseManager.
+      assertThat(rowLease, is(not(equalTo(leaseManagerLease))));
+      assertThat(rowLease.getHolder(),
+          is(equalTo(leaseManagerLease.getHolder())));
+      assertThat(rowLease.getPath(), is(equalTo(leaseManagerLease.getPath())));
+      assertThat(rowLease.getLastUpdate(),
+          is(not(equalTo(leaseManagerLease.getLastUpdate()))));
+      // Renewing the lease restores the consistency.
+      grfs.grfaClient.getNamespaceService().renewLease(
+          grfs.grfaClient.getClientName());
+      iNode = nodeManager.getINode(src);
+      rowLease = iNode.getLease();
+      leases = leaseManager.getLeases(rowLease.getHolder());
+      assertThat(leases.size(), is(1));
+      leaseManagerLease = leases.iterator().next();
+      assertThat(rowLease, is(equalTo(leaseManagerLease)));
+    } finally {
+      IOUtils.closeStream(outputStream);
+    }
+    INode iNode = nodeManager.getINode(src);
+    assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));
+    FileLease lease = iNode.getLease();
+    assertThat(lease, is(nullValue()));
+  }
+
   void checkLease(String src, long currentTime) throws IOException {
     INode iNode = nodeManager.getINode(src);
     FileLease lease = iNode.getLease();
@@ -132,7 +207,6 @@ public class TestLeaseManagement {
     assertThat(lease, is(notNullValue()));
     assertThat(lease.getHolder(), is(grfs.grfaClient.getClientName()));
     assertThat(lease.getPath(), is(src));
-    assertThat(lease.getLastUpdate(), is(not(FileLease.NO_LAST_UPDATE)));
     assertThat(lease.getLastUpdate() >= currentTime, is(true));
   }
 }

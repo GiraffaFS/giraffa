@@ -18,6 +18,13 @@
 package org.apache.giraffa;
 
 import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.hbase.BlockManagementAgent;
+import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.hdfs.server.namenode.HLMAdapter;
 
 /**
@@ -27,6 +34,38 @@ import org.apache.hadoop.hdfs.server.namenode.HLMAdapter;
  * Implemented as HDFS.LeaseManager, which is accessed through HLMAdapter.
  */
 public class LeaseManager {
+  static final Log LOG = LogFactory.getLog(LeaseManager.class.getName());
+
+  /**
+   * The map is needed in unit tests with MiniCluster.
+   * When multiple RegionServers run in the same JVM they should have
+   * different instances of LeaseManager.
+   */
+  private static final ConcurrentMap<String, LeaseManager> leaseManagerMap =
+      new ConcurrentHashMap<String, LeaseManager>();
+
+  /**
+   * Lease manager is a shared state between {@link NamespaceProcessor} and
+   * {@link BlockManagementAgent}.
+   * Any of them can instantiate LeaseManager if it has not been created yet.
+   * Once created its reference is stored in a shared environment.
+   */
+  public synchronized static LeaseManager originateSharedLeaseManager(
+      String key) {
+    LeaseManager leaseManager = leaseManagerMap.get(key);
+    if(leaseManager != null) {
+      LOG.info("LeaseManager already exists in shared state for " + key);
+      return leaseManager;
+    }
+    leaseManager = new LeaseManager();
+    LOG.info("Creating new LeaseManager for " + key);
+    LeaseManager prevLeaseManager =
+        leaseManagerMap.putIfAbsent(key, leaseManager);
+    if(prevLeaseManager != null) {
+      leaseManager = prevLeaseManager;
+    }
+    return leaseManager;
+  }
 
   private HLMAdapter hlmAdapter;
 
@@ -49,5 +88,9 @@ public class LeaseManager {
   public synchronized Collection<FileLease> renewLease(String clientName) {
     hlmAdapter.renewLease(clientName);
     return hlmAdapter.getLeases(clientName);
+  }
+
+  public Collection<FileLease> getLeases(String holder) {
+    return hlmAdapter.getLeases(holder);
   }
 }

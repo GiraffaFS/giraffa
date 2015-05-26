@@ -90,7 +90,7 @@ public class TestGiraffaUpgrade {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(UTIL, conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf);
   }
 
   @After

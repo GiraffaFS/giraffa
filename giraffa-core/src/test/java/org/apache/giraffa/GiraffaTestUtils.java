@@ -23,17 +23,16 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 
 import org.apache.giraffa.hbase.INodeManager;
-import org.apache.giraffa.hbase.NamespaceProcessor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,15 +65,18 @@ public class GiraffaTestUtils {
     return new HBaseTestingUtility(conf);
   }
 
-  public static INodeManager getNodeManager(HBaseTestingUtility util,
-                                            GiraffaConfiguration conf) {
+  /**
+   * Returns an INodeManager that is incapable of opening and closing multiple
+   * times because it has no coprocessor environment bound to it.
+   * @throws IOException
+   */
+  public static INodeManager getNodeManager(GiraffaConfiguration conf)
+      throws IOException {
     TableName tableName =
         TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
-    HRegion hRegion = util.getHBaseCluster().getRegions(tableName).get(0);
-    CoprocessorEnvironment env = hRegion.getCoprocessorHost()
-        .findCoprocessorEnvironment(NamespaceProcessor.class.getName());
-    return new INodeManager(conf, env);
+    Table table = ConnectionFactory.createConnection(conf).getTable(tableName);
+    return new INodeManager(conf, null, table);
   }
 
   static void listStatusRecursive(

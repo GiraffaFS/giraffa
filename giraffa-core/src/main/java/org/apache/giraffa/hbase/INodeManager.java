@@ -61,9 +61,15 @@ public class INodeManager implements Closeable {
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
 
   public INodeManager(Configuration conf, CoprocessorEnvironment env) {
+    this(conf, env, null);
+  }
+
+  public INodeManager(Configuration conf, CoprocessorEnvironment env,
+                      Table nsTable) {
     this.nsTableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     this.env = env;
+    this.nsTable.set(nsTable);
   }
 
   @Override
@@ -342,7 +348,7 @@ public class INodeManager implements Closeable {
         FileFieldDeserializer.getRenameState(result),
         directory ? null : FileFieldDeserializer.getBlocks(result),
         directory ? null : FileFieldDeserializer.getLocations(result),
-        directory ? null : FileFieldDeserializer.getLease(result, src));
+        directory ? null : FileFieldDeserializer.getLease(result));
   }
 
   private ResultScanner getListingScanner(RowKey key)
