@@ -21,7 +21,6 @@ import java.io.IOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.RetryingCallable;
 import org.apache.hadoop.hbase.client.RpcRetryingCaller;
-import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 
 /**
  * This class overrides the callWithRetries method to ensure that FileSystem
@@ -40,8 +39,7 @@ public class GiraffaRpcRetryingCaller<T> extends RpcRetryingCaller<T> {
     try {
       return this.callWithoutRetries(callable, callTimeout);
     }catch(IOException e) {
-      if(e instanceof NotServingRegionException ||
-         e instanceof ConnectionClosingException) {
+      if(e instanceof NotServingRegionException) {
         callable.prepare(true); // reload regions to avoid error
         return this.callWithoutRetries(callable, callTimeout);
       }else {
