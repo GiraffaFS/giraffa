@@ -32,7 +32,7 @@ import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
  */
 public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
   public static final Log LOG =
-      LogFactory.getLog(FileSystemExceptionInterceptor.class);
+      LogFactory.getLog(GiraffaRpcRetryingCallerFactory.class);
 
   public GiraffaRpcRetryingCallerFactory(Configuration conf) {
     super(conf, new FileSystemExceptionInterceptor());
