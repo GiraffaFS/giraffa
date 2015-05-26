@@ -19,9 +19,11 @@ package org.apache.hadoop.hbase.client;
 
 import java.io.IOException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
+import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 
 /**
  * Hook for loading our own FileSystemExceptionInterceptor to block filesystem
@@ -29,6 +31,8 @@ import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
  * this class is specified in the property "hbase.rpc.callerfactory.class"
  */
 public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
+  public static final Log LOG =
+      LogFactory.getLog(FileSystemExceptionInterceptor.class);
 
   public GiraffaRpcRetryingCallerFactory(Configuration conf) {
     super(conf, new FileSystemExceptionInterceptor());
@@ -42,7 +46,9 @@ public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
         Throwable t)
             throws IOException {
       // detect and throw any filesystem-related IOExceptions
-      if(t instanceof IOException && !(t instanceof NotServingRegionException)) {
+      if(t instanceof IOException && !(t instanceof NotServingRegionException
+          || t instanceof ConnectionClosingException)) {
+        LOG.debug("Got exception: ", t);
         throw (IOException) t;
       }
     }
