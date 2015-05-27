@@ -325,13 +325,19 @@ public class INodeManager implements Closeable {
 
   private void openTable() {
     Table client = nsTable.get();
+    Connection clientConnection = connection.get();
+    TableName tableName = TableName.valueOf(nsTableName);
     if(client != null)
       return;
     try {
-      client = env.getTable(TableName.valueOf(nsTableName));
+      if(env != null) {
+        client = env.getTable(tableName);
+      } else if(clientConnection != null) {
+        client = clientConnection.getTable(tableName);
+      }
       nsTable.set(client);
     } catch (IOException e) {
-      LOG.error("Cannot get table: " + nsTableName, e);
+      LOG.error("Cannot get table: " + tableName, e);
     }
   }
 

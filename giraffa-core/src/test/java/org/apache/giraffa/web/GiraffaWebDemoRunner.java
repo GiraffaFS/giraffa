@@ -74,6 +74,7 @@ public class GiraffaWebDemoRunner {
 
   private void startCluster() throws Exception {
     cluster = UTIL.startMiniCluster(1);
+    UTIL.setZkCluster(UTIL.getZkCluster());
 
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
