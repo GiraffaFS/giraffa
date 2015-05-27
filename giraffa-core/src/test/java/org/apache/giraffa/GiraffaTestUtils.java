@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -75,8 +76,9 @@ public class GiraffaTestUtils {
     TableName tableName =
         TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
-    Table table = ConnectionFactory.createConnection(conf).getTable(tableName);
-    return new INodeManager(conf, null, table);
+    Connection connection = ConnectionFactory.createConnection(conf);
+    Table table = connection.getTable(tableName);
+    return new INodeManager(conf, null, connection, table);
   }
 
   static void listStatusRecursive(

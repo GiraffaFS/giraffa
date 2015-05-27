@@ -35,6 +35,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -55,25 +56,29 @@ import com.google.common.collect.Iterables;
 public class INodeManager implements Closeable {
   private final CoprocessorEnvironment env;
   private final String nsTableName;
+  private final ThreadLocal<Connection> connection =
+      new ThreadLocal<Connection>();
   private final ThreadLocal<Table> nsTable =
       new ThreadLocal<Table>();
 
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
 
   public INodeManager(Configuration conf, CoprocessorEnvironment env) {
-    this(conf, env, null);
+    this(conf, env, null, null);
   }
 
   public INodeManager(Configuration conf, CoprocessorEnvironment env,
-                      Table nsTable) {
+                      Connection connection, Table nsTable) {
     this.nsTableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     this.env = env;
+    this.connection.set(connection);
     this.nsTable.set(nsTable);
   }
 
   @Override
   public void close() {
+    Connection clientConnection = connection.get();
     Table client = nsTable.get();
     try {
       if(client != null) {
@@ -81,7 +86,15 @@ public class INodeManager implements Closeable {
         nsTable.remove();
       }
     } catch (IOException e) {
-      LOG.error("Cannot close table: ",e);
+      LOG.error("Cannot close table: ", e);
+    }
+    try {
+      if(clientConnection != null) {
+        clientConnection.close();
+        connection.remove();
+      }
+    } catch (IOException e) {
+      LOG.error("Cannot close connection:", e);
     }
   }
 

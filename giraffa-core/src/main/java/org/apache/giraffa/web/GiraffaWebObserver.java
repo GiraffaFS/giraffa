@@ -23,6 +23,8 @@ public class GiraffaWebObserver extends BaseMasterObserver {
   // server for the web ui
   private GiraffaWebServer giraffaServer;
 
+  private Connection connection;
+
   private InetSocketAddress getHttpServerAddress(Configuration conf) {
     return  NetUtils.createSocketAddr(
         conf.get(GiraffaConfiguration.GRFA_WEB_ADDRESS_KEY,
@@ -36,7 +38,7 @@ public class GiraffaWebObserver extends BaseMasterObserver {
 
     LOG.info("Start GiraffaWebObserver...");
     Configuration conf = ctx.getEnvironment().getConfiguration();
-    Connection connection = ConnectionFactory.createConnection(conf);
+    this.connection = ConnectionFactory.createConnection(conf);
     Admin hBaseAdmin = connection.getAdmin();
 
     final InetSocketAddress infoSocAddr = getHttpServerAddress(conf);
@@ -76,6 +78,9 @@ public class GiraffaWebObserver extends BaseMasterObserver {
       } finally {
         this.giraffaServer = null;
       }
+    }
+    if(this.connection != null) {
+      connection.close();
     }
   }
 

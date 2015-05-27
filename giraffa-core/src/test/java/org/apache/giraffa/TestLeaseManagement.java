@@ -162,7 +162,9 @@ public class TestLeaseManagement {
         try {
           nodeManager = GiraffaTestUtils.getNodeManager(conf);
           iNode = nodeManager.getINode(src);
-        } catch (ConnectException ignored) {}
+        } catch (ConnectException ignored) {
+          IOUtils.closeStream(nodeManager);
+        }
       } while(iNode == null);
 
       FileLease rowLease = iNode.getLease();
