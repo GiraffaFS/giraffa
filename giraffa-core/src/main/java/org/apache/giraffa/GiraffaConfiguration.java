@@ -19,7 +19,6 @@ package org.apache.giraffa;
 
 import org.apache.giraffa.hbase.NamespaceAgent;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.util.ReflectionUtils;
 
@@ -56,11 +55,11 @@ public class GiraffaConfiguration extends Configuration {
   }
 
   public GiraffaConfiguration() {
-    super(HBaseConfiguration.create());
+    super();
   }
 
   public GiraffaConfiguration(Configuration conf) {
-    super(HBaseConfiguration.create(conf));
+    super(conf);
   }
 
   public NamespaceService newNamespaceService() {
