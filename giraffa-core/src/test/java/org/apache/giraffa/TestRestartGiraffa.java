@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa;
 
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.DFSTestUtil;

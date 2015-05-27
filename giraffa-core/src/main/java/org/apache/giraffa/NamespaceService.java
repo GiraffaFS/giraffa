@@ -20,6 +20,7 @@ package org.apache.giraffa;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 
 /**

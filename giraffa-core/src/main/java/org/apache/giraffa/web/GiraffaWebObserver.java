@@ -2,7 +2,7 @@ package org.apache.giraffa.web;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;

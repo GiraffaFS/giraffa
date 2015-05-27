@@ -20,6 +20,7 @@ package org.apache.giraffa;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import org.apache.giraffa.hbase.ClientNamenodeProtocolServerSideCallbackTranslatorPB;
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.ParentNotDirectoryException;

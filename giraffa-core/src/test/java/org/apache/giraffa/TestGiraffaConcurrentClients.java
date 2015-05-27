@@ -20,6 +20,8 @@ package org.apache.giraffa;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

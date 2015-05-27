@@ -17,7 +17,7 @@
  */
 package org.apache.giraffa.web;
 
-import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaConstants;
 import org.apache.giraffa.GiraffaFileSystem;
 import org.apache.giraffa.GiraffaTestUtils;
