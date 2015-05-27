@@ -17,46 +17,21 @@
    limitations under the License.
 -->
 
-<!-- Do not modify this file directly.  Instead, copy entries that you   -->
-<!-- wish to modify from this file into giraffa-site.xml and change them -->
-<!-- there. If giraffa-site.xml does not already exist, create it.       -->
+<!-- Put site-specific property overrides in this file. -->
 
 <configuration>
-
-  <!-- Giraffa client properties -->
-
   <property>
-    <name>grfa.table.name</name>
-    <value>Namespace</value>
-    <description>
-      The name of the HBase table that stores the GiraffaFS namespace.
-    </description>
+    <name>hbase.coprocessor.region.classes</name>
+    <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
   </property>
 
   <property>
-    <name>grfa.rowkey.class</name>
-    <value>org.apache.giraffa.FullPathRowKey</value>
-    <description>
-      Class that implements RowKey for the namespace table.
-    </description>
+    <name>hbase.dynamic.jars.dir</name>
+    <value>${hbase.local.dir}/jars/</value>
   </property>
 
   <property>
-    <name>grfa.rowkey.caching</name>
-    <value>true</value>
-    <description>
-      True if row key caching is enabled.
-    </description>
+    <name>hbase.rpc.callerfactory.class</name>
+    <value>org.apache.hadoop.hbase.client.GiraffaRpcRetryingCallerFactory</value>
   </property>
-
-  <!-- Giraffa serve-side properties -->
-
-  <property>
-    <name>grfa.http-address</name>
-    <value>0.0.0.0:40010</value>
-    <description>
-        Giraffa UI http server address and port.
-    </description>
-  </property>
-
 </configuration>

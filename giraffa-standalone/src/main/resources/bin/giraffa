@@ -55,8 +55,7 @@ case $COMMAND in
     export CLASSPATH=$CLASSPATH
     echo "Executing: " $CLASS
     echo "CLASSPATH: " $CLASSPATH
-    # exec "$JAVA" $JAVA_HEAP_MAX $GIRAFFA_OPTS $CLASS "$@"
-    exec "$JAVA" $JAVA_HEAP_MAX $CLASS "$@"
+    eval "exec $JAVA $JAVA_HEAP_MAX $GIRAFFA_OPTS $CLASS $@"
     exit
     ;;
 

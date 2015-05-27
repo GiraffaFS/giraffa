@@ -1,32 +1,45 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
 
 <!-- Put site-specific property overrides in this file. -->
 
 <configuration>
   <property>
+    <name>fs.defaultFS</name>
+    <value>grfa:///</value>
+    <description>The name of the default file system. A URI whose
+      scheme and authority determine the FileSystem implementation. The
+      uri's scheme determines the config property (fs.SCHEME.impl) naming
+      the FileSystem implementation class. The uri's authority is used to
+      determine the host, port, etc. for a filesystem.
+    </description>
+  </property>
+
+  <property>
     <name>fs.grfa.impl</name>
     <value>org.apache.giraffa.GiraffaFileSystem</value>
     <description>The FileSystem for grfa.</description>
   </property>
+
   <property>
     <name>fs.AbstractFileSystem.grfa.impl</name>
     <value>org.apache.giraffa.GiraffaFs</value>
     <description>The AbstractFileSystem for grfa.</description>
-  </property>
-  <property>
-    <name>hbase.coprocessor.region.classes</name>
-    <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
-    <description>A comma-separated list of Coprocessors that are loaded by
-    default. For any override coprocessor method from RegionObservor or
-    Coprocessor, these classes' implementation will be called
-    in order. After implement your own
-    Coprocessor, just put it in HBase's classpath and add the fully
-    qualified class name here.
-    </description>
-  </property>
-  <property>
-	<name>hbase.rpc.callerfactory.class</name>
-	<value>org.apache.hadoop.hbase.client.GiraffaRpcRetryingCallerFactory</value>
   </property>
 </configuration>
