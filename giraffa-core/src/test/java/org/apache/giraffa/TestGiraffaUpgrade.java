@@ -40,6 +40,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -68,6 +70,7 @@ public class TestGiraffaUpgrade {
       GiraffaTestUtils.getHBaseTestingUtility();
   private DFSTestUtil fsUtil;
   private GiraffaFileSystem grfa;
+  private Connection connection;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -90,13 +93,15 @@ public class TestGiraffaUpgrade {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfa = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf);
+    connection = ConnectionFactory.createConnection(conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
   }
 
   @After
   public void after() throws IOException {
     if(grfa != null) grfa.close();
-    nodeManager.close();
+    if(nodeManager!= null) nodeManager.close();
+    if(connection != null) connection.close();
   }
 
   @AfterClass
