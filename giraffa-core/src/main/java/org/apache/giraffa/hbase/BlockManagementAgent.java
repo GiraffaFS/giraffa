@@ -20,6 +20,7 @@ package org.apache.giraffa.hbase;
 import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT;
 import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_KEY;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
+import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -456,9 +457,5 @@ public class BlockManagementAgent extends BaseRegionObserver {
       LOG.info("Error with serialization!", e);
     }
     return null;
-  }
-  
-  private static long now(){
-    return System.currentTimeMillis();
   }
 }
