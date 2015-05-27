@@ -47,6 +47,7 @@ import java.util.ListIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileLease;
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RenameState;

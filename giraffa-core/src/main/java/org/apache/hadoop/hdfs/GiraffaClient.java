@@ -19,7 +19,7 @@ package org.apache.hadoop.hdfs;
 
 import java.io.IOException;
 
-import org.apache.giraffa.hbase.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem.Statistics;

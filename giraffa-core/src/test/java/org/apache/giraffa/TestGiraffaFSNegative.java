@@ -19,8 +19,6 @@ package org.apache.giraffa;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-
-import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;

@@ -17,8 +17,8 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.giraffa.hbase.GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT;
-import static org.apache.giraffa.hbase.GiraffaConfiguration.GRFA_TABLE_NAME_KEY;
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT;
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_KEY;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
 import static org.apache.hadoop.util.Time.now;
 

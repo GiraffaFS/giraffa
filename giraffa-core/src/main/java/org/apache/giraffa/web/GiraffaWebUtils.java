@@ -2,7 +2,7 @@ package org.apache.giraffa.web;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.giraffa.hbase.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

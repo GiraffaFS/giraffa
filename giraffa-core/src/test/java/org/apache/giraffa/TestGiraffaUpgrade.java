@@ -34,7 +34,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.giraffa.GiraffaConstants.FileState;
-import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;

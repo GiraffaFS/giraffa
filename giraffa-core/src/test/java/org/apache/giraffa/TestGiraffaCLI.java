@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.net.URI;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.cli.CLITestHelperDFS;
 import org.apache.hadoop.cli.util.CLICommand;
 import org.apache.hadoop.cli.util.CLICommandDFSAdmin;

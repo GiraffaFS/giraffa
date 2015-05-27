@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa;
 
-import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.DelegateToFileSystem;
 

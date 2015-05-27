@@ -19,8 +19,6 @@ package org.apache.giraffa;
 
 import java.io.EOFException;
 import java.io.IOException;
-
-import org.apache.giraffa.hbase.GiraffaConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;

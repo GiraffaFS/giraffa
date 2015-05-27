@@ -4,7 +4,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page import="org.apache.hadoop.hbase.client.HBaseAdmin" %>
 <%@ page import="org.apache.hadoop.conf.Configuration" %>
-<%@ page import="org.apache.giraffa.hbase.GiraffaConfiguration" %>
+<%@ page import="org.apache.giraffa.GiraffaConfiguration" %>
 
 
 <%

@@ -47,6 +47,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;

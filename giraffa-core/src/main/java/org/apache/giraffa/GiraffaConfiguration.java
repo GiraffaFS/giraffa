@@ -15,10 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase;
+package org.apache.giraffa;
 
-import org.apache.giraffa.FullPathRowKey;
-import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.hbase.NamespaceAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
