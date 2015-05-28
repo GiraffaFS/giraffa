@@ -49,7 +49,6 @@ public class TestExceptionHandling {
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
     UTIL.startMiniCluster(1);
-    UTIL.setZkCluster(UTIL.getZkCluster());
   }
 
   @Before

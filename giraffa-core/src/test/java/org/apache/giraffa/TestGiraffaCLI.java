@@ -93,7 +93,6 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
 
     //start the cluster
     UTIL.startMiniCluster(1, true);
-    UTIL.setZkCluster(UTIL.getZkCluster());
     conf = new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaFileSystem.setDefaultUri(conf, new URI(GIRAFFA_TEST_URI));
     username = System.getProperty("user.name");

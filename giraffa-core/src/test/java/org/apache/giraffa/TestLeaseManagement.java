@@ -67,7 +67,6 @@ public class TestLeaseManagement {
     hbaseConf.setInt("hbase.master.ping.server.retry.sleep.interval", 1);
     hbaseConf.setBoolean("hbase.assignment.usezk", false);
     UTIL.startMiniCluster(1);
-    UTIL.setZkCluster(UTIL.getZkCluster());
   }
 
   @Before
