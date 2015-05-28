@@ -374,6 +374,7 @@ public class NamespaceAgent implements NamespaceService {
     hbAdmin.createTable(htd);
     LOG.info("Created " + tableName);
     hbAdmin.close();
+    connection.close();
 
     LOG.info("Format ended... adding work directory.");
   }

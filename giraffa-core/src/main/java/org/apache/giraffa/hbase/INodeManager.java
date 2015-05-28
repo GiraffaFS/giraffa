@@ -56,8 +56,7 @@ import com.google.common.collect.Iterables;
 public class INodeManager implements Closeable {
   private final CoprocessorEnvironment env;
   private final String nsTableName;
-  private final ThreadLocal<Connection> connection =
-      new ThreadLocal<Connection>();
+  private final Connection connection;
   private final ThreadLocal<Table> nsTable =
       new ThreadLocal<Table>();
 
@@ -72,13 +71,12 @@ public class INodeManager implements Closeable {
     this.nsTableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     this.env = env;
-    this.connection.set(connection);
+    this.connection = connection;
     this.nsTable.set(nsTable);
   }
 
   @Override
   public void close() {
-    Connection clientConnection = connection.get();
     Table client = nsTable.get();
     try {
       if(client != null) {
@@ -89,9 +87,8 @@ public class INodeManager implements Closeable {
       LOG.error("Cannot close table: ", e);
     }
     try {
-      if(clientConnection != null) {
-        clientConnection.close();
-        connection.remove();
+      if(connection != null) {
+        connection.close();
       }
     } catch (IOException e) {
       LOG.error("Cannot close connection:", e);
@@ -325,10 +322,15 @@ public class INodeManager implements Closeable {
 
   private void openTable() {
     Table client = nsTable.get();
+    TableName tableName = TableName.valueOf(nsTableName);
     if(client != null)
       return;
     try {
-      client = env.getTable(TableName.valueOf(nsTableName));
+      if(env != null) {
+        client = env.getTable(tableName);
+      } else if(connection != null) {
+        client = connection.getTable(tableName);
+      }
       nsTable.set(client);
     } catch (IOException e) {
       LOG.error("Cannot get table: " + nsTableName, e);
