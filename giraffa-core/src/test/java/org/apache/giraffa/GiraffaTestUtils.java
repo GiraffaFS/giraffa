@@ -76,7 +76,7 @@ public class GiraffaTestUtils {
         TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
     Table table = connection.getTable(tableName);
-    return new INodeManager(conf, null, table);
+    return new INodeManager(table);
   }
 
   static void listStatusRecursive(

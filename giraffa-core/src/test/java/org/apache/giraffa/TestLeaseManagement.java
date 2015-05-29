@@ -29,6 +29,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -50,6 +52,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestLeaseManagement {
+  private static final Log LOG = LogFactory.getLog(TestLeaseManagement.class);
+
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -85,9 +89,7 @@ public class TestLeaseManagement {
 
   @After
   public void after() throws IOException {
-    if(grfs != null) grfs.close();
-    if(nodeManager!= null) nodeManager.close();
-    if(connection != null) connection.close();
+    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
   }
 
   @AfterClass
@@ -165,12 +167,12 @@ public class TestLeaseManagement {
       INode iNode = null;
       do {
         try {
+          IOUtils.cleanup(LOG, connection);
           connection = ConnectionFactory.createConnection(conf);
+          IOUtils.cleanup(LOG, nodeManager);
           nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
           iNode = nodeManager.getINode(src);
-        } catch (ConnectException ignored) {
-          IOUtils.closeStream(nodeManager);
-        }
+        } catch (ConnectException ignored) {}
       } while(iNode == null);
 
       FileLease rowLease = iNode.getLease();
@@ -199,7 +201,7 @@ public class TestLeaseManagement {
       leaseManagerLease = leases.iterator().next();
       assertThat(rowLease, is(equalTo(leaseManagerLease)));
     } finally {
-      IOUtils.closeStream(outputStream);
+      IOUtils.cleanup(LOG, outputStream);
     }
     INode iNode = nodeManager.getINode(src);
     assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));

@@ -361,8 +361,8 @@ public class NamespaceAgent implements NamespaceService {
 
     if( ! GiraffaConfiguration.GRFA_URI_SCHEME.equals(gURI.getScheme()))
         throw new IOException("Cannot format. Non-Giraffa URI found: " + gURI);
-    Connection connection = ConnectionFactory.createConnection(conf);
-    Admin hbAdmin = connection.getAdmin();
+    connection = ConnectionFactory.createConnection(conf);
+    hbAdmin = connection.getAdmin();
     if(hbAdmin.tableExists(tableName)) {
       // remove existing table to renew it
       if(hbAdmin.isTableEnabled(tableName)) {
@@ -375,9 +375,6 @@ public class NamespaceAgent implements NamespaceService {
 
     hbAdmin.createTable(htd);
     LOG.info("Created " + tableName);
-    hbAdmin.close();
-    connection.close();
-
     LOG.info("Format ended... adding work directory.");
   }
 
@@ -655,9 +652,12 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // NamespaceService
   public void close() throws IOException {
-    nsTable.close();
-    hbAdmin.close();
-    connection.close();
+    if(nsTable != null) nsTable.close();
+    nsTable = null;
+    if(hbAdmin != null) hbAdmin.close();
+    hbAdmin = null;
+    if(connection != null) connection.close();
+    connection = null;
   }
 
   @Override

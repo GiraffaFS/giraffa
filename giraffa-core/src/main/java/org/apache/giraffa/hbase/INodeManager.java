@@ -25,16 +25,12 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
-import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -53,35 +49,26 @@ import com.google.common.collect.Iterables;
  * table rows representing corresponding files.
  */
 public class INodeManager implements Closeable {
-  private final CoprocessorEnvironment env;
-  private final String nsTableName;
-  private final ThreadLocal<Table> nsTable =
-      new ThreadLocal<Table>();
-
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
 
-  public INodeManager(Configuration conf, CoprocessorEnvironment env) {
-    this(conf, env, null);
-  }
+  /** The Namespace table */
+  private Table nsTable;
 
-  public INodeManager(Configuration conf, CoprocessorEnvironment env,
-                      Table nsTable) {
-    this.nsTableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    this.env = env;
-    this.nsTable.set(nsTable);
+  public INodeManager(Table nsTable) {
+    assert nsTable != null : "nsTable is null";
+    this.nsTable = nsTable;
   }
 
   @Override
   public void close() {
-    Table client = nsTable.get();
+    LOG.info("Closing INodeManager " + nsTable);
     try {
-      if(client != null) {
-        client.close();
-        nsTable.remove();
+      if(nsTable != null) {
+        nsTable.close();
+        nsTable = null;
       }
     } catch (IOException e) {
-      LOG.error("Cannot close table: ",e);
+      LOG.error("Cannot close table: ", e);
     }
   }
 
@@ -306,20 +293,8 @@ public class INodeManager implements Closeable {
   }
 
   private Table getNSTable() {
-    openTable();
-    return nsTable.get();
-  }
-
-  private void openTable() {
-    Table client = nsTable.get();
-    if(client != null)
-      return;
-    try {
-      client = env.getTable(TableName.valueOf(nsTableName));
-      nsTable.set(client);
-    } catch (IOException e) {
-      LOG.error("Cannot get table: " + nsTableName, e);
-    }
+    assert nsTable != null : "No Table is set.";
+    return nsTable;
   }
 
   private INode newINodeByParent(String parent, Result res) throws IOException {
