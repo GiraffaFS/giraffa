@@ -208,8 +208,10 @@ public class NamespaceAgent implements NamespaceService {
         try {
           return method.invoke(stub, args);
         }catch(InvocationTargetException e) {
-          LOG.info(ProtobufHelper.getRemoteException(
-              (ServiceException) e.getCause()).getMessage());
+          if(LOG.isDebugEnabled()) {
+            LOG.debug(ProtobufHelper.getRemoteException(
+                (ServiceException) e.getCause()).getMessage());
+          }
           throw e.getCause();
         }
       }
