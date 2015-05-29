@@ -211,19 +211,14 @@ public class GiraffaFileSystem extends FileSystem {
   }
 
   private String getPathName(Path file) {
-    return makeQualified(file).toUri().getPath();
+    return normalizePath(makeQualified(file).toUri().getPath());
   }
-  
-  @Override // FileSystem
-  public Path makeQualified(Path path) {
-    checkPath(path);
-    Path newPath = null;
-    if(path.toUri().toString().equals("")){
-      newPath = path;
-    }else {
-      newPath = new Path(path.toUri().toString());
+
+  static String normalizePath(String src) {
+    if (src.length() > 1 && src.endsWith("/")) {
+      src = src.substring(0, src.length() - 1);
     }
-    return newPath.makeQualified(this.getUri(), this.getWorkingDirectory());
+    return src;
   }
 
   @Override // FileSystem

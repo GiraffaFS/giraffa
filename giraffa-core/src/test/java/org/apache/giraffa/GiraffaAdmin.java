@@ -258,8 +258,10 @@ public class GiraffaAdmin extends FsShell {
       "\t[-printTopology]\n" +
       "\t[-help [cmd]]\n";
 
-    String report ="-report: \tReports basic filesystem information and statistics.\n";
-        
+    String report ="-report [-live] [-dead] [-decommissioning]:\n" +
+      "\tReports basic filesystem information and statistics.\n" +
+      "\tOptional flags may be used to filter the list of displayed DNs.\n";
+
     String safemode = "-safemode <enter|leave|get|wait>:  Safe mode maintenance command.\n" + 
       "\t\tSafe mode is a Namenode state in which it\n" +
       "\t\t\t1.  does not accept changes to the name space (read-only)\n" +

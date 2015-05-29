@@ -57,7 +57,7 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
   private static final String TEST_FILES_DIR = "src/test/resources";
   private static final String TEST_CONFIG_FILE = TEST_FILES_DIR+"/testHDFSConf.xml";
   private static final String GIRAFFA_TEST_URI = "grfa://localhost:9000";
-  private static final int PASSING_PERCENTAGE = 86; // SHV !!! should be 94;
+  private static final int PASSING_PERCENTAGE = 87;
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
 
