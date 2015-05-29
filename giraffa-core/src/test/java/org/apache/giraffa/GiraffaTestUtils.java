@@ -32,7 +32,6 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
@@ -71,14 +70,13 @@ public class GiraffaTestUtils {
    * times because it has no coprocessor environment bound to it.
    * @throws IOException
    */
-  public static INodeManager getNodeManager(GiraffaConfiguration conf)
-      throws IOException {
+  public static INodeManager getNodeManager(GiraffaConfiguration conf,
+      Connection connection) throws IOException {
     TableName tableName =
         TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
             GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
-    Connection connection = ConnectionFactory.createConnection(conf);
     Table table = connection.getTable(tableName);
-    return new INodeManager(conf, null, connection, table);
+    return new INodeManager(conf, null, table);
   }
 
   static void listStatusRecursive(

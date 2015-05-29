@@ -35,7 +35,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -56,22 +55,20 @@ import com.google.common.collect.Iterables;
 public class INodeManager implements Closeable {
   private final CoprocessorEnvironment env;
   private final String nsTableName;
-  private final Connection connection;
   private final ThreadLocal<Table> nsTable =
       new ThreadLocal<Table>();
 
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
 
   public INodeManager(Configuration conf, CoprocessorEnvironment env) {
-    this(conf, env, null, null);
+    this(conf, env, null);
   }
 
   public INodeManager(Configuration conf, CoprocessorEnvironment env,
-                      Connection connection, Table nsTable) {
+                      Table nsTable) {
     this.nsTableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
     this.env = env;
-    this.connection = connection;
     this.nsTable.set(nsTable);
   }
 
@@ -84,14 +81,7 @@ public class INodeManager implements Closeable {
         nsTable.remove();
       }
     } catch (IOException e) {
-      LOG.error("Cannot close table: ", e);
-    }
-    try {
-      if(connection != null) {
-        connection.close();
-      }
-    } catch (IOException e) {
-      LOG.error("Cannot close connection:", e);
+      LOG.error("Cannot close table: ",e);
     }
   }
 
@@ -322,15 +312,10 @@ public class INodeManager implements Closeable {
 
   private void openTable() {
     Table client = nsTable.get();
-    TableName tableName = TableName.valueOf(nsTableName);
     if(client != null)
       return;
     try {
-      if(env != null) {
-        client = env.getTable(tableName);
-      } else if(connection != null) {
-        client = connection.getTable(tableName);
-      }
+      client = env.getTable(TableName.valueOf(nsTableName));
       nsTable.set(client);
     } catch (IOException e) {
       LOG.error("Cannot get table: " + nsTableName, e);

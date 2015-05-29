@@ -41,6 +41,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -51,6 +53,7 @@ public class TestRename {
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
+  private Connection connection;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -68,13 +71,15 @@ public class TestRename {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf);
+    connection = ConnectionFactory.createConnection(conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
   }
 
   @After
   public void after() throws IOException {
     if(grfs != null) grfs.close();
-    if(nodeManager != null) nodeManager.close();
+    if(nodeManager!= null) nodeManager.close();
+    if(connection != null) connection.close();
   }
 
   @AfterClass
