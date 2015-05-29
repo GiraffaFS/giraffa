@@ -37,6 +37,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
@@ -52,6 +54,7 @@ public class TestLeaseManagement {
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
   private GiraffaConfiguration conf;
+  private Connection connection;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -76,13 +79,15 @@ public class TestLeaseManagement {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf);
+    connection = ConnectionFactory.createConnection(conf);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
   }
 
   @After
   public void after() throws IOException {
     if(grfs != null) grfs.close();
-    nodeManager.close();
+    if(nodeManager!= null) nodeManager.close();
+    if(connection != null) connection.close();
   }
 
   @AfterClass
@@ -160,9 +165,12 @@ public class TestLeaseManagement {
       INode iNode = null;
       do {
         try {
-          nodeManager = GiraffaTestUtils.getNodeManager(conf);
+          connection = ConnectionFactory.createConnection(conf);
+          nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
           iNode = nodeManager.getINode(src);
-        } catch (ConnectException ignored) {}
+        } catch (ConnectException ignored) {
+          IOUtils.closeStream(nodeManager);
+        }
       } while(iNode == null);
 
       FileLease rowLease = iNode.getLease();

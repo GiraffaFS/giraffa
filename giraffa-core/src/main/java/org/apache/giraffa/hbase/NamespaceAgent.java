@@ -144,6 +144,7 @@ public class NamespaceAgent implements NamespaceService {
 
   private Admin hbAdmin;
   private Table nsTable;
+  private Connection connection;
   private FsServerDefaults serverDefaults;
 
   private static final Log LOG =
@@ -154,7 +155,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
     RowKeyFactory.registerRowKey(conf);
-    Connection connection = ConnectionFactory.createConnection(conf);
+    this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
     String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
         GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
@@ -373,6 +374,7 @@ public class NamespaceAgent implements NamespaceService {
     hbAdmin.createTable(htd);
     LOG.info("Created " + tableName);
     hbAdmin.close();
+    connection.close();
 
     LOG.info("Format ended... adding work directory.");
   }
@@ -653,6 +655,7 @@ public class NamespaceAgent implements NamespaceService {
   public void close() throws IOException {
     nsTable.close();
     hbAdmin.close();
+    connection.close();
   }
 
   @Override
