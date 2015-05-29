@@ -5,6 +5,16 @@
 
 <configuration>
   <property>
+    <name>fs.defaultFS</name>
+    <value>grfa:///</value>
+    <description>The name of the default file system. A URI whose
+      scheme and authority determine the FileSystem implementation. The
+      uri's scheme determines the config property (fs.SCHEME.impl) naming
+      the FileSystem implementation class. The uri's authority is used to
+      determine the host, port, etc. for a filesystem.
+    </description>
+  </property>
+  <property>
     <name>fs.grfa.impl</name>
     <value>org.apache.giraffa.GiraffaFileSystem</value>
     <description>The FileSystem for grfa.</description>
@@ -13,20 +23,5 @@
     <name>fs.AbstractFileSystem.grfa.impl</name>
     <value>org.apache.giraffa.GiraffaFs</value>
     <description>The AbstractFileSystem for grfa.</description>
-  </property>
-  <property>
-    <name>hbase.coprocessor.region.classes</name>
-    <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
-    <description>A comma-separated list of Coprocessors that are loaded by
-    default. For any override coprocessor method from RegionObservor or
-    Coprocessor, these classes' implementation will be called
-    in order. After implement your own
-    Coprocessor, just put it in HBase's classpath and add the fully
-    qualified class name here.
-    </description>
-  </property>
-  <property>
-	<name>hbase.rpc.callerfactory.class</name>
-	<value>org.apache.hadoop.hbase.client.GiraffaRpcRetryingCallerFactory</value>
   </property>
 </configuration>

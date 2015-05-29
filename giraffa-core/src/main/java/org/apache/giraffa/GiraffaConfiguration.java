@@ -50,8 +50,10 @@ public class GiraffaConfiguration extends Configuration {
 
   static {
     // adds the default resources
-    Configuration.addDefaultResource("giraffa-default.xml");
-    Configuration.addDefaultResource("giraffa-site.xml");
+    addDefaultResource("giraffa-default.xml");
+    addDefaultResource("giraffa-site.xml");
+    addDefaultResource("hbase-default.xml");
+    addDefaultResource("hbase-site.xml");
   }
 
   public GiraffaConfiguration() {
