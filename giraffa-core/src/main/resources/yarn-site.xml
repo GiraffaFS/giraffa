@@ -17,10 +17,9 @@
     <name>yarn.nodemanager.aux-services</name>
     <value>mapreduce_shuffle</value>
   </property>
-
   <property>
-    <name>yarn.application.classpath</name>
-    <value>$HADOOP_COMMON_HOME/share/hadoop/common/*,
+	<name>yarn.application.classpath</name>
+	<value>$HADOOP_COMMON_HOME/share/hadoop/common/*,
            $HADOOP_COMMON_HOME/share/hadoop/common/lib/*,
            $HADOOP_HDFS_HOME/share/hadoop/hdfs/*,
            $HADOOP_HDFS_HOME/share/hadoop/hdfs/lib/*,
