@@ -75,6 +75,7 @@ import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -164,7 +165,8 @@ public class NamespaceProcessor implements ClientProtocol,
         RowKeyFactory.getRowKeyClass().getCanonicalName());
     
     // Get the checksum type from config
-    String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY, DFS_CHECKSUM_TYPE_DEFAULT);
+    String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY,
+                                      DFS_CHECKSUM_TYPE_DEFAULT);
     DataChecksum.Type checksumType;
     try {
        checksumType = DataChecksum.Type.valueOf(checksumTypeStr);
@@ -173,7 +175,9 @@ public class NamespaceProcessor implements ClientProtocol,
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
 
-    this.nodeManager = new INodeManager(conf, e);
+    TableName tableName =
+        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
+            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),
@@ -189,6 +193,7 @@ public class NamespaceProcessor implements ClientProtocol,
     this.leaseManager =
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
+    this.nodeManager = new INodeManager(e.getTable(tableName));
   }
 
   @Override // Coprocessor

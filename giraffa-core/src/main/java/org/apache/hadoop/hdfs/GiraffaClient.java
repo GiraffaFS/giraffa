@@ -48,7 +48,11 @@ public class GiraffaClient extends DFSClient {
 
   public static void format(GiraffaConfiguration conf) throws IOException {
     NamespaceService namespace = conf.newNamespaceService();
-    namespace.format(conf);
+    try {
+      namespace.format(conf);
+    } finally {
+      namespace.close();
+    }
   }
 
   public String getClientName() {

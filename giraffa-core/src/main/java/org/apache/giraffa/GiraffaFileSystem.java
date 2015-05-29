@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.GiraffaClient;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Progressable;
 
@@ -105,8 +106,13 @@ public class GiraffaFileSystem extends FileSystem {
     }
     GiraffaClient.format(conf);
 
-    GiraffaFileSystem grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    grfs.mkdirs(grfs.workingDir);
+    GiraffaFileSystem grfs = null;
+    try {
+      grfs = (GiraffaFileSystem) FileSystem.get(conf);
+      grfs.mkdirs(grfs.workingDir);
+    } finally {
+      IOUtils.cleanup(LOG, grfs);
+    }
   }
 
   @Override // FileSystem
