@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#export HADOOP_HOME=~/hadoop/hadoop-2.0.5-alpha
-#export HBASE_HOME=~/hbase/hbase-0.95.2-hadoop
+#export HADOOP_HOME=~/hadoop/hadoop-2.5.1
+#export HBASE_HOME=~/hbase/hbase-1.0.1
 export GIRAFFA_ROOT_LOGGER=INFO,RFA
