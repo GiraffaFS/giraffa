@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -43,6 +45,7 @@ import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -50,6 +53,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestRename {
+  static final Log LOG = LogFactory.getLog(TestRename.class);
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -77,9 +81,7 @@ public class TestRename {
 
   @After
   public void after() throws IOException {
-    if(grfs != null) grfs.close();
-    if(nodeManager!= null) nodeManager.close();
-    if(connection != null) connection.close();
+    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
   }
 
   @AfterClass

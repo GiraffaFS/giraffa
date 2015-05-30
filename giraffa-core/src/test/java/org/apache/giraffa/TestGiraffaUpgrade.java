@@ -33,6 +33,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FileStatus;
@@ -53,23 +55,22 @@ import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNodeAdapter;
 import org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer;
 import org.apache.hadoop.hdfs.util.Canceler;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestGiraffaUpgrade {
-  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaUpgrade.class);
+  static final Log LOG = LogFactory.getLog(TestGiraffaUpgrade.class);
 
   private static final String TEST_IMAGE_FILE_OUT =
       GiraffaTestUtils.BASE_TEST_DIRECTORY+"/testFsImageOut";
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
   private DFSTestUtil fsUtil;
-  private GiraffaFileSystem grfa;
+  private GiraffaFileSystem grfs;
   private Connection connection;
   private INodeManager nodeManager;
 
@@ -92,16 +93,14 @@ public class TestGiraffaUpgrade {
         new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
-    grfa = (GiraffaFileSystem) FileSystem.get(conf);
+    grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
     nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
   }
 
   @After
   public void after() throws IOException {
-    if(grfa != null) grfa.close();
-    if(nodeManager!= null) nodeManager.close();
-    if(connection != null) connection.close();
+    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
   }
 
   @AfterClass
@@ -130,9 +129,9 @@ public class TestGiraffaUpgrade {
     br.close();
 
     // check that the files appear in GRFA!
-    assertTrue(fsUtil.checkFiles(grfa, "generateFsImage"));
+    assertTrue(fsUtil.checkFiles(grfs, "generateFsImage"));
 
-    FileStatus[] stats = grfa.listStatus(new Path("/"));
+    FileStatus[] stats = grfs.listStatus(new Path("/"));
     for (FileStatus stat : stats) {
       LOG.debug(stat.getPath().getName());
     }

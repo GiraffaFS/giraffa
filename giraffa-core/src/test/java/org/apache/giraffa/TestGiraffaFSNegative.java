@@ -19,18 +19,20 @@ package org.apache.giraffa;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.giraffa.GiraffaTestUtils.printFileStatus;
 import static org.junit.Assert.assertEquals;
@@ -42,8 +44,7 @@ import static org.junit.Assert.fail;
  * Tests negative use cases and failure scenarios.
  */
 public class TestGiraffaFSNegative {
-
-  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaFSNegative.class);
+  static final Log LOG = LogFactory.getLog(TestGiraffaFSNegative.class);
 
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
@@ -67,8 +68,7 @@ public class TestGiraffaFSNegative {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    // TODO: fix issue with unstoppable giraffa
-    if(grfs != null) grfs.close();
+    IOUtils.cleanup(LOG, grfs);
     UTIL.shutdownMiniCluster();
   }
 

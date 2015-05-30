@@ -17,9 +17,12 @@
  */
 package org.apache.giraffa;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.DFSTestUtil;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -29,6 +32,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 public class TestRestartGiraffa {
+  static final Log LOG = LogFactory.getLog(TestRestartGiraffa.class);
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
@@ -51,7 +55,7 @@ public class TestRestartGiraffa {
 
   @After
   public void after() throws IOException {
-    if(grfs != null) grfs.close();
+    IOUtils.cleanup(LOG, grfs);
   }
 
   @AfterClass

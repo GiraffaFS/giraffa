@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.net.URI;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.cli.CLITestHelperDFS;
 import org.apache.hadoop.cli.util.CLICommand;
 import org.apache.hadoop.cli.util.CLICommandDFSAdmin;
@@ -38,8 +40,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertTrue;
 
@@ -52,10 +52,13 @@ import static org.junit.Assert.assertTrue;
  * inside the test-data directory.
  */
 public class TestGiraffaCLI extends CLITestHelperDFS {
-  final static Logger LOG = LoggerFactory.getLogger(TestGiraffaCLI.class);
+  static final Log LOG = LogFactory.getLog(TestGiraffaCLI.class);
 
   private static final String TEST_FILES_DIR = "src/test/resources";
-  private static final String TEST_CONFIG_FILE = TEST_FILES_DIR+"/testHDFSConf.xml";
+  private static final String TEST_HDFS_CONFIG_FILE =
+      TEST_FILES_DIR+"/testHDFSConf.xml";
+  private static final String TEST_GRFA_CONFIG_FILE =
+      TEST_CACHE_DATA_DIR+"/testGRFAConf.xml";
   private static final String GIRAFFA_TEST_URI = "grfa://localhost:9000";
   private static final int PASSING_PERCENTAGE = 87;
   private static final HBaseTestingUtility UTIL =
@@ -74,9 +77,9 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
     clitestDataDir = testCacheDir.toURI().toString().replace(' ', '+');
 
     // set up grfa config file (fixes subtle bug too)
-    File grfaConfig = new File(TEST_CACHE_DATA_DIR+"/testGRFAConf.xml");
+    File grfaConfig = new File(TEST_GRFA_CONFIG_FILE);
     grfaConfig.createNewFile();
-    File hdfsConfig = new File(TEST_CONFIG_FILE);
+    File hdfsConfig = new File(TEST_HDFS_CONFIG_FILE);
     String content = IOUtils.toString(new FileInputStream(hdfsConfig));
     content = content.replaceAll("hdfs", "grfa");
     content = content.replaceAll("NAMNEODE", "NAMENODE");
@@ -169,7 +172,7 @@ public class TestGiraffaCLI extends CLITestHelperDFS {
   
   @Override
   protected String getTestFile() {
-    return new File(TEST_CACHE_DATA_DIR+"/testGRFAConf.xml").getName();
+    return new File(TEST_GRFA_CONFIG_FILE).getName();
   }
 
   @Test

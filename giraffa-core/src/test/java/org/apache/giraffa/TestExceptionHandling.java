@@ -19,6 +19,9 @@ package org.apache.giraffa;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.ClientNamenodeProtocolServerSideCallbackTranslatorPB;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
@@ -27,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -41,6 +45,7 @@ import org.junit.Test;
 public class TestExceptionHandling {
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
+  static final Log LOG = LogFactory.getLog(TestExceptionHandling.class);
   private GiraffaFileSystem grfs;
 
   @BeforeClass
@@ -62,7 +67,7 @@ public class TestExceptionHandling {
 
   @After
   public void after() throws IOException {
-    if(grfs != null) grfs.close();
+    IOUtils.cleanup(LOG, grfs);
   }
 
   @AfterClass

@@ -20,30 +20,31 @@ package org.apache.giraffa;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.DFSTestUtil;
+import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
 public class TestGiraffaConcurrentClients {
-
-  private final static Logger LOG = LoggerFactory.getLogger(TestGiraffaConcurrentClients.class);
+  static final Log LOG = LogFactory.getLog(TestGiraffaConcurrentClients.class);
 
   private static final HBaseTestingUtility UTIL =
       GiraffaTestUtils.getHBaseTestingUtility();
-  private GiraffaFileSystem grfa;
+  private GiraffaFileSystem grfs;
 
   @BeforeClass
   public static void beforeClass() throws Exception {
@@ -60,12 +61,12 @@ public class TestGiraffaConcurrentClients {
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 512);
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
-    grfa = (GiraffaFileSystem) FileSystem.get(conf);
+    grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 
   @After
   public void after() throws IOException {
-    if(grfa != null) grfa.close();
+    IOUtils.cleanup(LOG, grfs);
   }
 
   @AfterClass
@@ -105,8 +106,8 @@ public class TestGiraffaConcurrentClients {
     private void createAndCheckFiles(String topDir) {
       DFSTestUtil fsUtil = new DFSTestUtil("test", 100, 5, 1024, 0);
       try {
-        fsUtil.createFiles(grfa, topDir);
-        completed = fsUtil.checkFiles(grfa, topDir);
+        fsUtil.createFiles(grfs, topDir);
+        completed = fsUtil.checkFiles(grfs, topDir);
       } catch (IOException e) {
         LOG.error("Failed", e);
         fail();
@@ -116,12 +117,12 @@ public class TestGiraffaConcurrentClients {
     private void mkdirAndListDirs(String topDir) {
       try {
         Path topDirPath = new Path(topDir);
-        grfa.mkdirs(topDirPath);
+        grfs.mkdirs(topDirPath);
         for(int i = 0; i < 128; i++) {
-          grfa.mkdirs(new Path(topDirPath, "dir" + i));
+          grfs.mkdirs(new Path(topDirPath, "dir" + i));
         }
         long timeStarted = System.currentTimeMillis();
-        FileStatus[] fileStatuses = grfa.listStatus(topDirPath);
+        FileStatus[] fileStatuses = grfs.listStatus(topDirPath);
         long timeEnded = System.currentTimeMillis();
         LOG.debug(Arrays.toString(fileStatuses));
         LOG.debug("Time started: " + timeStarted +
@@ -193,7 +194,7 @@ public class TestGiraffaConcurrentClients {
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
-    test.grfa = (GiraffaFileSystem) FileSystem.get(conf);
+    test.grfs = (GiraffaFileSystem) FileSystem.get(conf);
     test.testFiveCreationWithSameRoot();
     test.after();
   }
