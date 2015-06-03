@@ -61,11 +61,6 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   @Override
-  public void testDeleteRecursively() throws IOException {
-    // TODO: fix test
-  }
-
-  @Override
   public void testRenameFileAsExistingDirectory() throws Exception {
     // TODO: fix test
   }
