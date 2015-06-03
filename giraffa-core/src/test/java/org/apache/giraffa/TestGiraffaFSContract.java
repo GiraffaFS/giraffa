@@ -57,7 +57,7 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
 
   @Override
   public void testMkdirsWithUmask() throws Exception {
-    // TODO: fix test
+    // TODO: need #32 permission support to be implemented
   }
 
   @Override
