@@ -362,7 +362,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     // if file did not exist, create its INode now
-    if(iFile == null && create) {
+    if((iFile == null && create) || overwrite) {
       RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       FileLease fileLease =

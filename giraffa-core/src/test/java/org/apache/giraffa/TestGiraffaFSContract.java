@@ -61,16 +61,6 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   @Override
-  public void testOverwrite() throws IOException {
-    // TODO: fix test
-  }
-
-  @Override
-  public void testOverWriteAndRead() throws Exception {
-    // TODO: fix test
-  }
-
-  @Override
   public void testDeleteRecursively() throws IOException {
     // TODO: fix test
   }
