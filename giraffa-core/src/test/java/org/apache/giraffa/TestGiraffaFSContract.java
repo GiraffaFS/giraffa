@@ -56,11 +56,6 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   @Override
-  public void testWorkingDirectory() throws Exception {
-    // TODO: fix test
-  }
-
-  @Override
   public void testMkdirsWithUmask() throws Exception {
     // TODO: fix test
   }

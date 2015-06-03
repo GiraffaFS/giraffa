@@ -207,8 +207,8 @@ public class GiraffaFileSystem extends FileSystem {
 
     // closing
     this.uri = theUri;
-    this.workingDir = new Path("/user/"
-        + UserGroupInformation.getCurrentUser().getShortUserName());
+    this.workingDir = makeQualified(new Path("/user/"
+        + UserGroupInformation.getCurrentUser().getShortUserName()));
 
     grfaClient = new GiraffaClient(grfaConf, statistics);
 
