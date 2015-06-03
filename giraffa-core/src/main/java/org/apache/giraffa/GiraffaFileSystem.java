@@ -178,6 +178,11 @@ public class GiraffaFileSystem extends FileSystem {
     return workingDir;
   }
 
+  @Override
+  public String getScheme() {
+    return GiraffaConfiguration.GRFA_URI_SCHEME;
+  }
+
   @Override // FileSystem
   public void initialize(URI theUri, Configuration conf) throws IOException {
     GiraffaConfiguration grfaConf = conf instanceof GiraffaConfiguration ?
