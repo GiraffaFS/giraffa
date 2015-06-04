@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.io.IOUtils;
@@ -172,8 +173,18 @@ public class TestGiraffaFS {
     grfs.mkdirs(new Path("folder1/folder3"));
     grfs.mkdirs(new Path("folder2"));
     grfs.create(new Path("folder2/file1")).close();
-    assertFalse(grfs.delete(new Path("folder1"), false));
-    assertFalse(grfs.delete(new Path("folder2"), false));
+    try {
+      grfs.delete(new Path("folder1"), false);
+      fail();
+    } catch (PathIsNotEmptyDirectoryException ie) {
+      // should throw
+    }
+    try {
+      assertFalse(grfs.delete(new Path("folder2"), false));
+      fail();
+    } catch (PathIsNotEmptyDirectoryException ie) {
+      // should throw
+    }
     FileStatus[] files = grfs.listStatus(new Path("."));
     printFileStatus(files);
     assertEquals(2, files.length);
