@@ -314,7 +314,9 @@ public class GiraffaFileSystem extends FileSystem {
 
   @Override // FileSystem
   public void setWorkingDirectory(Path new_dir) {
-    workingDir = new_dir.isAbsolute() ? new_dir : new Path(workingDir, new_dir);
+    workingDir = makeQualified(
+        new_dir.isAbsolute() ? new_dir :
+          new Path(workingDir, new_dir));
     checkPath(workingDir);
   }
 
