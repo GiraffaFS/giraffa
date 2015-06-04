@@ -62,12 +62,12 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
 
   @Override
   public void testRenameFileAsExistingDirectory() throws Exception {
-    // TODO: fix test
+    // WONTFIX: behaviour is HDFS specific as described in HADOOP-6240
   }
 
   @Override
   public void testRenameDirectoryAsExistingDirectory() throws Exception {
-    // TODO: fix test
+    // WONTFIX: behaviour is HDFS specific as described in HADOOP-6240
   }
 
   public static Test suite() throws Exception {
