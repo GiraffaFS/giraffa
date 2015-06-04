@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.IOException;
-
 import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
