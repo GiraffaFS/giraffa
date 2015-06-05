@@ -66,6 +66,7 @@ import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.fs.UnresolvedLinkException;
 import org.apache.hadoop.fs.Options.Rename;
 import org.apache.hadoop.fs.XAttr;
@@ -362,7 +363,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     // if file did not exist, create its INode now
-    if(iFile == null && create) {
+    if((iFile == null && create) || overwrite) {
       RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       FileLease fileLease =
@@ -482,7 +483,8 @@ public class NamespaceProcessor implements ClientProtocol,
       }
     }
     else if(!nodeManager.isEmptyDirectory(node)) {
-      return false;
+      throw new PathIsNotEmptyDirectoryException(node.getRowKey().getPath()
+          + " is non empty");
     }
 
     // delete source directory

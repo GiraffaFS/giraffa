@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.IOException;
-
 import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -56,38 +54,18 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   }
 
   @Override
-  public void testWorkingDirectory() throws Exception {
-    // TODO: fix test
-  }
-
-  @Override
   public void testMkdirsWithUmask() throws Exception {
-    // TODO: fix test
-  }
-
-  @Override
-  public void testOverwrite() throws IOException {
-    // TODO: fix test
-  }
-
-  @Override
-  public void testOverWriteAndRead() throws Exception {
-    // TODO: fix test
-  }
-
-  @Override
-  public void testDeleteRecursively() throws IOException {
-    // TODO: fix test
+    // TODO: need #32 permission support to be implemented
   }
 
   @Override
   public void testRenameFileAsExistingDirectory() throws Exception {
-    // TODO: fix test
+    // WONTFIX: behaviour is HDFS specific as described in HADOOP-6240
   }
 
   @Override
   public void testRenameDirectoryAsExistingDirectory() throws Exception {
-    // TODO: fix test
+    // WONTFIX: behaviour is HDFS specific as described in HADOOP-6240
   }
 
   public static Test suite() throws Exception {

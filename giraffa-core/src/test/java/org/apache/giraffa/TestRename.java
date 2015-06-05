@@ -113,8 +113,8 @@ public class TestRename {
    */
   private void doRenameStage(String src, String dst, RenameRecoveryState stage)
       throws IOException {
-    src = new Path(grfs.getWorkingDirectory(), src).toString();
-    dst = new Path(grfs.getWorkingDirectory(), dst).toString();
+    src = new Path(grfs.getWorkingDirectory(), src).toUri().getPath();
+    dst = new Path(grfs.getWorkingDirectory(), dst).toUri().getPath();
 
     INode srcNode = nodeManager.getINode(src);
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));

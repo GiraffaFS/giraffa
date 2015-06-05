@@ -178,6 +178,11 @@ public class GiraffaFileSystem extends FileSystem {
     return workingDir;
   }
 
+  @Override
+  public String getScheme() {
+    return GiraffaConfiguration.GRFA_URI_SCHEME;
+  }
+
   @Override // FileSystem
   public void initialize(URI theUri, Configuration conf) throws IOException {
     GiraffaConfiguration grfaConf = conf instanceof GiraffaConfiguration ?
@@ -207,8 +212,8 @@ public class GiraffaFileSystem extends FileSystem {
 
     // closing
     this.uri = theUri;
-    this.workingDir = new Path("/user/"
-        + UserGroupInformation.getCurrentUser().getShortUserName());
+    this.workingDir = makeQualified(new Path("/user/"
+        + UserGroupInformation.getCurrentUser().getShortUserName()));
 
     grfaClient = new GiraffaClient(grfaConf, statistics);
 
@@ -309,7 +314,9 @@ public class GiraffaFileSystem extends FileSystem {
 
   @Override // FileSystem
   public void setWorkingDirectory(Path new_dir) {
-    workingDir = new_dir.isAbsolute() ? new_dir : new Path(workingDir, new_dir);
+    workingDir = makeQualified(
+        new_dir.isAbsolute() ? new_dir :
+          new Path(workingDir, new_dir));
     checkPath(workingDir);
   }
 
