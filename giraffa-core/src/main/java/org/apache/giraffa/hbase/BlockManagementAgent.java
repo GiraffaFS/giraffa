@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT;
-import static org.apache.giraffa.GiraffaConfiguration.GRFA_TABLE_NAME_KEY;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
 import static org.apache.hadoop.util.Time.now;
 
@@ -32,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileLease;
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.UnlocatedBlock;
@@ -172,8 +171,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   static boolean isNamespaceTable(HRegion region, Configuration conf) {
     TableName tableName = region.getRegionInfo().getTable();
-    String namespaceTableName = conf.get(GRFA_TABLE_NAME_KEY,
-        GRFA_TABLE_NAME_DEFAULT);
+    String namespaceTableName = GiraffaConfiguration.getGiraffaTableName(conf);
     return tableName.getNameAsString().equals(namespaceTableName);
   }
 

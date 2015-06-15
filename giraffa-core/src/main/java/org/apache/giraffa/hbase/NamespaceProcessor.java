@@ -176,9 +176,8 @@ public class NamespaceProcessor implements ClientProtocol,
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
 
-    TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+    TableName tableName = TableName.valueOf(GiraffaConfiguration.getGiraffaTableName(conf));
+
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),

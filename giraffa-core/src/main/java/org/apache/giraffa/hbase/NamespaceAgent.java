@@ -157,9 +157,8 @@ public class NamespaceAgent implements NamespaceService {
     RowKeyFactory.registerRowKey(conf);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    
+    String tableName = GiraffaConfiguration.getGiraffaTableName(conf);
+
     // Get the checksum type from config
     String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY,
         DFS_CHECKSUM_TYPE_DEFAULT);
@@ -354,8 +353,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void format(GiraffaConfiguration conf) throws IOException {
     LOG.info("Format started...");
-    String tblString = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-                                GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tblString = GiraffaConfiguration.getGiraffaTableName(conf);
     TableName tableName = TableName.valueOf(tblString);
     URI gURI = FileSystem.getDefaultUri(conf);
 
@@ -380,8 +378,7 @@ public class NamespaceAgent implements NamespaceService {
 
   private static HTableDescriptor buildGiraffaTable(GiraffaConfiguration conf)
   throws IOException {
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tableName = GiraffaConfiguration.getGiraffaTableName(conf);
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
     String coprocClass =

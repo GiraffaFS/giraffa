@@ -217,9 +217,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
     MasterCoprocessorEnvironment masterEnv =
         (MasterCoprocessorEnvironment) getServletContext()
             .getAttribute("masterEnvironment");
-    String tableName = masterEnv.getConfiguration()
-        .get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tableName = GiraffaConfiguration.getGiraffaTableName(masterEnv.getConfiguration());
     try {
       table = masterEnv.getTable(
           TableName.valueOf(RowKeyBytes.toBytes(tableName)));
