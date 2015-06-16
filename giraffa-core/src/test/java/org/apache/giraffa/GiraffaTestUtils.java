@@ -72,8 +72,7 @@ public class GiraffaTestUtils {
   public static INodeManager getNodeManager(GiraffaConfiguration conf,
       Connection connection) throws IOException {
     TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+        TableName.valueOf(GiraffaConfiguration.getGiraffaTableName(conf));
     Table table = connection.getTable(tableName);
     return new INodeManager(table);
   }
