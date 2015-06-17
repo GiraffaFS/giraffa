@@ -311,9 +311,8 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, AlreadyBeingCreatedException,
              DSQuotaExceededException, FileAlreadyExistsException,
              FileNotFoundException, NSQuotaExceededException,
-             ParentNotDirectoryException, SafeModeException,
-             UnresolvedLinkException, SnapshotAccessControlException,
-             IOException {
+             ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
+             SnapshotAccessControlException, IOException {
     EnumSet<CreateFlag> flag = createFlag.get();
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
     boolean append = flag.contains(CreateFlag.APPEND);
@@ -669,8 +668,7 @@ public class NamespaceProcessor implements ClientProtocol,
     Path parentPath = new Path(src).getParent();
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     String clientName = ugi.getShortUserName();
-    String machineName = (ugi.getGroupNames().length == 0) ?
-            "supergroup" : ugi.getGroupNames()[0];
+    String machineName = (ugi.getGroupNames().length == 0) ? "supergroup" : ugi.getGroupNames()[0];
 
     RowKey key = RowKeyFactory.newInstance(src);
     INode inode = nodeManager.getINode(key);
@@ -715,8 +713,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean recoverLease(String src, String clientName)
-          throws IOException {
+  public boolean recoverLease(String src, String clientName) throws IOException {
     throw new IOException("recoverLease is not supported");
   }
 
@@ -949,8 +946,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean restoreFailedStorage(String arg) throws
-          AccessControlException {
+  public boolean restoreFailedStorage(String arg) throws AccessControlException {
     return false;
   }
 
@@ -1065,8 +1061,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override // ClientProtocol
-  public LocatedBlock updateBlockForPipeline(ExtendedBlock block,
-                                             String clientName)
+  public LocatedBlock updateBlockForPipeline(ExtendedBlock block, String clientName)
       throws IOException {
     throw new IOException("updateBlockForPipeline is not supported");
   }
@@ -1226,9 +1221,8 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override
-  public BatchedRemoteIterator.BatchedEntries<CacheDirectiveEntry>
-      listCacheDirectives(long prevId, CacheDirectiveInfo filter)
-          throws IOException {
+  public BatchedRemoteIterator.BatchedEntries<CacheDirectiveEntry> listCacheDirectives(
+      long prevId, CacheDirectiveInfo filter) throws IOException {
     throw new IOException("caching is not supported");
   }
 
@@ -1248,8 +1242,8 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   @Override
-  public BatchedRemoteIterator.BatchedEntries<CachePoolEntry>
-        listCachePools(String prevPool) throws IOException {
+  public BatchedRemoteIterator.BatchedEntries<CachePoolEntry> listCachePools(String prevPool)
+      throws IOException {
     throw new IOException("caching is not supported");
   }
 
