@@ -1,10 +1,10 @@
 package org.apache.giraffa.web;
 
+import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
-import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
@@ -217,9 +217,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
     MasterCoprocessorEnvironment masterEnv =
         (MasterCoprocessorEnvironment) getServletContext()
             .getAttribute("masterEnvironment");
-    String tableName = masterEnv.getConfiguration()
-        .get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tableName = getGiraffaTableName(masterEnv.getConfiguration());
     try {
       table = masterEnv.getTable(
           TableName.valueOf(RowKeyBytes.toBytes(tableName)));

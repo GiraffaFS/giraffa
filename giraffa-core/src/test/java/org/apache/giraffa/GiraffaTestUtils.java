@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -72,8 +73,7 @@ public class GiraffaTestUtils {
   public static INodeManager getNodeManager(GiraffaConfiguration conf,
       Connection connection) throws IOException {
     TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+        TableName.valueOf(getGiraffaTableName(conf));
     Table table = connection.getTable(tableName);
     return new INodeManager(table);
   }

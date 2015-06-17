@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
@@ -157,9 +158,8 @@ public class NamespaceAgent implements NamespaceService {
     RowKeyFactory.registerRowKey(conf);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
-    
+    String tableName = getGiraffaTableName(conf);
+
     // Get the checksum type from config
     String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY,
         DFS_CHECKSUM_TYPE_DEFAULT);
@@ -354,8 +354,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void format(GiraffaConfiguration conf) throws IOException {
     LOG.info("Format started...");
-    String tblString = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-                                GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tblString = getGiraffaTableName(conf);
     TableName tableName = TableName.valueOf(tblString);
     URI gURI = FileSystem.getDefaultUri(conf);
 
@@ -380,8 +379,7 @@ public class NamespaceAgent implements NamespaceService {
 
   private static HTableDescriptor buildGiraffaTable(GiraffaConfiguration conf)
   throws IOException {
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-        GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tableName = getGiraffaTableName(conf);
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
     String coprocClass =

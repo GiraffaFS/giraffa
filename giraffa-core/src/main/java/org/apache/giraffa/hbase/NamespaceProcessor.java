@@ -18,6 +18,7 @@
 package org.apache.giraffa.hbase;
 
 import java.util.Collection;
+import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
@@ -176,9 +177,8 @@ public class NamespaceProcessor implements ClientProtocol,
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
 
-    TableName tableName =
-        TableName.valueOf(conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT));
+    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
+
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),

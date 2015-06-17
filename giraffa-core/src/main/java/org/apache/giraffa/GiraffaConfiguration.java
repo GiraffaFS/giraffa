@@ -71,4 +71,7 @@ public class GiraffaConfiguration extends Configuration {
     return ReflectionUtils.newInstance(serviceClass, null);
   }
 
+  public static String getGiraffaTableName(Configuration conf) {
+    return conf.get(GRFA_TABLE_NAME_KEY, GRFA_TABLE_NAME_DEFAULT);
+  }
 }
