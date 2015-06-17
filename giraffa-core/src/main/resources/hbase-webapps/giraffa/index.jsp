@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" isELIgnored="false"%>
 <%@ taglib prefix="t" tagdir="/WEB-INF/tags" %>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page import="static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName" %>
 <%@ page import="org.apache.hadoop.hbase.client.HBaseAdmin" %>
 <%@ page import="org.apache.hadoop.conf.Configuration" %>
 <%@ page import="org.apache.giraffa.GiraffaConfiguration" %>
@@ -16,8 +17,7 @@
     HBaseAdmin hBaseAdmin = (HBaseAdmin) application.getAttribute("hBaseAdmin");
     Configuration conf = (Configuration) application.getAttribute("conf");
 
-    String tableName = conf.get(GiraffaConfiguration.GRFA_TABLE_NAME_KEY,
-            GiraffaConfiguration.GRFA_TABLE_NAME_DEFAULT);
+    String tableName = getGiraffaTableName(conf);
 
     boolean tableMissing = false;
     if (!hBaseAdmin.isTableAvailable(tableName)) {
