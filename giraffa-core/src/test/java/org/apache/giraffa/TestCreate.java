@@ -198,7 +198,7 @@ public class TestCreate {
   // It will throw FileNotFoundException if we support Append
   // in the future
   @Test
-  public void testAppendNonExistedFillWillGetException()
+  public void testAppendNewFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(APPEND);
     try {
@@ -217,7 +217,7 @@ public class TestCreate {
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
   @Test
-  public void testAppendExistedFillWillGetException()
+  public void testAppendExistedFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
     grfs.create(path, permission, flags, bufferSize, replication,
@@ -243,7 +243,6 @@ public class TestCreate {
   public void testCreateNewFileWithAppendFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE, APPEND);
-
     try {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
@@ -255,6 +254,30 @@ public class TestCreate {
       assertEquals(0, files.length); // check if create file by mistake
     }
   }
+
+  // Note, we do not support Append now so it throws
+  // java.io.IOException: java.io.IOException: Append is not supported.
+  // It should be fine in the future
+  @Test
+  public void testCreateExistedFileWithAppendFlagWillGetException()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    grfs.create(path, permission, flags, bufferSize, replication,
+            blockSize, null);
+
+    flags = EnumSet.of(CREATE, APPEND);
+    try {
+      grfs.create(path, permission, flags, bufferSize, replication,
+              blockSize, null);
+      assertFalse(true);  // should never come here
+    } catch (IOException e)  {
+      // That's what we need
+    } finally {
+      FileStatus[] files = grfs.listStatus(new Path("."));
+      assertEquals(1, files.length); // check if create file by mistake
+    }
+  }
+
 
   /*
   @Test
