@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -147,6 +148,26 @@ public class TestCreate {
     LOG.debug("list files under home dir");
     printFileStatus(files);
     assertEquals(1, files.length);
+  }
+
+  @Test
+  public void testCreateExistedFileWithCreateFlagOnlyWillGetException()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    FSDataOutputStream fsDataOutputStream = grfs.create(path, permission,
+            flags, bufferSize, replication, blockSize, null);
+    fsDataOutputStream.close();
+
+    try {
+      grfs.create(path, permission, flags, bufferSize, replication,
+              blockSize, null);
+      assertFalse(true);  // should never come here
+    } catch (FileAlreadyExistsException e)  {
+      // That's what we need
+    } finally {
+      FileStatus[] files = grfs.listStatus(new Path("."));
+      assertEquals(1, files.length); // check if create file by mistake
+    }
   }
 
   @Test
