@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -169,6 +170,26 @@ public class TestCreate {
       assertEquals(1, files.length); // check if create file by mistake
     }
   }
+
+  @Test  // opened means not closed yet
+  public void testCreateOpenedFileWithCreateFlagOnlyWillGetException()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    grfs.create(path, permission, flags, bufferSize, replication,
+            blockSize, null);
+
+    try {
+      grfs.create(path, permission, flags, bufferSize, replication,
+              blockSize, null);
+      assertFalse(true);  // should never come here
+    } catch (AlreadyBeingCreatedException e)  {
+      // That's what we need
+    } finally {
+      FileStatus[] files = grfs.listStatus(new Path("."));
+      assertEquals(1, files.length); // check if create file by mistake
+    }
+  }
+
 
   @Test
   public void testCreateFileWithEmptyFlagWillGetException()
