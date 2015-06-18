@@ -138,6 +138,18 @@ public class TestCreate {
   }
 
   @Test
+  public void testCanCreateNewFileWithCreateFlagOnly()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    grfs.create(path, permission, flags, bufferSize, replication,
+            blockSize, null);
+    FileStatus[] files = grfs.listStatus(new Path("."));
+    LOG.debug("list files under home dir");
+    printFileStatus(files);
+    assertEquals(1, files.length);
+  }
+
+  @Test
   public void testCreateFileWithEmptyFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.noneOf(CreateFlag.class);
@@ -277,6 +289,7 @@ public class TestCreate {
       assertEquals(1, files.length); // check if create file by mistake
     }
   }
+
 
 
   /*
