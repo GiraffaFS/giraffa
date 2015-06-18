@@ -388,11 +388,11 @@ public class BlockManagementAgent extends BaseRegionObserver {
         GRFA_TMP_FILE_PREFFIX + temporaryFileId.incrementAndGet());
   }
 
-  private String getGiraffaBlockPathName(ExtendedBlock block) {
+  private static String getGiraffaBlockPathName(ExtendedBlock block) {
     return getGiraffaBlockPath(block).toUri().getPath();
   }
 
-  private Path getGiraffaBlockPath(ExtendedBlock block) {
+  public static Path getGiraffaBlockPath(ExtendedBlock block) {
     return new Path(GRFA_BLOCKS_DIR,
         GRFA_BLOCK_FILE_PREFFIX + block.getBlockName());
   }

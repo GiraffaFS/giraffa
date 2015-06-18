@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 import org.apache.giraffa.hbase.NamespaceAgent;
+import org.apache.giraffa.hbase.bootstrap.BSFileSystem;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -43,7 +44,10 @@ public class GiraffaConfiguration extends Configuration {
                                   DFSConfigKeys.DFS_LIST_LIMIT;
   public static final int     GRFA_LIST_LIMIT_DEFAULT =
                                   DFSConfigKeys.DFS_LIST_LIMIT_DEFAULT;
-
+  public static final String  GRFA_BLOCK_MANAGER_ADDRESS_KEY =
+                                  "grfa.block.manager.address";
+  public static final String  GRFA_BOOTSTRAP_FS_IMPL =
+      BSFileSystem.class.getCanonicalName();
 
   public static final String  GRFA_WEB_ADDRESS_KEY = "grfa.http-address";
   public static final String  GRFA_WEB_ADDRESS_DEFAULT = "0.0.0.0:40010";
