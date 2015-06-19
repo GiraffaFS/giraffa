@@ -28,14 +28,11 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathIsNotEmptyDirectoryException;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -48,11 +45,9 @@ import static org.apache.hadoop.fs.CreateFlag.CREATE;
 import static org.apache.hadoop.fs.CreateFlag.OVERWRITE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
- * This file is deticated to test create methods of GiraffaFileSystem.
+ * This file is dedicated to test create methods of GiraffaFileSystem.
  * For now it focus on testing different flag combinations.
  * All the before/after derived from TestGiraffaFS.java
  */
@@ -75,7 +70,6 @@ public class TestCreate {
             GiraffaTestUtils.BASE_TEST_DIRECTORY);
 
     UTIL.startMiniCluster(1);
-//    Logger.getRootLogger().setLevel(Level.DEBUG);
   }
 
   @Before
@@ -140,6 +134,9 @@ public class TestCreate {
     assertEquals(2, files.length);
   }
 
+  /**
+   * Tests for different CreateFlag combinations
+   */
   @Test
   public void testCanCreateNewFileWithCreateFlagOnly()
           throws IOException {
