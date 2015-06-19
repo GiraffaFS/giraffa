@@ -343,6 +343,10 @@ public class NamespaceProcessor implements ClientProtocol,
       } else {
         throw new FileAlreadyExistsException();
       }
+    } else {
+      if (overwrite && !create) {
+        throw new FileNotFoundException("File not found: " + src);
+      }
     }
 
     Path parentPath = new Path(src).getParent();
