@@ -436,6 +436,33 @@ public class TestCreate {
     assertEquals(1, files.length);
   }
 
+  @Test
+  public void testCanCreateExistedFileWithCreateAndOverwriteFlag()
+          throws IOException {
+    final int LEN1 = 2000;
+    final int LEN2 = 1000;
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    FSDataOutputStream fsDataOutputStream = grfs.create(path, permission,
+            flags, bufferSize, replication, blockSize, null);
+    for(int j = 0; j < LEN1; j++) {
+      fsDataOutputStream.write('c');
+    }
+    fsDataOutputStream.close();
+
+    flags = EnumSet.of(CREATE,OVERWRITE);
+    fsDataOutputStream = grfs.create(path, permission, flags, bufferSize,
+            replication, blockSize, null);
+    for(int j = 0; j < LEN2; j++) {
+      fsDataOutputStream.write('c');
+    }
+    fsDataOutputStream.close();
+
+    FileStatus files[] = grfs.listStatus(new Path("."));
+    printFileStatus(files);
+    assertEquals(1, files.length);
+    assertEquals(LEN2, files[0].getLen());
+  }
+
   public static void main(String[] args) throws Exception {
     TestCreate test = new TestCreate();
     GiraffaConfiguration conf =
