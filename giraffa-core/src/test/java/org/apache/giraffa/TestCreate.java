@@ -292,7 +292,6 @@ public class TestCreate {
     }
   }
 
-
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
@@ -421,35 +420,22 @@ public class TestCreate {
 
     FileStatus files[] = grfs.listStatus(new Path("."));
     printFileStatus(files);
-    assertEquals(1, files.length); // check if create file by mistake
+    assertEquals(1, files.length);
     assertEquals(LEN2, files[0].getLen());
   }
 
-
-  /*
   @Test
-  public void testFileCreation() throws IOException {
-    grfs.create(new Path("text.txt"));
-    grfs.create(new Path("plamen's test"));
-    FileStatus[] files = grfs.listStatus(new Path("."));
-    printFileStatus(files);
-    assertEquals(2, files.length);
-    FileStatus stats[] = grfs.listStatus(new Path("/"));
-    printFileStatus(stats);
-    assertEquals(1, stats.length);
-    grfs.create(new Path(""));
-  }
+  public void testCanCreateNewFileWithCreateAndOverwriteFlag()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE, OVERWRITE);
+    grfs.create(path, permission, flags, bufferSize, replication,
+            blockSize, null);
 
-  @Test
-  public void testFileDeletion() throws IOException {
-    grfs.create(new Path("text.txt"));
-    grfs.create(new Path("plamen's test"));
-    grfs.delete(new Path("plamen's test"), false);
-    FileStatus[] files = grfs.listStatus(new Path("."));
+    FileStatus files[] = grfs.listStatus(new Path("."));
     printFileStatus(files);
     assertEquals(1, files.length);
   }
-*/
+
   public static void main(String[] args) throws Exception {
     TestCreate test = new TestCreate();
     GiraffaConfiguration conf =
