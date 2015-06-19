@@ -383,7 +383,7 @@ public class TestCreate {
   }
 
   @Test
-  public void testOverwriteNonExistedWillGetException()
+  public void testOverwriteNonExistedFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(OVERWRITE);
     try {
@@ -397,6 +397,34 @@ public class TestCreate {
       assertEquals(0, files.length); // check if create file by mistake
     }
   }
+
+  @Test
+  public void testCanOverwriteExistedFile()
+          throws IOException {
+    final int LEN1 = 2000;
+    final int LEN2 = 1000;
+    EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
+    FSDataOutputStream fsDataOutputStream = grfs.create(path, permission,
+            flags, bufferSize, replication, blockSize, null);
+    for(int j = 0; j < LEN1; j++) {
+      fsDataOutputStream.write('c');
+    }
+    fsDataOutputStream.close();
+
+    flags = EnumSet.of(OVERWRITE);
+    fsDataOutputStream = grfs.create(path, permission, flags, bufferSize,
+            replication, blockSize, null);
+    for(int j = 0; j < LEN2; j++) {
+      fsDataOutputStream.write('c');
+    }
+    fsDataOutputStream.close();
+
+    FileStatus files[] = grfs.listStatus(new Path("."));
+    printFileStatus(files);
+    assertEquals(1, files.length); // check if create file by mistake
+    assertEquals(LEN2, files[0].getLen());
+  }
+
 
   /*
   @Test
