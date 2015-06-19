@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.util.EnumSet;
 
 import org.apache.commons.logging.Log;
@@ -381,7 +382,21 @@ public class TestCreate {
     }
   }
 
-
+  @Test
+  public void testOverwriteNonExistedWillGetException()
+          throws IOException {
+    EnumSet<CreateFlag> flags = EnumSet.of(OVERWRITE);
+    try {
+      grfs.create(path, permission, flags, bufferSize, replication,
+              blockSize, null);
+      assertFalse(true);  // should never come here
+    } catch (FileNotFoundException e)  {
+      // That's what we need
+    } finally {
+      FileStatus[] files = grfs.listStatus(new Path("."));
+      assertEquals(0, files.length); // check if create file by mistake
+    }
+  }
 
   /*
   @Test
