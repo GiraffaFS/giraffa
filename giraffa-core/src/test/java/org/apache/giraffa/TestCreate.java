@@ -97,44 +97,6 @@ public class TestCreate {
   }
 
   /**
-   * The basic test for create. Please note we don't
-   * test corner case here such as parent directory does not exist
-   * because it's covered in TestGiraffaFSNegative.java
-   */
-  @Test
-  public void testTheFileSystemShouldBeEmptyWhenInit() throws IOException {
-    FileStatus[] files = grfs.listStatus(new Path("."));
-    LOG.debug("list files under home dir");
-    printFileStatus(files);
-    assertEquals(0, files.length);
-    LOG.debug("list files under root dir");
-    files = grfs.listStatus(new Path("/"));
-    printFileStatus(files);
-    assertEquals(1, files.length);
-  }
-
-  @Test
-  public void testCanCreateFileUnderHomeDirUsingDefaultSetting()
-          throws IOException {
-    grfs.create(path);
-    FileStatus[] files = grfs.listStatus(new Path("."));
-    LOG.debug("list files under home dir");
-    printFileStatus(files);
-    assertEquals(1, files.length);
-  }
-
-  @Test
-  public void testCanCreateFileUnderRootDirUsingDefaultSetting()
-          throws IOException {
-    Path pathUnderRootDir = new Path("/newlyCreatedFile.txt");
-    grfs.create(pathUnderRootDir);
-    FileStatus[] files = grfs.listStatus(new Path("/"));
-    LOG.debug("list files under root dir");
-    printFileStatus(files);
-    assertEquals(2, files.length);
-  }
-
-  /**
    * Tests for different CreateFlag combinations
    */
   @Test
