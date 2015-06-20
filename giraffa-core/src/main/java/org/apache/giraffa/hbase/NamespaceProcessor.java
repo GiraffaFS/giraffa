@@ -318,6 +318,7 @@ public class NamespaceProcessor implements ClientProtocol,
     boolean append = flag.contains(CreateFlag.APPEND);
     boolean create = flag.contains(CreateFlag.CREATE);
 
+    assert (overwrite || append || create);
     if(append) {
       throw new IOException("Append is not supported.");
     }
@@ -337,12 +338,15 @@ public class NamespaceProcessor implements ClientProtocol,
         if(!deleteFile(iFile, true)) {
           throw new IOException("Cannot override existing file: " + src);
         }
+        iFile = null; // now the file is deleted
       } else if(iFile.getFileState().equals(FileState.UNDER_CONSTRUCTION)) {
         // Opening an existing file for write - may need to recover lease.
         reassignLease(iFile, src, clientName, false);
       } else {
         throw new FileAlreadyExistsException();
       }
+    } else if(overwrite && !create) {
+      throw new FileNotFoundException("File not found: " + src);
     }
 
     Path parentPath = new Path(src).getParent();
@@ -363,7 +367,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     // if file did not exist, create its INode now
-    if((iFile == null && create) || overwrite) {
+    if(iFile == null) {
       RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       FileLease fileLease =
