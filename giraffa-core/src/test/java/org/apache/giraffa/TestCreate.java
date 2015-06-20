@@ -111,7 +111,7 @@ public class TestCreate {
     assertEquals(1, files.length);
   }
 
-  @Test
+  @Test (expected = FileAlreadyExistsException.class)
   public void testCreateExistedFileWithCreateFlagOnlyWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -123,15 +123,14 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (FileAlreadyExistsException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
     }
   }
 
-  @Test  // opened means not closed yet
+  // opened means not closed yet
+  @Test (expected = AlreadyBeingCreatedException.class)
   public void testCreateOpenedFileWithCreateFlagOnlyWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -142,16 +141,13 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (AlreadyBeingCreatedException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
     }
   }
 
-
-  @Test
+  @Test (expected = IllegalArgumentException.class)
   public void testCreateFileWithEmptyFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.noneOf(CreateFlag.class);
@@ -159,8 +155,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IllegalArgumentException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -171,7 +165,7 @@ public class TestCreate {
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It will throw HadoopIllegalArgumentException if we support Append
   // in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testCreateFileWithAllFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE, OVERWRITE, APPEND);
@@ -179,8 +173,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -191,7 +183,7 @@ public class TestCreate {
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It will throw HadoopIllegalArgumentException if we support Append
   // in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testCreateFileWithAppendAndOverwriteFlagSetWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(OVERWRITE, APPEND);
@@ -199,8 +191,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -211,7 +201,7 @@ public class TestCreate {
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It will throw FileNotFoundException if we support Append
   // in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testAppendNewFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(APPEND);
@@ -219,8 +209,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -230,7 +218,7 @@ public class TestCreate {
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testAppendExistedFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -243,8 +231,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
@@ -254,7 +240,7 @@ public class TestCreate {
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testAppendOpenedFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -266,8 +252,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
@@ -277,7 +261,7 @@ public class TestCreate {
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testCreateNewFileWithAppendFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE, APPEND);
@@ -285,8 +269,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -296,7 +278,7 @@ public class TestCreate {
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testCreateExistedFileWithAppendFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -309,8 +291,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
@@ -320,7 +300,7 @@ public class TestCreate {
   // Note, we do not support Append now so it throws
   // java.io.IOException: java.io.IOException: Append is not supported.
   // It should be fine in the future
-  @Test
+  @Test (expected = IOException.class)
   public void testCreateOpenedFileWithAppendFlagWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(CREATE);
@@ -332,15 +312,13 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (IOException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(1, files.length); // check if create file by mistake
     }
   }
 
-  @Test
+  @Test (expected = FileNotFoundException.class)
   public void testOverwriteNonExistedFileWillGetException()
           throws IOException {
     EnumSet<CreateFlag> flags = EnumSet.of(OVERWRITE);
@@ -348,8 +326,6 @@ public class TestCreate {
       grfs.create(path, permission, flags, bufferSize, replication,
               blockSize, null);
       assertFalse(true);  // should never come here
-    } catch (FileNotFoundException e)  {
-      // That's what we need
     } finally {
       FileStatus[] files = grfs.listStatus(new Path("."));
       assertEquals(0, files.length); // check if create file by mistake
@@ -429,6 +405,6 @@ public class TestCreate {
     GiraffaFileSystem.format(conf, true);
     GiraffaTestUtils.setGiraffaURI(conf);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    test.testTheFileSystemShouldBeEmptyWhenInit();
+    test.testCanCreateNewFileWithCreateFlagOnly();
   }
 }
