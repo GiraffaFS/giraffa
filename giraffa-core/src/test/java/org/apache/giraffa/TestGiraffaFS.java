@@ -247,7 +247,7 @@ public class TestGiraffaFS {
     assertEquals(1, files.length);
     assertEquals(30, files[0].getAccessTime());
     assertEquals(25, files[0].getModificationTime());
-    assertEquals(0644, files[0].getPermission().toShort());
+    assertEquals(0755, files[0].getPermission().toShort());
   }
 
   @Test

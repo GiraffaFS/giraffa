@@ -17,7 +17,7 @@
  */
 package org.apache.giraffa;
 
-import java.net.ConnectException;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Collection;
 
 import org.apache.commons.logging.Log;
@@ -73,6 +74,8 @@ public class TestLeaseManagement {
     hbaseConf.setInt("hbase.master.maximum.ping.server.attempts", 3);
     hbaseConf.setInt("hbase.master.ping.server.retry.sleep.interval", 1);
     hbaseConf.setBoolean("hbase.assignment.usezk", false);
+    hbaseConf.setBoolean(DFS_PERMISSIONS_ENABLED_KEY, false);
+    GiraffaTestUtils.enableMultipleUsers();
     UTIL.startMiniCluster(1);
   }
 

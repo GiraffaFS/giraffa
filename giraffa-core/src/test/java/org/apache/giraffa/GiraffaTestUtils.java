@@ -23,6 +23,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import mockit.Mock;
+import mockit.MockUp;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.INodeManager;
@@ -36,12 +39,15 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 
 public class GiraffaTestUtils {
   static final Log LOG = LogFactory.getLog(GiraffaTestUtils.class);
 
   public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
+
+  private static MockUp<HBaseTestingUtility> utilMock;
 
   public static URI getGiraffaURI() throws IOException {
     try {
@@ -56,6 +62,7 @@ public class GiraffaTestUtils {
   }
 
   public static HBaseTestingUtility getHBaseTestingUtility() {
+    disableMultipleUsers();
     Configuration conf = HBaseConfiguration.create();
     conf.setInt(
         HConstants.HBASE_CLIENT_OPERATION_TIMEOUT,
@@ -63,6 +70,39 @@ public class GiraffaTestUtils {
     conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
         DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
     return new HBaseTestingUtility(conf);
+  }
+
+  /**
+   * Prevents '.hfs.0' from being appending to the User name, allowing
+   * permissions to be enabled in Giraffa but disallowing multiple RegionServers
+   * in the test. Multiple users are disabled by default when you call
+   * {@link #getHBaseTestingUtility()}.
+   */
+  public static void disableMultipleUsers() {
+    if (utilMock == null) {
+      utilMock = new MockUp<HBaseTestingUtility>() {
+        @Mock
+        public User getDifferentUser(Configuration c,
+                                     String differentiatingSuffix)
+            throws IOException {
+          return User.getCurrent();
+        }
+      };
+    }
+  }
+
+  /**
+   * Appends a differentiating suffix to the User name for each configured
+   * RegionServer. Enabling this allows multiple RegionServers to be configured
+   * but disallows permission checking in Giraffa. Be sure to manually disable
+   * permission checking in the configurations as this is not done by default.
+   * This method should be invoked after {@link #getHBaseTestingUtility()}.
+   */
+  public static void enableMultipleUsers() {
+    if (utilMock != null) {
+      utilMock.tearDown();
+      utilMock = null;
+    }
   }
 
   /**
