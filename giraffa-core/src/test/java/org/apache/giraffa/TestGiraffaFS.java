@@ -206,6 +206,15 @@ public class TestGiraffaFS {
   }
 
   @Test
+  public void testDeleteMkdirsSamePath() throws IOException {
+    Path path = new Path("/test");
+    grfs.mkdirs(path);
+    grfs.delete(path, false);
+    grfs.mkdirs(path);
+    assertTrue(grfs.exists(path));
+  }
+
+  @Test
   public void testDirAttributes() throws IOException {
     grfs.mkdirs(new Path("folder2"));
 
