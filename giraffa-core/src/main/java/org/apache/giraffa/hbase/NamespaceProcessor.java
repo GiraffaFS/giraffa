@@ -335,7 +335,7 @@ public class NamespaceProcessor implements ClientProtocol,
         throw new FileAlreadyExistsException(
             "File already exists as directory: " + src);
       } else if(overwrite) {
-        if(!deleteFile(iFile, true)) {
+        if (!delete(iFile, false, true)) {
           throw new IOException("Cannot override existing file: " + src);
         }
         iFile = null; // now the file is deleted
@@ -419,10 +419,23 @@ public class NamespaceProcessor implements ClientProtocol,
     if(!parent.isDir())
       throw new ParentNotDirectoryException("Parent is not a directory.");
 
-    if(node.isDir())
-      return deleteDirectory(node, recursive, true);
+    return delete(node, recursive, true);
+  }
 
-    return deleteFile(node, true);
+  private boolean delete(INode node, boolean recursive, boolean deleteBlocks)
+      throws IOException {
+    boolean result = node.isDir() ?
+        deleteDirectory(node, recursive, deleteBlocks) :
+        deleteFile(node, deleteBlocks);
+
+    // delete time penalty (workaround for HBASE-2256)
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException ignored) {
+      // do nothing
+    }
+
+    return result;
   }
 
   private boolean deleteFile(INode node, boolean deleteBlocks)
@@ -434,14 +447,6 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // delete the child key atomically first
     nodeManager.delete(node);
-
-    // delete time penalty (resolves timestamp milliseconds issue)
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException e) {
-      // do nothing
-    }
-
     return true;
   }
 
@@ -798,10 +803,7 @@ public class NamespaceProcessor implements ClientProtocol,
     // Stage 2: delete old rows
     if(rootSrcNode != null) {
       LOG.debug("Deleting "+src);
-      if(directoryRename)
-        deleteDirectory(rootSrcNode, true, false);
-      else
-        deleteFile(rootSrcNode, false);
+      delete(rootSrcNode, true, false);
     }else {
       LOG.debug("Rename Recovery: Skipping Stage 2 because "+src+" not found");
     }
