@@ -90,7 +90,9 @@ fi
 
 if [ -d "${GIRAFFA_HOME}/lib" ]; then
   for f in $GIRAFFA_HOME/lib/*.jar; do
-    GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$f;
+    if [[ "$f" != *"slf4j-log4j"* ]] || [[ "$1" == "format" ]]; then
+      GIRAFFA_CLASSPATH=${GIRAFFA_CLASSPATH}:$f;
+    fi
   done
 fi
 export GIRAFFA_CLASSPATH=$GIRAFFA_CLASSPATH
@@ -133,8 +135,6 @@ if $cygwin; then
   HADOOP_HOME=`cygpath -p "$HADOOP_HOME"`
 fi
 
-echo Found Hadoop installed at $HADOOP_HOME
-
 # set hbase home if present
 if [ "$HBASE_HOME" = "" ]; then
   if [ -d "${GIRAFFA_HOME}/../hbase" ]; then
@@ -147,12 +147,8 @@ if $cygwin; then
   HBASE_HOME=`cygpath -p "$HBASE_HOME"`
 fi
 
-echo Found HBase installed at $HBASE_HOME
-
 # cygwin path translation
 if $cygwin; then
   GIRAFFA_HOME=`cygpath -p "$GIRAFFA_HOME"`
   GIRAFFA_LOG_DIR=`cygpath -p "$GIRAFFA_LOG_DIR"`
 fi
-
-echo Giraffa Home is $GIRAFFA_HOME
