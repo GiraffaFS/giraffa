@@ -17,7 +17,8 @@
  */
 package org.apache.giraffa;
 
-import java.net.ConnectException;
+import static org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -27,6 +28,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Collection;
 
 import org.apache.commons.logging.Log;
@@ -115,7 +117,7 @@ public class TestLeaseManagement {
       IOUtils.closeStream(outputStream);
     }
     INode iNode = nodeManager.getINode(src);
-    assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));
+    assertThat(iNode.getFileState(), is(FileState.CLOSED));
     FileLease lease = iNode.getLease();
     assertThat(lease, is(nullValue()));
   }
@@ -140,9 +142,72 @@ public class TestLeaseManagement {
       IOUtils.closeStream(outputStream);
     }
     INode iNode = nodeManager.getINode(src);
-    assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));
+    assertThat(iNode.getFileState(), is(FileState.CLOSED));
     FileLease lease = iNode.getLease();
     assertThat(lease, is(nullValue()));
+  }
+
+  @Test
+  public void testLeaseRecovery() throws IOException {
+    String src = "/testLeaseRecovery";
+    Path path = new Path(src);
+
+    HRegionServer server = UTIL.getHBaseCluster().getRegionServer(0);
+    LeaseManager leaseManager = LeaseManager.originateSharedLeaseManager(
+        server.getRpcServer().getListenerAddress().toString());
+
+    FSDataOutputStream outputStream = grfs.create(path);
+    String clientName = grfs.grfaClient.getClientName();
+    outputStream.write(1);
+    outputStream.write(2);
+    outputStream.hflush();
+    try {
+      leaseManager.setHardLimit(10L);
+      INode iNode = null;
+      for(int i = 0; i < 100; i++) {
+        leaseManager.triggerLeaseRecovery();
+        try {Thread.sleep(100L);} catch (InterruptedException ignored) {}
+        iNode = nodeManager.getINode(src);
+        if(iNode.getFileState() == FileState.CLOSED)
+          break;
+      }
+      assert iNode != null : "INode was null. File was not closed in 10 secs.";
+      assertThat(iNode.getFileState(), is(FileState.CLOSED));
+      assertThat(iNode.getLen(), is(2L));
+      assertThat(iNode.getLease(), is(nullValue()));
+      assertThat(leaseManager.getLeases(clientName), is(nullValue()));
+    } finally {
+      leaseManager.setHardLimit(HdfsConstants.LEASE_HARDLIMIT_PERIOD);
+      IOUtils.closeStream(outputStream);
+    }
+  }
+
+  @Test
+  public void testClientLeaseRecovery() throws IOException {
+    String src = "/testLeaseRecovery";
+    Path path = new Path(src);
+
+    HRegionServer server = UTIL.getHBaseCluster().getRegionServer(0);
+    LeaseManager leaseManager = LeaseManager.originateSharedLeaseManager(
+        server.getRpcServer().getListenerAddress().toString());
+
+    FSDataOutputStream outputStream = grfs.create(path);
+    String clientName = grfs.grfaClient.getClientName();
+    outputStream.write(1);
+    outputStream.write(2);
+    outputStream.hflush();
+    try {
+      boolean recovered = grfs.grfaClient.getNamespaceService().recoverLease(
+          src, grfs.grfaClient.getClientName());
+      assertThat(recovered, is(true));
+      INode iNode = nodeManager.getINode(src);
+      assertThat(iNode.getFileState(), is(FileState.CLOSED));
+      assertThat(iNode.getLen(), is(2L));
+      assertThat(iNode.getLease(), is(nullValue()));
+      assertThat(leaseManager.getLeases(clientName), is(nullValue()));
+    } finally {
+      IOUtils.closeStream(outputStream);
+    }
   }
 
   /**
@@ -204,7 +269,7 @@ public class TestLeaseManagement {
       IOUtils.cleanup(LOG, outputStream);
     }
     INode iNode = nodeManager.getINode(src);
-    assertThat(iNode.getFileState(), is(GiraffaConstants.FileState.CLOSED));
+    assertThat(iNode.getFileState(), is(FileState.CLOSED));
     FileLease lease = iNode.getLease();
     assertThat(lease, is(nullValue()));
   }
@@ -213,7 +278,7 @@ public class TestLeaseManagement {
     INode iNode = nodeManager.getINode(src);
     FileLease lease = iNode.getLease();
     assertThat(iNode.getFileState(),
-        is(GiraffaConstants.FileState.UNDER_CONSTRUCTION));
+        is(FileState.UNDER_CONSTRUCTION));
     assertThat(lease, is(notNullValue()));
     assertThat(lease.getHolder(), is(grfs.grfaClient.getClientName()));
     assertThat(lease.getPath(), is(src));

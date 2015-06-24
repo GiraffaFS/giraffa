@@ -18,11 +18,13 @@
 package org.apache.giraffa;
 
 public interface GiraffaConstants {
-  public static enum FileState {
-    CLOSED, UNDER_CONSTRUCTION, DELETED
+  enum FileState {
+    CLOSED, UNDER_CONSTRUCTION, DELETED, RECOVERING
   }
 
-  public static final String UTF8 = "UTF-8";
+  enum BlockAction {
+    CLOSE, ALLOCATE, DELETE, RECOVER
+  }
 
-  public static final String GIRAFFA_SHARED_STATE_KEY = "GiraffaSharedState";
+  String UTF8 = "UTF-8";
 }

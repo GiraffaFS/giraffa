@@ -19,6 +19,7 @@ package org.apache.giraffa.hbase;
 
 import java.util.Collection;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
+import static org.apache.giraffa.GiraffaConstants.BlockAction;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_DEFAULT;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY;
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
@@ -57,7 +58,6 @@ import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.hbase.INodeManager.Function;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BatchedRemoteIterator;
 import org.apache.hadoop.fs.CacheFlag;
@@ -116,6 +116,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.util.Daemon;
 import org.apache.hadoop.util.DataChecksum;
 
 import com.google.protobuf.Service;
@@ -130,9 +131,10 @@ public class NamespaceProcessor implements ClientProtocol,
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
   private INodeManager nodeManager;
-
   private LeaseManager leaseManager;
+  private Daemon monitor;
   private FsServerDefaults serverDefaults;
+  private boolean running;
 
   private int lsLimit;
 
@@ -195,12 +197,17 @@ public class NamespaceProcessor implements ClientProtocol,
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
     this.nodeManager = new INodeManager(e.getTable(tableName));
+    this.monitor = leaseManager.getMonitor(this);
+    leaseManager.startMonitor();
+    this.running = true;
   }
 
   @Override // Coprocessor
   public void stop(CoprocessorEnvironment env) {
     LOG.info("Stopping NamespaceProcessor...");
+    running = false;
     nodeManager.close();
+    leaseManager.stopMonitor();
   }
 
   @Override // ClientProtocol
@@ -723,7 +730,15 @@ public class NamespaceProcessor implements ClientProtocol,
 
   @Override // ClientProtocol
   public boolean recoverLease(String src, String clientName) throws IOException {
-    throw new IOException("recoverLease is not supported");
+    Collection<FileLease> leases = leaseManager.getLeases(clientName);
+    if(leases == null)
+      return false;
+    for(FileLease lease : leases) {
+      if(lease.getPath().equals(src)) {
+        return internalReleaseLease(lease, src);
+      }
+    }
+    return false;
   }
 
   @Override // ClientProtocol
@@ -1305,5 +1320,32 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     throw new IOException("Extended Attributes are not supported");
+  }
+
+  public boolean internalReleaseLease(FileLease lease, String src)
+      throws IOException {
+    LOG.info("Recovering " + lease + ", src=" + src);
+
+    try {
+      INode iNode = nodeManager.getINode(src);
+      if(iNode.getBlocks().size() == 0) {
+        LOG.info("Zero blocks detected.");
+        return false;
+      }
+      if(iNode.getFileState().equals(FileState.RECOVERING)) {
+        LOG.info("File under recovery already.");
+        return false;
+      }
+      iNode.setState(FileState.RECOVERING);
+      nodeManager.updateINode(iNode, BlockAction.RECOVER);
+    } catch (IOException e) {
+      LOG.error(e);
+      return false;
+    }
+    return true;
+  }
+
+  public boolean isRunning() {
+    return running;
   }
 }
