@@ -333,6 +333,7 @@ public class NamespaceProcessor implements ClientProtocol,
              FileNotFoundException, NSQuotaExceededException,
              ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
              SnapshotAccessControlException, IOException {
+    assertNotRoot(src);
     EnumSet<CreateFlag> flag = createFlag.get();
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
     boolean append = flag.contains(CreateFlag.APPEND);
@@ -344,9 +345,7 @@ public class NamespaceProcessor implements ClientProtocol,
     }
 
     INode iFile = nodeManager.getINode(src);
-    Path parent = new Path(src).getParent();
-    assert parent != null : "File must have a parent";
-    INode iParent = nodeManager.getINode(parent.toString());
+    INode iParent = nodeManager.getParentINode(src);
 
     FSPermissionChecker pc = getFsPermissionChecker();
     if (isPermissionEnabled) {
@@ -383,6 +382,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
     if (iParent == null) {
       // create parent directories, inherit permissions from ancestor
+      Path parent = new Path(src).getParent();
       iParent = mkdirsRecursive(parent, null, true, pc);
     } else if(!iParent.isDir()) {
       throw new ParentNotDirectoryException("Parent path is not a directory: "
@@ -427,6 +427,7 @@ public class NamespaceProcessor implements ClientProtocol,
    */
   @Override // ClientProtocol
   public boolean delete(String src, boolean recursive) throws IOException {
+    assertNotRoot(src);
     INode node = nodeManager.getINode(src);
     INode parent = nodeManager.getParentINode(src);
 
@@ -744,10 +745,8 @@ public class NamespaceProcessor implements ClientProtocol,
       FileNotFoundException, NSQuotaExceededException,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
       IOException {
-    Path parentPath = new Path(src).getParent();
-    assert parentPath != null;
-    String parent = parentPath.toString();
-    INode iParent = nodeManager.getINode(parent);
+    assertNotRoot(src);
+    INode iParent = nodeManager.getParentINode(src);
 
     FSPermissionChecker pc = getFsPermissionChecker();
     if (isPermissionEnabled) {
@@ -763,14 +762,17 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // create parent directories if requested
     if(!createParent && iParent == null) {
+      String parent = new Path(src).getParent().toString();
       throw new FileNotFoundException("Parent does not exist: "+parent);
     }
     if(iParent != null && !iParent.isDir()) {
+      String parent = new Path(src).getParent().toString();
       throw new ParentNotDirectoryException("Parent is not directory: "+parent);
     }
     if(createParent && iParent == null) {
       // make the parent directories, use given permissions
-      iParent = mkdirsRecursive(parentPath, masked, false, pc);
+      Path parent = new Path(src).getParent();
+      iParent = mkdirsRecursive(parent, masked, false, pc);
     } 
 
     long time = now();
@@ -1480,5 +1482,9 @@ public class NamespaceProcessor implements ClientProtocol,
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
     UserGroupInformation ugi = RpcUtil.getRemoteUser();
     return new FSPermissionChecker(fsOwnerShortUserName, supergroup, ugi);
+  }
+
+  private static void assertNotRoot(String src) {
+    assert !new Path(src).isRoot();
   }
 }
