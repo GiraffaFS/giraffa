@@ -87,7 +87,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
-import org.apache.hadoop.hbase.ipc.RpcUtil;
+import org.apache.hadoop.hbase.ipc.HBaseRpcUtil;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
@@ -1480,7 +1480,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
-    UserGroupInformation ugi = RpcUtil.getRemoteUser();
+    UserGroupInformation ugi = HBaseRpcUtil.getRemoteUser();
     return new FSPermissionChecker(fsOwnerShortUserName, supergroup, ugi);
   }
 

@@ -21,7 +21,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 
 import java.io.IOException;
 
-public class RpcUtil {
+public class HBaseRpcUtil {
 
   /** Returns the RPC remote user when invoked inside an RPC.  Note this
    *  may be different than the current user if called within another doAs
