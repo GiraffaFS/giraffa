@@ -533,14 +533,6 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // delete source directory
     nodeManager.delete(node);
-
-    // delete time penalty (resolves timestamp milliseconds issue)
-    try {
-      Thread.sleep(100);
-    } catch (InterruptedException e) {
-      // do nothing
-    }
-
     return true;
   }
 
