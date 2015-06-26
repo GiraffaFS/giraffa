@@ -59,7 +59,9 @@ public class INode {
   private FileState fileState;
   private RenameState renameState;
   private FileLease lease;
-  private boolean isEmpty;
+
+  /** This field is not serialized and may be null */
+  private transient Boolean isEmpty;
 
   public static final Log LOG = LogFactory.getLog(INode.class.getName());
 
@@ -313,7 +315,13 @@ public class INode {
     this.lease = lease;
   }
 
-  public boolean isEmpty() {
+  /**
+   * Returns whether this INode is an empty directory, or null if unknown.
+   */
+  public Boolean isEmpty() {
+    if (!isDir()) {
+      return false;
+    }
     return isEmpty;
   }
 
