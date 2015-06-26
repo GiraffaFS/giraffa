@@ -319,10 +319,7 @@ public class INode {
    * Returns whether this INode is an empty directory, or null if unknown.
    */
   public Boolean isEmpty() {
-    if (!isDir()) {
-      return false;
-    }
-    return isEmpty;
+    return isDir() ? isEmpty : false;
   }
 
   public void setEmpty(boolean isEmpty) {
