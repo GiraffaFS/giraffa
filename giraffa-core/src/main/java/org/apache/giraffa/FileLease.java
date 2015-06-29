@@ -17,10 +17,12 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.hadoop.util.Time.now;
+
 /**
  * Leases provide exclusive access to files for write.
  */
-public class FileLease {
+public class FileLease implements Comparable<FileLease> {
 
   public final String holder;
   public final String path;
@@ -47,6 +49,10 @@ public class FileLease {
     return lastUpdate;
   }
 
+  public boolean expiredHardLimit(long hardLimit) {
+    return now() - lastUpdate > hardLimit;
+  }
+
   @Override
   public String toString() {
     return "FileLease[holder=" + holder + ", path=" + path + ", lastUpdate=" +
@@ -65,5 +71,19 @@ public class FileLease {
     if(lastUpdate != other.lastUpdate)
       return false;
     return true;
+  }
+
+  @Override
+  public int compareTo(FileLease o) {
+    FileLease l1 = this;
+    long lu1 = l1.lastUpdate;
+    long lu2 = o.lastUpdate;
+    if (lu1 < lu2) {
+      return -1;
+    } else if (lu1 > lu2) {
+      return 1;
+    } else {
+      return l1.holder.compareTo(o.holder);
+    }
   }
 }

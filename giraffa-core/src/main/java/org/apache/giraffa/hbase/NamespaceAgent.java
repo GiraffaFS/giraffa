@@ -139,10 +139,6 @@ public class NamespaceAgent implements NamespaceService {
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
 
-  public static enum BlockAction {
-    CLOSE, ALLOCATE, DELETE
-  }
-
   private Admin hbAdmin;
   private Table nsTable;
   private Connection connection;
@@ -517,7 +513,8 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // ClientProtocol
   public boolean recoverLease(String src, String clientName) throws IOException {
-    return false;
+    ClientProtocol proxy = getRegionProxy(src);
+    return proxy.recoverLease(src, clientName);
   }
 
   @Override // ClientProtocol
