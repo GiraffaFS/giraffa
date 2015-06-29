@@ -232,7 +232,8 @@ public class INodeManager implements Closeable {
 
   /**
    * Recursively generates a list containing the given node and all
-   * subdirectories. The nodes are found and stored in breadth-first order.
+   * subdirectories. The nodes are found and stored in breadth-first order. For
+   * each node, {@link INode#isEmpty()} is guaranteed to return a nonnull value.
    */
   public List<INode> getDirectories(INode root) throws IOException {
     List<INode> directories = new ArrayList<INode>();

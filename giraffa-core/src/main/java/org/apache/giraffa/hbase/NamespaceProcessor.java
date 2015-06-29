@@ -500,7 +500,9 @@ public class NamespaceProcessor implements ClientProtocol,
 
       if (isPermissionEnabled && pc != null) {
         for (INode dir : directories) {
-          if (!dir.isEmpty()) {
+          Boolean empty = dir.isEmpty();
+          assert empty != null;
+          if (!empty) {
             pc.check(dir, FsAction.ALL);
           }
         }
