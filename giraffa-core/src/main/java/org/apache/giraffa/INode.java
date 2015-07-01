@@ -60,6 +60,9 @@ public class INode {
   private RenameState renameState;
   private FileLease lease;
 
+  /** This field is not serialized and may be null */
+  private transient Boolean isEmpty;
+
   public static final Log LOG = LogFactory.getLog(INode.class.getName());
 
   /**
@@ -310,6 +313,17 @@ public class INode {
 
   public void setLease(FileLease lease) {
     this.lease = lease;
+  }
+
+  /**
+   * Returns whether this INode is an empty directory, or null if unknown.
+   */
+  public Boolean isEmpty() {
+    return isDir() ? isEmpty : false;
+  }
+
+  public void setEmpty(boolean isEmpty) {
+    this.isEmpty = isEmpty;
   }
 
   public INode cloneWithNewRowKey(RowKey newKey) {

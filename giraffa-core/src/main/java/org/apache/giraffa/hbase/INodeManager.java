@@ -72,6 +72,11 @@ public class INodeManager implements Closeable {
     }
   }
 
+  public INode getParentINode(String path) throws IOException {
+    Path parent = new Path(path).getParent();
+    return parent == null ? null : getINode(parent.toString());
+  }
+
   /**
    * Fetch an INode by source path String
    * @param path the source path String
@@ -227,7 +232,8 @@ public class INodeManager implements Closeable {
 
   /**
    * Recursively generates a list containing the given node and all
-   * subdirectories. The nodes are found and stored in breadth-first order.
+   * subdirectories. The nodes are found and stored in breadth-first order. For
+   * each node, {@link INode#isEmpty()} is guaranteed to return a nonnull value.
    */
   public List<INode> getDirectories(INode root) throws IOException {
     List<INode> directories = new ArrayList<INode>();
@@ -236,10 +242,13 @@ public class INodeManager implements Closeable {
     // start loop descending the tree (breadth first, then depth)
     for(int i = 0; i < directories.size(); i++) {
       // get next directory INode in the list and it's Scanner
-      RowKey key = directories.get(i).getRowKey();
+      INode dir = directories.get(i);
+      dir.setEmpty(true);
+      RowKey key = dir.getRowKey();
       ResultScanner rs = getListingScanner(key);
       try {
         for (Result result : rs) {
+          dir.setEmpty(false);
           if (FileFieldDeserializer.getDirectory(result)) {
             directories.add(newINodeByParent(key.getPath(), result));
           }
