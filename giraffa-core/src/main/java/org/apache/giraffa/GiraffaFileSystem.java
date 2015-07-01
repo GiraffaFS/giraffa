@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -32,6 +34,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Options;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.XAttrSetFlag;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.GiraffaClient;
 import org.apache.hadoop.hdfs.protocol.DirectoryListing;
@@ -318,6 +321,38 @@ public class GiraffaFileSystem extends FileSystem {
         new_dir.isAbsolute() ? new_dir :
           new Path(workingDir, new_dir));
     checkPath(workingDir);
+  }
+
+  @Override // FileSystem
+  public void setXAttr(Path path, String name, byte[] value,
+                       EnumSet<XAttrSetFlag> flag) throws IOException {
+    grfaClient.setXAttr(getPathName(path), name, value, flag);
+  }
+
+  @Override // FileSystem
+  public List<String> listXAttrs(Path path) throws IOException {
+    return grfaClient.listXAttrs(getPathName(path));
+  }
+
+  @Override // FileSystem
+  public byte[] getXAttr(Path path, String name) throws IOException {
+    return grfaClient.getXAttr(getPathName(path), name);
+  }
+
+  @Override // FileSystem
+  public Map<String, byte[]> getXAttrs(Path path) throws IOException {
+    return grfaClient.getXAttrs(getPathName(path));
+  }
+
+  @Override // FileSystem
+  public Map<String, byte[]> getXAttrs(Path path, List<String> names)
+          throws IOException {
+    return grfaClient.getXAttrs(getPathName(path), names);
+  }
+
+  @Override // FileSystem
+  public void removeXAttr(Path path, String name) throws IOException {
+    grfaClient.removeXAttr(getPathName(path), name);
   }
 
   @Override // FileSystem

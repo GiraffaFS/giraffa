@@ -19,7 +19,10 @@ package org.apache.giraffa.hbase;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.Map.Entry;
 
+import com.google.common.collect.Lists;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConstants;
@@ -28,9 +31,11 @@ import org.apache.giraffa.GiraffaProtos;
 import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.UnlocatedBlock;
+import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 
 /**
@@ -132,5 +137,19 @@ public class FileFieldDeserializer {
     if(leaseByteArray == null || leaseByteArray.length == 0)
       return null;
     return GiraffaPBHelper.bytesToHdfsLease(leaseByteArray);
+  }
+
+  public static List<XAttr> listXAttrs(Result res) {
+    NavigableMap<byte[], byte[]> map =
+            res.getFamilyMap(FileField.getFileExtenedAttributes());
+    List<XAttr> resList = Lists.newArrayListWithCapacity(map.size());
+
+    for(Entry<byte[], byte[]> entry: map.entrySet()) {
+        XAttr xAttr = XAttrHelper.buildXAttr(Bytes.toString(entry.getKey()),
+                entry.getValue());
+
+        resList.add(xAttr);
+    }
+    return resList;
   }
 }
