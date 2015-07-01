@@ -31,6 +31,7 @@ import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -299,6 +300,52 @@ public class INodeManager implements Closeable {
     Result result = getNSTable().get(new Get(node.getRowKey().getKey()));
     node.setBlocks(FileFieldDeserializer.getBlocks(result));
     node.setLocations(FileFieldDeserializer.getLocations(result));
+  }
+
+  // Put a cell directly
+  public void setXAttr(String path, XAttr xAttr) throws IOException {
+    long ts = Time.now();
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Put put = new Put(rowKey.getKey(), ts);
+    String realColumnName = constructXAttrNameWithPrefix(xAttr);
+
+    put.addColumn(FileField.getFileExtenedAttributes(),
+            Bytes.toBytes(realColumnName), ts, xAttr.getValue());
+    getNSTable().put(put);
+  }
+
+  public List<XAttr> listXAttrs(String path) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Result result = getNSTable().get(new Get(rowKey.getKey()));
+    return FileFieldDeserializer.listXAttrs(result);
+  }
+
+  public void removeXAttr(String path, XAttr xAttr) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Delete delete = new Delete(rowKey.getKey());
+    String realColumnName = constructXAttrNameWithPrefix(xAttr);
+
+    delete.addColumns(FileField.getFileExtenedAttributes(),
+                     Bytes.toBytes(realColumnName));
+
+    getNSTable().delete(delete);
+  }
+
+  private String constructXAttrNameWithPrefix(XAttr xAttr) {
+    StringBuilder sb = new StringBuilder();
+    XAttr.NameSpace ns = xAttr.getNameSpace();
+    if (ns.equals(XAttr.NameSpace.USER)) {
+      sb.append("user.");
+    } else if (ns.equals(XAttr.NameSpace.TRUSTED)) {
+      sb.append("trusted.");
+    } else if (ns.equals(XAttr.NameSpace.SECURITY)) {
+      sb.append("security.");
+    } else {
+      sb.append("system.");
+    }
+    sb.append(xAttr.getName());
+
+    return sb.toString();
   }
 
   private Table getNSTable() {

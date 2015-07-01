@@ -37,7 +37,8 @@ public enum FileField {
   BLOCK (RowKeyBytes.toBytes("block")),
   LOCATIONS (RowKeyBytes.toBytes("locations")),
   LEASE (RowKeyBytes.toBytes("lease")),
-  FILE_ATTRIBUTES (RowKeyBytes.toBytes("default"));
+  FILE_ATTRIBUTES (RowKeyBytes.toBytes("default")),
+  FILE_EXTENDED_ATTRIBUTES (RowKeyBytes.toBytes("xAttrColumnFamily"));
 
   private byte[] bytes = null;
   private FileField(byte[] arg) {this.bytes = arg;}
@@ -69,6 +70,9 @@ public enum FileField {
   }
   public static byte[] getFileAttributes() {
     return FILE_ATTRIBUTES.bytes;
+  }
+  public static byte[] getFileExtenedAttributes() {
+    return FILE_EXTENDED_ATTRIBUTES.bytes;
   }
   public static byte[] getDsQuota() {
     return DS_QUOTA.bytes;

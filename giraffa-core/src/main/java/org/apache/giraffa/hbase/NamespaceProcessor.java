@@ -138,6 +138,8 @@ public class NamespaceProcessor implements ClientProtocol,
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
   private INodeManager nodeManager;
+  private XAttrOp xAttrOp;
+
   private LeaseManager leaseManager;
   private Daemon monitor;
   private FsServerDefaults serverDefaults;
@@ -217,6 +219,7 @@ public class NamespaceProcessor implements ClientProtocol,
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
     this.nodeManager = new INodeManager(e.getTable(tableName));
+    this.xAttrOp = new XAttrOp(nodeManager);
     this.monitor = leaseManager.getMonitor(this);
     leaseManager.startMonitor();
     this.running = true;
@@ -1477,23 +1480,23 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    xAttrOp.setXAttr(src, xAttr, flag);
   }
 
   @Override
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    return xAttrOp.getXAttrs(src, xAttrs);
   }
 
   @Override
   public List<XAttr> listXAttrs(String src) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    return xAttrOp.listXAttrs(src);
   }
 
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    xAttrOp.removeXAttr(src, xAttr);
   }
 
   public boolean internalReleaseLease(FileLease lease, String src)

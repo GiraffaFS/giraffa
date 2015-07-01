@@ -378,6 +378,7 @@ public class NamespaceAgent implements NamespaceService {
     String tableName = getGiraffaTableName(conf);
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
+    htd.addFamily(new HColumnDescriptor(FileField.getFileExtenedAttributes()));
     String coprocClass =
         conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
     htd.addCoprocessor(coprocClass, null, Coprocessor.PRIORITY_SYSTEM, null);
@@ -809,22 +810,26 @@ public class NamespaceAgent implements NamespaceService {
   @Override
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    proxy.setXAttr(src, xAttr, flag);
   }
 
   @Override
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    return proxy.getXAttrs(src, xAttrs);
   }
 
   @Override
   public List<XAttr> listXAttrs(String src) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    return proxy.listXAttrs(src);
   }
 
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    ClientProtocol proxy = getRegionProxy(src);
+    proxy.removeXAttr(src, xAttr);
   }
 }
