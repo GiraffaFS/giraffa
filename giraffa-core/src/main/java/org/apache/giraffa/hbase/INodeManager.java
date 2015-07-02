@@ -314,10 +314,10 @@ public class INodeManager implements Closeable {
     getNSTable().put(put);
   }
 
-  public List<XAttr> listXAttrs(String path) throws IOException {
+  public List<XAttr> getXAttrs(String path) throws IOException {
     RowKey rowKey = RowKeyFactory.newInstance(path);
     Result result = getNSTable().get(new Get(rowKey.getKey()));
-    return FileFieldDeserializer.listXAttrs(result);
+    return FileFieldDeserializer.getXAttrs(result);
   }
 
   public void removeXAttr(String path, XAttr xAttr) throws IOException {

@@ -38,7 +38,7 @@ public enum FileField {
   LOCATIONS (RowKeyBytes.toBytes("locations")),
   LEASE (RowKeyBytes.toBytes("lease")),
   FILE_ATTRIBUTES (RowKeyBytes.toBytes("default")),
-  FILE_EXTENDED_ATTRIBUTES (RowKeyBytes.toBytes("xAttrColumnFamily"));
+  FILE_EXTENDED_ATTRIBUTES (RowKeyBytes.toBytes("xattrs"));
 
   private byte[] bytes = null;
   private FileField(byte[] arg) {this.bytes = arg;}
