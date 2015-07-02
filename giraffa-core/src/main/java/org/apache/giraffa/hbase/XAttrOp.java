@@ -32,7 +32,7 @@ public class XAttrOp {
 
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
           throws IOException {
-    if (src == null && xAttr == null && flag == null) {
+    if (src == null || xAttr == null || flag == null) {
       throw new IllegalArgumentException("Argument is null");
     }
 
@@ -63,7 +63,7 @@ public class XAttrOp {
 
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
           throws IOException {
-    if (src == null && xAttrs == null) {
+    if (src == null || xAttrs == null) {
       throw new IllegalArgumentException("Argument is null");
     }
     checkIfFileExisted(src);
@@ -77,7 +77,7 @@ public class XAttrOp {
     }
     // TODO: check if we have access permission to path src
 
-    List<XAttr> oldXAttrList = listXAttrs(src);
+    List<XAttr> oldXAttrList = this.nodeManager.getXAttrs(src);
     // TODO, filter oldXAttrList (filter out those with permission problems)
 
     if (isGetAll) {
@@ -115,12 +115,12 @@ public class XAttrOp {
 
     checkIfFileExisted(src);
     // TODO. more permission checking ?
-    return nodeManager.listXAttrs(src);
+    return this.nodeManager.getXAttrs(src);
     // TODO. permission checking ? Filter result list
   }
 
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    if (src == null && xAttr == null) {
+    if (src == null || xAttr == null) {
       throw new IllegalArgumentException("Argument is null");
     }
 

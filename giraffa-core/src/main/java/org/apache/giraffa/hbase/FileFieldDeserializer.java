@@ -139,7 +139,7 @@ public class FileFieldDeserializer {
     return GiraffaPBHelper.bytesToHdfsLease(leaseByteArray);
   }
 
-  public static List<XAttr> listXAttrs(Result res) {
+  public static List<XAttr> getXAttrs(Result res) {
     NavigableMap<byte[], byte[]> map =
             res.getFamilyMap(FileField.getFileExtenedAttributes());
     List<XAttr> resList = Lists.newArrayListWithCapacity(map.size());
