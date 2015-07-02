@@ -38,6 +38,8 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_DEFAU
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 import static org.apache.hadoop.util.Time.now;
@@ -153,6 +155,7 @@ public class NamespaceProcessor implements ClientProtocol,
   private String fsOwnerShortUserName;
   private String supergroup;
   private boolean isPermissionEnabled;
+  private boolean xattrsEnabled;
 
   public NamespaceProcessor() {}
   
@@ -179,6 +182,9 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("fsOwner             = " + fsOwner);
     LOG.info("supergroup          = " + supergroup);
     LOG.info("isPermissionEnabled = " + isPermissionEnabled);
+    xattrsEnabled = conf.getBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY,
+        DFS_NAMENODE_XATTRS_ENABLED_DEFAULT);
+    LOG.info("xattrsEnabled = " + xattrsEnabled);
 
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
@@ -1480,22 +1486,26 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
       throws IOException {
+    checkXAttrsConfigFlag();
     xAttrOp.setXAttr(src, xAttr, flag);
   }
 
   @Override
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
       throws IOException {
+    checkXAttrsConfigFlag();
     return xAttrOp.getXAttrs(src, xAttrs);
   }
 
   @Override
   public List<XAttr> listXAttrs(String src) throws IOException {
+    checkXAttrsConfigFlag();
     return xAttrOp.listXAttrs(src);
   }
 
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
+    checkXAttrsConfigFlag();
     xAttrOp.removeXAttr(src, xAttr);
   }
 
@@ -1526,6 +1536,14 @@ public class NamespaceProcessor implements ClientProtocol,
     return running;
   }
 
+  public void checkXAttrsConfigFlag() throws IOException {
+    if(!this.xattrsEnabled) {
+      throw new IOException(String.format("The XAttr operation has been "
+       + "rejected.  Support for XAttrs has been disabled by setting %s to"
+       + " false.", new Object[]{"dfs.namenode.xattrs.enabled"}));
+    }
+  }
+
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
     UserGroupInformation ugi = HBaseRpcUtil.getRemoteUser();
     return new FSPermissionChecker(fsOwnerShortUserName, supergroup, ugi);
@@ -1534,4 +1552,5 @@ public class NamespaceProcessor implements ClientProtocol,
   private static void assertNotRoot(String src) {
     assert !new Path(src).isRoot();
   }
+
 }
