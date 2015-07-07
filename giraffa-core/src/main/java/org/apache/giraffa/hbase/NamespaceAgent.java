@@ -52,6 +52,7 @@ import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
 import org.apache.hadoop.fs.CacheFlag;
 import org.apache.hadoop.fs.ContentSummary;
@@ -377,7 +378,7 @@ public class NamespaceAgent implements NamespaceService {
     LOG.info("Format ended... adding work directory.");
   }
 
-  private static HTableDescriptor buildGiraffaTable(GiraffaConfiguration conf)
+  public static HTableDescriptor buildGiraffaTable(Configuration conf)
   throws IOException {
     String tableName = getGiraffaTableName(conf);
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));

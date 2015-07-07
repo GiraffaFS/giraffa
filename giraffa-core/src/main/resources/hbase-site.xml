@@ -37,7 +37,7 @@
 
   <property>
     <name>hbase.master.impl</name>
-    <value>org.apache.hadoop.hbase.master.HMasterGiraffa</value>
+    <value>org.apache.hadoop.hbase.master.GMaster</value>
   </property>
 
   <property>

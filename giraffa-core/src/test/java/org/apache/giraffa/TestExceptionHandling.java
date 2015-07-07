@@ -23,12 +23,14 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.ClientNamenodeProtocolServerSideCallbackTranslatorPB;
+import org.apache.giraffa.hbase.bootstrap.GReqionServer;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.master.GMaster;
 import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
@@ -53,7 +55,9 @@ public class TestExceptionHandling {
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
-    UTIL.startMiniCluster(1);
+    // UTIL.startMiniCluster(1);
+    UTIL.startMiniCluster(1, 1, 1, null,
+        GMaster.class, GReqionServer.class, false);
   }
 
   @Before
@@ -61,7 +65,7 @@ public class TestExceptionHandling {
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
     GiraffaTestUtils.setGiraffaURI(conf);
-    GiraffaFileSystem.format(conf, false);
+    // GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
   }
 

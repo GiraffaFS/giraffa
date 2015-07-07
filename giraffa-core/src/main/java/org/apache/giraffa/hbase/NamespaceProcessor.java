@@ -220,6 +220,7 @@ public class NamespaceProcessor implements ClientProtocol,
              NotReplicatedYetException, SafeModeException,
              UnresolvedLinkException, IOException {
     INode iNode = nodeManager.getINode(src);
+    LOG.debug("addBlock for " + iNode + ". previous = " + previous);
 
     if(iNode == null) {
       throw new FileNotFoundException("File does not exist: " + src);

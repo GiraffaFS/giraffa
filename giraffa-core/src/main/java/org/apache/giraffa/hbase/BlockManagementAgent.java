@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_BLOCK_MANAGER_ADDRESS_KEY;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
 import static org.apache.hadoop.util.Time.now;
@@ -104,7 +105,9 @@ public class BlockManagementAgent extends BaseRegionObserver {
     RegionCoprocessorEnvironment e = (RegionCoprocessorEnvironment) env;
     LOG.info("Start BlockManagementAgent...");
     Configuration conf = e.getConfiguration();
-    String bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    String bmAddress = conf.get(GRFA_BLOCK_MANAGER_ADDRESS_KEY);
+    if(bmAddress == null)
+      bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     LOG.info("BlockManagementAgent address: " + bmAddress);
     if(bmAddress != null)
       conf.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, bmAddress);
