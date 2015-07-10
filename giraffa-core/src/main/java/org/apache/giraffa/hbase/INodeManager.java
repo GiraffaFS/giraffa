@@ -40,6 +40,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.util.Time;
 
@@ -307,7 +308,7 @@ public class INodeManager implements Closeable {
     long ts = Time.now();
     RowKey rowKey = RowKeyFactory.newInstance(path);
     Put put = new Put(rowKey.getKey(), ts);
-    String realColumnName = constructXAttrNameWithPrefix(xAttr);
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
 
     put.addColumn(FileField.getFileExtenedAttributes(),
             Bytes.toBytes(realColumnName), ts, xAttr.getValue());
@@ -323,29 +324,12 @@ public class INodeManager implements Closeable {
   public void removeXAttr(String path, XAttr xAttr) throws IOException {
     RowKey rowKey = RowKeyFactory.newInstance(path);
     Delete delete = new Delete(rowKey.getKey());
-    String realColumnName = constructXAttrNameWithPrefix(xAttr);
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
 
     delete.addColumns(FileField.getFileExtenedAttributes(),
                      Bytes.toBytes(realColumnName));
 
     getNSTable().delete(delete);
-  }
-
-  private String constructXAttrNameWithPrefix(XAttr xAttr) {
-    StringBuilder sb = new StringBuilder();
-    XAttr.NameSpace ns = xAttr.getNameSpace();
-    if (ns.equals(XAttr.NameSpace.USER)) {
-      sb.append("user.");
-    } else if (ns.equals(XAttr.NameSpace.TRUSTED)) {
-      sb.append("trusted.");
-    } else if (ns.equals(XAttr.NameSpace.SECURITY)) {
-      sb.append("security.");
-    } else {
-      sb.append("system.");
-    }
-    sb.append(xAttr.getName());
-
-    return sb.toString();
   }
 
   private Table getNSTable() {
