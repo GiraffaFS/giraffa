@@ -38,6 +38,8 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_DEFAU
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_MAX_XATTR_SIZE_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
@@ -65,6 +67,7 @@ import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.hbase.INodeManager.Function;
+import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BatchedRemoteIterator;
 import org.apache.hadoop.fs.CacheFlag;
@@ -128,6 +131,8 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.Daemon;
 import org.apache.hadoop.util.DataChecksum;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.protobuf.Service;
 
 /**
@@ -156,6 +161,7 @@ public class NamespaceProcessor implements ClientProtocol,
   private String supergroup;
   private boolean isPermissionEnabled;
   private boolean xattrsEnabled;
+  private int xattrMaxSize;
 
   public NamespaceProcessor() {}
   
@@ -185,6 +191,14 @@ public class NamespaceProcessor implements ClientProtocol,
     xattrsEnabled = conf.getBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY,
         DFS_NAMENODE_XATTRS_ENABLED_DEFAULT);
     LOG.info("xattrsEnabled = " + xattrsEnabled);
+    xattrMaxSize = conf.getInt(DFS_NAMENODE_MAX_XATTR_SIZE_KEY,
+                               DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT);
+    Preconditions.checkArgument(xattrMaxSize >= 0,
+         "Cannot set a negative value for the maximum size of an xattr (%s).",
+         DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT);
+
+    String unlimited = (xattrMaxSize == 0) ? " (unlimited)" : "";
+    LOG.info("Maximum size of an xattr:" + xattrMaxSize + unlimited);
 
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
@@ -225,7 +239,7 @@ public class NamespaceProcessor implements ClientProtocol,
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
     this.nodeManager = new INodeManager(e.getTable(tableName));
-    this.xAttrOp = new XAttrOp(nodeManager);
+    this.xAttrOp = new XAttrOp(nodeManager, conf);
     this.monitor = leaseManager.getMonitor(this);
     leaseManager.startMonitor();
     this.running = true;
@@ -999,8 +1013,12 @@ public class NamespaceProcessor implements ClientProtocol,
     String src = srcKey.getPath();
     LOG.debug("Copying " + src + " to " + dst + " with rename flag");
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+    List<XAttr> xAttrs = nodeManager.getXAttrs(src);
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
     nodeManager.updateINode(dstNode);
+    for (XAttr xattr : xAttrs) {
+      nodeManager.setXAttr(dst, xattr);
+    }
     return dstNode;
   }
 
@@ -1487,6 +1505,7 @@ public class NamespaceProcessor implements ClientProtocol,
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
       throws IOException {
     checkXAttrsConfigFlag();
+    checkXAttrSize(xAttr);
     xAttrOp.setXAttr(src, xAttr, flag);
   }
 
@@ -1540,7 +1559,25 @@ public class NamespaceProcessor implements ClientProtocol,
     if(!this.xattrsEnabled) {
       throw new IOException(String.format("The XAttr operation has been "
        + "rejected.  Support for XAttrs has been disabled by setting %s to"
-       + " false.", new Object[]{"dfs.namenode.xattrs.enabled"}));
+       + " false.", DFS_NAMENODE_XATTRS_ENABLED_KEY));
+    }
+  }
+
+  /**
+   * Derived from {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem }
+   */
+  private void checkXAttrSize(XAttr xAttr) {
+    if(xattrMaxSize != 0) {
+      int size = xAttr.getName().getBytes(Charsets.UTF_8).length;
+      if(xAttr.getValue() != null) {
+        size += xAttr.getValue().length;
+      }
+
+      if(size > xattrMaxSize) {
+        throw new HadoopIllegalArgumentException("The XAttr is too big."
+        + " The maximum combined size of the name and value is " + xattrMaxSize
+        + ", but the total size is " + size);
+      }
     }
   }
 
