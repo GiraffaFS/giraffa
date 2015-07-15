@@ -26,61 +26,43 @@ import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.security.AccessControlException;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
- * copy from
+ * Copied and refined from
  * ${@link org.apache.hadoop.hdfs.server.namenode.XAttrPermissionFilter}
- * since that one is private
+ * Since that one is private
+ * <p>
+ * The logic is the same as its original, only coding style is refined
  */
 public class XAttrPermissionFilter {
-  public XAttrPermissionFilter() {
-  }
-
-  static void checkPermissionForApi( FSPermissionChecker pc, XAttr xAttr)
+  static void checkPermissionForApi(FSPermissionChecker pc, XAttr xAttr)
       throws AccessControlException {
-    if(xAttr.getNameSpace() != XAttr.NameSpace.USER &&
+    if (xAttr.getNameSpace() != XAttr.NameSpace.USER &&
        (xAttr.getNameSpace() != XAttr.NameSpace.TRUSTED || !pc.isSuperUser())) {
       throw new AccessControlException("User doesn\'t have permission"
-         + " for xattr: " + XAttrHelper.getPrefixName(xAttr));
+         + " for xAttr: " + XAttrHelper.getPrefixName(xAttr));
     }
   }
 
   static void checkPermissionForApi(FSPermissionChecker pc, List<XAttr> xAttrs)
       throws AccessControlException {
-    Preconditions.checkArgument(xAttrs != null);
-    if(!xAttrs.isEmpty()) {
-      Iterator i$ = xAttrs.iterator();
-
-      while(i$.hasNext()) {
-        XAttr xAttr = (XAttr)i$.next();
-        checkPermissionForApi(pc, xAttr);
-      }
+    Preconditions.checkNotNull(xAttrs);
+    for (XAttr xAttr : xAttrs) {
+      checkPermissionForApi(pc, xAttr);
     }
   }
 
   static List<XAttr> filterXAttrsForApi(FSPermissionChecker pc,
                                         List<XAttr> xAttrs) {
-    assert xAttrs != null : "xAttrs can not be null";
-
-    if(xAttrs != null && !xAttrs.isEmpty()) {
-      ArrayList filteredXAttrs = Lists.newArrayListWithCapacity(xAttrs.size());
-      Iterator i$ = xAttrs.iterator();
-
-      while(i$.hasNext()) {
-        XAttr xAttr = (XAttr)i$.next();
-        if(xAttr.getNameSpace() == XAttr.NameSpace.USER) {
-          filteredXAttrs.add(xAttr);
-        } else if(xAttr.getNameSpace() ==
-                  XAttr.NameSpace.TRUSTED && pc.isSuperUser()) {
-          filteredXAttrs.add(xAttr);
-        }
+    Preconditions.checkNotNull(xAttrs);
+    ArrayList filteredXAttrs = Lists.newArrayListWithCapacity(xAttrs.size());
+    for (XAttr xAttr : xAttrs) {
+      if (xAttr.getNameSpace() == XAttr.NameSpace.USER ||
+        (xAttr.getNameSpace() == XAttr.NameSpace.TRUSTED && pc.isSuperUser())) {
+        filteredXAttrs.add(xAttr);
       }
-
-      return filteredXAttrs;
-    } else {
-      return xAttrs;
     }
+    return filteredXAttrs;
   }
 }
