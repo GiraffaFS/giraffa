@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa;
 
-import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -110,7 +109,7 @@ public class LeaseManager {
     return hlmAdapter.getLeases(holder);
   }
 
-  public synchronized Daemon getMonitor(NamespaceProcessor namesystem) {
+  public synchronized Daemon initializeMonitor(NamespaceProcessor namesystem) {
     if(monitor != null)
       return monitor;
 
@@ -123,8 +122,7 @@ public class LeaseManager {
   }
 
   public void startMonitor() {
-    Preconditions.checkState(monitor != null,
-        "LeaseMonitor was not constructed.");
+    assert monitor != null : "LeaseMonitor was not constructed.";
     if(shouldRunMonitor)
       return;
     shouldRunMonitor = true;

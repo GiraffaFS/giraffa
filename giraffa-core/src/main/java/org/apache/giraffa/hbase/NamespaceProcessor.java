@@ -123,7 +123,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.util.Daemon;
 import org.apache.hadoop.util.DataChecksum;
 
 import com.google.protobuf.Service;
@@ -139,7 +138,6 @@ public class NamespaceProcessor implements ClientProtocol,
 
   private INodeManager nodeManager;
   private LeaseManager leaseManager;
-  private Daemon monitor;
   private FsServerDefaults serverDefaults;
   private boolean running;
 
@@ -217,7 +215,7 @@ public class NamespaceProcessor implements ClientProtocol,
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
     this.nodeManager = new INodeManager(e.getTable(tableName));
-    this.monitor = leaseManager.getMonitor(this);
+    leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();
     this.running = true;
   }
