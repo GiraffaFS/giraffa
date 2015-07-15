@@ -36,7 +36,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,6 +57,7 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_MAX_XATTRS_PER_I
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import mockit.Mock;
 import mockit.MockUp;
@@ -217,10 +217,10 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test (expected = NullPointerException.class)
-  public void testCanNotSetAttrWithNullPath() throws IOException {
+  public void testCanNotSetXAttrWithNullPath() throws IOException {
     try {
       grfs.setXAttr(null, attrName1, attrValue1);
-      assertTrue(false);  // should not come here
+      fail("expected NullPointerException");
     } finally {
       List<String> listOfXAttrNames = grfs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
@@ -228,11 +228,11 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test //(expected = NullPointerException.class)
-  public void testCanNotSetAttrWithNullAttrName() throws IOException {
+  public void testCanNotSetXAttrWithNullAttrName() throws IOException {
 // FSXAttrBaseTest line: 197
 //    try {
 //      grfs.setXAttr(path1, null, attrValue1);
-//      assertTrue(false);  // should not come here
+//      fail("expected NullPointerException");
 //    } finally {
 //      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
 //      assertEquals(0, listOfXAttrNames.size());
@@ -240,7 +240,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanSetAttrWithNullAttrValue() throws IOException {
+  public void testCanSetXAttrWithNullAttrValue() throws IOException {
 // FSXAttrBaseTest line: 122
 //    grfs.setXAttr(path1, attrName1, null);
 //    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
@@ -250,7 +250,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanOverwriteAttrWithoutAdditionalFlag() throws IOException {
+  public void testCanOverwriteXAttrWithoutAdditionalFlag() throws IOException {
     grfs.setXAttr(path1, attrName1, attrValue1);
     grfs.setXAttr(path1, attrName1, attrValue2);
     List<String> listOfXAttrNames = grfs.listXAttrs(path1);
@@ -260,7 +260,8 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanOverwriteAttrWithoutDestroyOtherAttr() throws IOException {
+  public void testCanOverwriteXAttrWithoutDestroyOtherXAttr()
+      throws IOException {
     grfs.setXAttr(path1, attrName1, attrValue1);
     grfs.setXAttr(path1, attrName2, attrValue2);
     grfs.setXAttr(path1, attrName1, attrValue3);
@@ -273,7 +274,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testAttrPrefixIsCaseInsensitive() throws IOException {
+  public void testAttrNamePrefixIsCaseInsensitive() throws IOException {
     String caseInsensitiveName = "uSeR.attr1";
     grfs.setXAttr(path1, attrName1, attrValue1);
     grfs.setXAttr(path1, caseInsensitiveName, attrValue2);
@@ -284,13 +285,13 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test //(expected = IOException.class)
-  public void testCanNotOverwriteAttrWithoutReplaceFlag() throws IOException {
+  public void testCanNotOverwriteXAttrWithoutReplaceFlag() throws IOException {
 // FSXAttrBaseTest line: 114
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    try {
 //      grfs.setXAttr(path1, attrName1, attrValue2,
 //              EnumSet.of(XAttrSetFlag.CREATE));
-//      assertTrue(false);  // should not come here
+//      fail("expected IOException");
 //    } finally {
 //      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
 //      assertEquals(1, listOfXAttrNames.size());
@@ -300,7 +301,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanAddAttrWithCreateFlagOnly() throws IOException {
+  public void testCanAddXAttrWithCreateFlagOnly() throws IOException {
 // FSXAttrBaseTest line: 104
 //    grfs.setXAttr(path1, attrName1, attrValue2,
 //              EnumSet.of(XAttrSetFlag.CREATE));
@@ -310,7 +311,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanOverwriteAttrWithReplaceFlagOnly() throws IOException {
+  public void testCanOverwriteXAttrWithReplaceFlagOnly() throws IOException {
 // FSXAttrBaseTest line: 149
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    grfs.setXAttr(path1, attrName1, attrValue2,
@@ -322,12 +323,12 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test //(expected = IOException.class)
-  public void testCanNotAddNewAttrWithReplaceFlagOnly() throws IOException {
+  public void testCanNotAddNewXAttrWithReplaceFlagOnly() throws IOException {
 // FSXAttrBaseTest line: 156
 //    try {
 //      grfs.setXAttr(path1, attrName1, attrValue2,
 //              EnumSet.of(XAttrSetFlag.REPLACE));
-//      assertTrue(false); // should not come here
+//      fail("expected IOException");
 //    } finally {
 //      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
 //      assertEquals(0, listOfXAttrNames.size());
@@ -335,10 +336,10 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test (expected = NullPointerException.class)
-  public void testCanNotAddNewAttrWithNullFlag() throws IOException {
+  public void testCanNotAddNewXAttrWithNullFlag() throws IOException {
     try {
       grfs.setXAttr(path1, attrName1, attrValue2, null);
-      assertTrue(false); // should not come here
+      fail("expected NullPointerException");
     } finally {
       List<String> listOfXAttrNames = grfs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
@@ -346,11 +347,11 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test (expected = IOException.class)
-  public void testCanNotAddNewAttrWithEmptyFlag() throws IOException {
+  public void testCanNotAddNewXAttrWithEmptyFlag() throws IOException {
     try {
       grfs.setXAttr(path1, attrName1, attrValue2,
               EnumSet.noneOf(XAttrSetFlag.class));
-      assertTrue(false); // should not come here
+      fail("expected IOException");
     } finally {
       List<String> listOfXAttrNames = grfs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
@@ -361,14 +362,14 @@ public class TestXAttr extends FSXAttrBaseTest {
    * listXAttr related Tests
    */
   @Test
-  public void testCanListEmptyAttrList() throws IOException {
+  public void testCanListEmptyXAttrList() throws IOException {
 // FSXAttrBaseTest line: 582
 //    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
 //    assertEquals(0, listOfXAttrNames.size());
   }
 
   @Test
-  public void testCanListOneAttr() throws IOException {
+  public void testCanListOneXAttr() throws IOException {
 // FSXAttrBaseTest line: 635
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
@@ -377,7 +378,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanListMultipleAttr() throws IOException {
+  public void testCanListMultipleXAttr() throws IOException {
 // FSXAttrBaseTest line: 589
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    grfs.setXAttr(path1, attrName2, attrValue2);
@@ -388,7 +389,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test //(expected = FileNotFoundException.class)
-  public void testCanLisAttrOnNonExistedFile() throws IOException {
+  public void testCanLisXAttrOnNonExistedFile() throws IOException {
 // FSXAttrBaseTest line: 575
 //    grfs.listXAttrs(noThisPath);
   }
@@ -397,7 +398,7 @@ public class TestXAttr extends FSXAttrBaseTest {
    * getXAttr related tests
    */
   @Test
-  public void testCanGetXAttrValueByPathAndXAttrName() throws IOException {
+  public void testCanGetXAttrValueByPathAndAttrName() throws IOException {
     grfs.setXAttr(path1, attrName1, attrValue1);
     assertArrayEquals(attrValue1, grfs.getXAttr(path1, attrName1));
   }
@@ -520,18 +521,18 @@ public class TestXAttr extends FSXAttrBaseTest {
   public void testCanNotGetXAttrFromNonExistedFile() throws IOException {
     try {
       grfs.getXAttr(noThisPath, attrName1);
-      assertTrue(false); // should never come here
+      fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {}
 
     try {
       grfs.getXAttrs(noThisPath);
-      assertTrue(false); // should never come here
+      fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {}
 
     try {
       List<String> attrNameList = Collections.singletonList(attrName1);
       grfs.getXAttrs(noThisPath, attrNameList);
-      assertTrue(false); // should never come here
+      fail("expected FileNotFoundException");
     } catch (FileNotFoundException e) {}
   }
 
@@ -540,18 +541,18 @@ public class TestXAttr extends FSXAttrBaseTest {
 // FSXAttrBaseTest line: 285
 //    try {
 //      grfs.getXAttr(path1, attrName1);
-//      assertTrue(false); // should never come here
+//      fail("expected IOException");
 //    } catch (IOException e) {}
 // FSXAttrBaseTest line: 297
 //    try {
 //      List<String> attrNameList = Collections.singletonList(attrName1);
 //      grfs.getXAttrs(path1, attrNameList);
-//      assertTrue(false); // should never come here
+//      fail("expected IOException");
 //    } catch (IOException e) {}
   }
 
   @Test
-  public void testCanGetEmptyMapOfXAttrByPathIfThereIsNoAttr()
+  public void testCanGetEmptyMapOfXAttrByPathIfThereIsNoXAttr()
           throws IOException {
 // FSXAttrBaseTest line: 109
 //    assertTrue(grfs.getXAttrs(path1).isEmpty());
@@ -561,18 +562,18 @@ public class TestXAttr extends FSXAttrBaseTest {
   public void testCanNotGetXAttrWithNullPath() throws IOException {
     try {
       grfs.getXAttr(null, attrName1);
-      assertTrue(false); // should not come here
+      fail("expected NullPointerException");
     } catch (NullPointerException e) {}
 
     try {
       grfs.getXAttrs(null);
-      assertTrue(false); // should not come here
+      fail("expected NullPointerException");
     } catch (NullPointerException e) {}
 
     try {
       List<String> attrNameList = Collections.singletonList(attrName1);
       grfs.getXAttrs(null, attrNameList);
-      assertTrue(false); // should never come here
+      fail("expected NullPointerException");
     } catch (NullPointerException e) {}
   }
 
@@ -585,7 +586,7 @@ public class TestXAttr extends FSXAttrBaseTest {
    * removeXAttr related tests
    */
   @Test
-  public void testCanRemoveAnAttr() throws IOException {
+  public void testCanRemoveAnXAttr() throws IOException {
 // FSXAttrBaseTest line: 412
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    grfs.removeXAttr(path1, attrName1);
@@ -593,7 +594,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanRemoveAnAttrWithMultipleVersion() throws IOException {
+  public void testCanRemoveAnXAttrWithMultipleVersion() throws IOException {
     grfs.setXAttr(path1, attrName1, attrValue1);
     grfs.setXAttr(path1, attrName1, attrValue2);
     grfs.removeXAttr(path1, attrName1);
@@ -601,7 +602,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanRemoteTwoAttr() throws IOException {
+  public void testCanRemoteTwoXAttrs() throws IOException {
 // FSXAttrBaseTest line: 413
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    grfs.setXAttr(path1, attrName2, attrValue2);
@@ -617,7 +618,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testCanRemoveAnAttrAndThenAddAndThenRemove() throws IOException {
+  public void testCanRemoveAnXAttrAndThenAddAndThenRemove() throws IOException {
 // FSXAttrBaseTest line: 427
 //    grfs.setXAttr(path1, attrName1, attrValue1);
 //    grfs.removeXAttr(path1, attrName1);
@@ -629,22 +630,22 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test (expected = NullPointerException.class)
-  public void testCanNotRemoveAnAttrWithNullPath() throws IOException {
+  public void testCanNotRemoveAnXAttrWithNullPath() throws IOException {
     grfs.removeXAttr(null, attrName1);
   }
 
   @Test (expected = FileNotFoundException.class)
-  public void testCanNotRemoveAnAttrOnNonExistedFile() throws IOException {
+  public void testCanNotRemoveAnXAttrOnNonExistedFile() throws IOException {
     grfs.removeXAttr(noThisPath, attrName1);
   }
 
   @Test (expected = NullPointerException.class)
-  public void testCanNotRemoveAnAttrWithNullAttrName() throws IOException {
+  public void testCanNotRemoveAnXAttrWithNullAttrName() throws IOException {
     grfs.removeXAttr(path1, null);
   }
 
   @Test //(expected = IOException.class)
-  public void testCanNotRemoveNonExistedAttr() throws IOException {
+  public void testCanNotRemoveNonExistedXAttr() throws IOException {
 // FSXAttrBaseTest line: 441
 //    grfs.removeXAttr(path1, attrName1);
   }
@@ -663,7 +664,7 @@ public class TestXAttr extends FSXAttrBaseTest {
         createEmptyFile(userFs, path1);
         try {
           userFs.setXAttr(path1, "trusted.a1", attrValue2);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
               assertExceptionContains("User doesn\'t have permission", e);
@@ -678,7 +679,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   public void testNoUserCanSetSYSTEMXAttr() throws Exception {
     try {
       grfs.setXAttr(path2, "system.a2", attrValue2);
-      Assert.fail("expected IOException");
+      fail("expected IOException");
     } catch (IOException e) {
       GenericTestUtils.
           assertExceptionContains("User doesn\'t have permission", e);
@@ -691,7 +692,7 @@ public class TestXAttr extends FSXAttrBaseTest {
         createEmptyFile(userFs, path1);
         try {
           userFs.setXAttr(path1, "system.a1", attrValue1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
               assertExceptionContains("User doesn\'t have permission", e);
@@ -703,10 +704,10 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   @Test
-  public void testNoUserCanSetSECURITYAttr() throws Exception {
+  public void testNoUserCanSetSECURITYXAttr() throws Exception {
     try {
       grfs.setXAttr(path2, "security.a2", attrValue2);
-      Assert.fail("expected IOException");
+      fail("expected IOException");
     } catch (IOException e) {
       GenericTestUtils.
           assertExceptionContains("User doesn\'t have permission", e);
@@ -719,7 +720,7 @@ public class TestXAttr extends FSXAttrBaseTest {
         createEmptyFile(userFs, path1);
         try {
           userFs.setXAttr(path1, "security.a1", attrValue1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
               assertExceptionContains("User doesn\'t have permission", e);
@@ -740,7 +741,7 @@ public class TestXAttr extends FSXAttrBaseTest {
                              FsPermission.createImmutable((short) 352));
         try {
           userFs.setXAttr(path1, attrName1, attrValue1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }
@@ -764,7 +765,7 @@ public class TestXAttr extends FSXAttrBaseTest {
                              FsPermission.createImmutable((short) 384));
         try {
           userFs.setXAttr(path1, attrName1, attrValue1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }
@@ -786,7 +787,7 @@ public class TestXAttr extends FSXAttrBaseTest {
         return null;
       }
     });
-    // use super user to set trusted xattr
+    // use super user to set trusted xAttr
     grfs.setXAttr(user1Path, "trusted.a1", attrValue2);
 
     user1.doAs(new PrivilegedExceptionAction() {
@@ -812,7 +813,7 @@ public class TestXAttr extends FSXAttrBaseTest {
                              FsPermission.createImmutable((short) 352));
         try {
           userFs.removeXAttr(path1, attrName1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }
@@ -837,7 +838,7 @@ public class TestXAttr extends FSXAttrBaseTest {
                              FsPermission.createImmutable((short) 384));
         try {
           userFs.removeXAttr(path1, attrName1);
-          Assert.fail("expected IOException");
+          fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }

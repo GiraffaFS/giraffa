@@ -143,11 +143,9 @@ public class FileFieldDeserializer {
     NavigableMap<byte[], byte[]> map =
             res.getFamilyMap(FileField.getFileExtenedAttributes());
     List<XAttr> resList = Lists.newArrayListWithCapacity(map.size());
-
     for(Entry<byte[], byte[]> entry: map.entrySet()) {
         XAttr xAttr = XAttrHelper.buildXAttr(Bytes.toString(entry.getKey()),
                 entry.getValue());
-
         resList.add(xAttr);
     }
     return resList;

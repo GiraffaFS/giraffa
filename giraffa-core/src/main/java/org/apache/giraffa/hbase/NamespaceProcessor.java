@@ -146,7 +146,6 @@ public class NamespaceProcessor implements ClientProtocol,
 
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
-
   private LeaseManager leaseManager;
   private Daemon monitor;
   private FsServerDefaults serverDefaults;
@@ -160,8 +159,8 @@ public class NamespaceProcessor implements ClientProtocol,
   private String fsOwnerShortUserName;
   private String supergroup;
   private boolean isPermissionEnabled;
-  private boolean xattrsEnabled;
-  private int xattrMaxSize;
+  private boolean xAttrsEnabled;
+  private int xAttrMaxSize;
 
   public NamespaceProcessor() {}
   
@@ -188,17 +187,17 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("fsOwner             = " + fsOwner);
     LOG.info("supergroup          = " + supergroup);
     LOG.info("isPermissionEnabled = " + isPermissionEnabled);
-    xattrsEnabled = conf.getBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY,
+    xAttrsEnabled = conf.getBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY,
         DFS_NAMENODE_XATTRS_ENABLED_DEFAULT);
-    LOG.info("xattrsEnabled = " + xattrsEnabled);
-    xattrMaxSize = conf.getInt(DFS_NAMENODE_MAX_XATTR_SIZE_KEY,
+    LOG.info("xAttrsEnabled = " + xAttrsEnabled);
+    xAttrMaxSize = conf.getInt(DFS_NAMENODE_MAX_XATTR_SIZE_KEY,
                                DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT);
-    Preconditions.checkArgument(xattrMaxSize >= 0,
-         "Cannot set a negative value for the maximum size of an xattr (%s).",
+    Preconditions.checkArgument(xAttrMaxSize >= 0,
+         "Cannot set a negative value for the maximum size of an xAttr (%s).",
          DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT);
 
-    String unlimited = (xattrMaxSize == 0) ? " (unlimited)" : "";
-    LOG.info("Maximum size of an xattr:" + xattrMaxSize + unlimited);
+    String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
+    LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
@@ -1016,8 +1015,8 @@ public class NamespaceProcessor implements ClientProtocol,
     List<XAttr> xAttrs = nodeManager.getXAttrs(src);
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
     nodeManager.updateINode(dstNode);
-    for (XAttr xattr : xAttrs) {
-      nodeManager.setXAttr(dst, xattr);
+    for (XAttr xAttr : xAttrs) {
+      nodeManager.setXAttr(dst, xAttr);
     }
     return dstNode;
   }
@@ -1556,7 +1555,7 @@ public class NamespaceProcessor implements ClientProtocol,
   }
 
   public void checkXAttrsConfigFlag() throws IOException {
-    if(!this.xattrsEnabled) {
+    if(!this.xAttrsEnabled) {
       throw new IOException(String.format("The XAttr operation has been "
        + "rejected.  Support for XAttrs has been disabled by setting %s to"
        + " false.", DFS_NAMENODE_XATTRS_ENABLED_KEY));
@@ -1567,15 +1566,14 @@ public class NamespaceProcessor implements ClientProtocol,
    * Derived from {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem }
    */
   private void checkXAttrSize(XAttr xAttr) {
-    if(xattrMaxSize != 0) {
+    if(xAttrMaxSize != 0) {
       int size = xAttr.getName().getBytes(Charsets.UTF_8).length;
       if(xAttr.getValue() != null) {
         size += xAttr.getValue().length;
       }
-
-      if(size > xattrMaxSize) {
+      if(size > xAttrMaxSize) {
         throw new HadoopIllegalArgumentException("The XAttr is too big."
-        + " The maximum combined size of the name and value is " + xattrMaxSize
+        + " The maximum combined size of the name and value is " + xAttrMaxSize
         + ", but the total size is " + size);
       }
     }
@@ -1589,5 +1587,4 @@ public class NamespaceProcessor implements ClientProtocol,
   private static void assertNotRoot(String src) {
     assert !new Path(src).isRoot();
   }
-
 }

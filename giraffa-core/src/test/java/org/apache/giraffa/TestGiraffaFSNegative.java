@@ -61,7 +61,6 @@ public class TestGiraffaFSNegative {
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY, GiraffaTestUtils.BASE_TEST_DIRECTORY);
     Configuration hbaseConf = UTIL.getConfiguration();
     hbaseConf.setBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY, false);
-
     UTIL.startMiniCluster(1);
   }
 
@@ -298,7 +297,7 @@ public class TestGiraffaFSNegative {
 
     try {
       grfs.setXAttr(path, attrName, attrValue);
-      assertTrue(false); // should not come here
+      fail("Should not be able to set xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
@@ -306,7 +305,7 @@ public class TestGiraffaFSNegative {
     try {
       grfs.setXAttr(path, attrName, attrValue,
                     EnumSet.of(XAttrSetFlag.CREATE));
-      assertTrue(false); // should not come here
+      fail("Should not be able to set xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
@@ -316,6 +315,7 @@ public class TestGiraffaFSNegative {
   public void testCanNotListXAttrWhenFlagIsDisable() throws IOException {
     try {
       grfs.listXAttrs(new Path("abcd"));
+      fail("Should not be able to list xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
@@ -328,21 +328,21 @@ public class TestGiraffaFSNegative {
 
     try {
       grfs.getXAttr(path, attrName);
-      assertTrue(false); // should not come here
+      fail("Should not be able to get xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
 
     try {
       grfs.getXAttrs(path);
-      assertTrue(false); // should not come here
+      fail("Should not be able to get xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
 
     try {
       grfs.getXAttrs(path, Collections.singletonList(attrName));
-      assertTrue(false); // should not come here
+      fail("Should not be able to get xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }
@@ -354,6 +354,7 @@ public class TestGiraffaFSNegative {
     String attrName = "user.attr1";    // there's naming rule
     try {
       grfs.removeXAttr(path, attrName);
+      fail("Should not be able to remove xAttr");
     } catch (IOException e) {
       assertTrue(e.toString().contains(DFS_NAMENODE_XATTRS_ENABLED_KEY));
     }

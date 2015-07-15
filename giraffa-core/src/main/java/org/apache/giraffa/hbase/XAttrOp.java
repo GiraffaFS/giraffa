@@ -44,9 +44,50 @@ import java.util.EnumSet;
 import java.util.List;
 
 /**
- * Do the similar thing as
+ * It's an intermediate class between {@link NamespaceProcessor} and
+ * {@link INodeManager} to handle XAttr related operations. In
+ * NamespaceProcessor, it has basic permission checking to see
+ * if XAttr configuration flag is set and if a xAttr is valid. In
+ * INodeManager, it communicates with Hbase to put/get XAttr info.
+ * In this method, it covers all the rest parts. For instance,
+ * it has additional permission checking on input arguments from
+ * NamespaceProcessor. After processing, it generates query parameters
+ * to INodeManager for a Hbase put/get command. Finally, it
+ * filters returned lists under some circumstances and then returns
+ * the result to NamespaceProcessor.
+ * <p>
+ * The idea comes from Hadoop source code. It's mainly based on
+ * Hadoop 2.5 since that's the compatible version when this class
+ * is developed. Please note there are various style/design changes
+ * between Hadoop 2.5 and its later versions in XAttr parts. Basically,
+ * the followings are a comparison of XAttr handling between
+ * Giraffa and Hadoop 2.5.
+ * <p>
+ * There's a list of classes in Hadoop 2.5 and their counterparts in Giraffa
+ * {@link org.apache.hadoop.hdfs.server.namenode.NNConf}
+ *   Half functions are in NamespaceProcessor and the other half
+ *   are in this class.
  * {@link org.apache.hadoop.hdfs.server.namenode.XAttrStorage}
- * but not the same
+ *   All its functions are simplified in INodeManager.
+ * {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem}
+ *   All XAttr related functions are in this class.
+ * {@link org.apache.hadoop.hdfs.server.namenode.FSDirectory}
+ *   All XAttr related functions are in this class.
+ * <p>
+ * There are bunch of permission checking in Hadoop code.
+ * Some of them are also in Giraffa
+ *   1. Check if XAttribute feature is enable
+ *      (Checked in NamespaceProcessor)
+ *   2. Check for XAttribute permission (System/Security/Trusted/User)
+ *   3. Check for path permission (do we have write permission on specific path)
+ *   4. Validate if flag is valid
+ *   5. Check attribute size (max len of name and value)
+ *      (Checked in NamespaceProcessor)
+ *   6. Check if exceed limit size of attr for given node
+ * While some are not
+ *   1. Check for file system permission (does anyone blocking the file system?)
+ *      read lock/write lock.
+ *   2. Check if save mode (safe mode is not supported now)
  */
 public class XAttrOp {
   private INodeManager nodeManager;
@@ -61,7 +102,7 @@ public class XAttrOp {
     this.inodeXAttrsLimit = conf.getInt(DFS_NAMENODE_MAX_XATTRS_PER_INODE_KEY,
                             DFS_NAMENODE_MAX_XATTRS_PER_INODE_DEFAULT);
     Preconditions.checkArgument(inodeXAttrsLimit >= 0,
-       "Cannot set a negative limit on the number of xattrs per inode (%s).",
+       "Cannot set a negative limit on the number of xAttrs per inode (%s).",
        DFS_NAMENODE_MAX_XATTRS_PER_INODE_KEY);
     UserGroupInformation fsOwner = UserGroupInformation.getCurrentUser();
     fsOwnerShortUserName = fsOwner.getShortUserName();
@@ -73,10 +114,9 @@ public class XAttrOp {
 
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
           throws IOException {
-    if (src == null || xAttr == null || flag == null) {
-      throw new IllegalArgumentException("Argument is null");
-    }
-
+    Preconditions.checkNotNull(src);
+    Preconditions.checkNotNull(xAttr);
+    Preconditions.checkNotNull(flag);
     checkIfFileExisted(src);
     FSPermissionChecker pc = getFsPermissionChecker();
     checkXAttrChangeAccess(src, xAttr, pc);
@@ -103,24 +143,19 @@ public class XAttrOp {
         ++userVisibleXAttrsNum;
       }
     }
-
     if(userVisibleXAttrsNum > inodeXAttrsLimit) {
       throw new IOException("Cannot add additional XAttr to inode,"
                             + " would exceed limit of " + inodeXAttrsLimit);
     }
-
     nodeManager.setXAttr(src, xAttr);
   }
 
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
           throws IOException {
-    if (src == null) {
-      throw new IllegalArgumentException("Argument is null");
-    }
+    Preconditions.checkNotNull(src);
     checkIfFileExisted(src);
     final boolean isGetAll = (xAttrs == null || xAttrs.isEmpty());
     FSPermissionChecker pc = getFsPermissionChecker();
-
     if (!isGetAll && isPermissionEnabled) {
       checkPermissionForApi(pc, xAttrs);
     }
@@ -128,7 +163,6 @@ public class XAttrOp {
 
     List<XAttr> oldXAttrList = nodeManager.getXAttrs(src);
     oldXAttrList = filterXAttrsForApi(pc, oldXAttrList);
-
     if (isGetAll) {
       return oldXAttrList;
     }
@@ -142,8 +176,7 @@ public class XAttrOp {
     for (XAttr neededXAttr : xAttrs) {
       boolean foundIt = false;
       for (XAttr oldXAttr : oldXAttrList) {
-        if (neededXAttr.getNameSpace() == oldXAttr.getNameSpace() &&
-                neededXAttr.getName().equals(oldXAttr.getName())) {
+        if (neededXAttr.equalsIgnoreValue(oldXAttr)) {
           resXAttrList.add(oldXAttr);
           foundIt = true;
           break;
@@ -158,30 +191,23 @@ public class XAttrOp {
   }
 
   public List<XAttr> listXAttrs(String src) throws IOException {
-    if (src == null) {
-      throw new IllegalArgumentException("Argument is null");
-    }
+    Preconditions.checkNotNull(src);
     FSPermissionChecker pc = getFsPermissionChecker();
-
     checkIfFileExisted(src);
     if (isPermissionEnabled) {
       checkParentAccess(pc, src, FsAction.EXECUTE);
     }
-
     return filterXAttrsForApi(pc, nodeManager.getXAttrs(src));
   }
 
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    if (src == null || xAttr == null) {
-      throw new IllegalArgumentException("Argument is null");
-    }
-
+    Preconditions.checkNotNull(src);
+    Preconditions.checkNotNull(xAttr);
     checkIfFileExisted(src);
     FSPermissionChecker pc = getFsPermissionChecker();
     if (isPermissionEnabled) {
       checkPermissionForApi(pc, xAttr);
     }
-
     checkXAttrChangeAccess(src, xAttr, pc);
 
     // check if the attributes existed or not
@@ -193,42 +219,29 @@ public class XAttrOp {
       throw new IOException(
         "No matching attributes found for remove operation");
     }
-
     nodeManager.removeXAttr(src, xAttr);
   }
 
   private INode checkIfFileExisted(String src) throws IOException {
-    INode node = this.nodeManager.getINode(src);
+    INode node = nodeManager.getINode(src);
     if (node == null) {
       throw new FileNotFoundException("cannot find " + src);
     }
     return node;
   }
 
-  /**
-   * copy from
-   * {@link org.apache.hadoop.hdfs.server.namenode.FSDirectory}
-   */
   private boolean isUserVisible(XAttr xAttr) {
     return xAttr.getNameSpace() == XAttr.NameSpace.USER ||
            xAttr.getNameSpace() == XAttr.NameSpace.TRUSTED;
   }
 
-  /**
-   * copy from
-   * {@link NamespaceProcessor#getFsPermissionChecker()}
-   */
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
     UserGroupInformation ugi = HBaseRpcUtil.getRemoteUser();
     return new FSPermissionChecker(fsOwnerShortUserName, supergroup, ugi);
   }
 
-  /**
-   * derived from
-   * {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem}
-   */
   private void checkXAttrChangeAccess(String src, XAttr xAttr,
-     FSPermissionChecker pc) throws IOException {
+    FSPermissionChecker pc) throws IOException {
     if(isPermissionEnabled && xAttr.getNameSpace() == XAttr.NameSpace.USER) {
       INode node = nodeManager.getINode(src);
       if(node.isDir() && node.getPermission().getStickyBit()) {
@@ -249,20 +262,12 @@ public class XAttrOp {
     }
   }
 
-  /**
-   * signature copy from
-   * {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem}
-   */
   private void checkPathAccess(FSPermissionChecker pc, String src,
                                FsAction access) throws IOException{
     INode node = nodeManager.getINode(src);
     pc.check(node, access);
   }
 
-  /**
-   * signature copy from
-   * {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem}
-   */
   private void checkParentAccess(FSPermissionChecker pc, String src,
                                  FsAction access) throws IOException{
     INode node = nodeManager.getParentINode(src);
