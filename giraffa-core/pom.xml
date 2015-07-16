@@ -312,6 +312,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>org.jmockit</groupId>
+            <artifactId>jmockit</artifactId>
+            <version>1.17</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

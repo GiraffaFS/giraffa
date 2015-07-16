@@ -15,20 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa;
+package org.apache.hadoop.hbase.ipc;
 
-public interface GiraffaConstants {
-  public static enum FileState {
-    CLOSED, UNDER_CONSTRUCTION, DELETED, RECOVERING
+import org.apache.hadoop.security.UserGroupInformation;
+
+import java.io.IOException;
+
+public class HBaseRpcUtil {
+
+  /** Returns the RPC remote user when invoked inside an RPC.  Note this
+   *  may be different than the current user if called within another doAs
+   *  @return connection's UGI or current user if not an RPC
+   */
+  public static UserGroupInformation getRemoteUser() throws IOException {
+    RpcServer.Call call = RpcServer.CurCall.get();
+    if (call != null && call.connection != null) {
+      return call.connection.user;
+    } else {
+      return UserGroupInformation.getCurrentUser();
+    }
   }
-
-  enum BlockAction {
-    CLOSE, ALLOCATE, DELETE, RECOVER
-  }
-
-  public static final String UTF8 = "UTF-8";
-
-  public static final String GIRAFFA_SHARED_STATE_KEY = "GiraffaSharedState";
-
-  public static final long   GRFA_SUPER_BLOCK_ID = 777L;
 }

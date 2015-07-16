@@ -25,11 +25,11 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -70,6 +70,11 @@ public class INodeManager implements Closeable {
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
     }
+  }
+
+  public INode getParentINode(String path) throws IOException {
+    Path parent = new Path(path).getParent();
+    return parent == null ? null : getINode(parent.toString());
   }
 
   /**
@@ -227,7 +232,8 @@ public class INodeManager implements Closeable {
 
   /**
    * Recursively generates a list containing the given node and all
-   * subdirectories. The nodes are found and stored in breadth-first order.
+   * subdirectories. The nodes are found and stored in breadth-first order. For
+   * each node, {@link INode#isEmpty()} is guaranteed to return a nonnull value.
    */
   public List<INode> getDirectories(INode root) throws IOException {
     List<INode> directories = new ArrayList<INode>();
@@ -236,10 +242,13 @@ public class INodeManager implements Closeable {
     // start loop descending the tree (breadth first, then depth)
     for(int i = 0; i < directories.size(); i++) {
       // get next directory INode in the list and it's Scanner
-      RowKey key = directories.get(i).getRowKey();
+      INode dir = directories.get(i);
+      dir.setEmpty(true);
+      RowKey key = dir.getRowKey();
       ResultScanner rs = getListingScanner(key);
       try {
         for (Result result : rs) {
+          dir.setEmpty(false);
           if (FileFieldDeserializer.getDirectory(result)) {
             directories.add(newINodeByParent(key.getPath(), result));
           }

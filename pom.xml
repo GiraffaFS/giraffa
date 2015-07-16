@@ -14,7 +14,7 @@
     <url>https://code.google.com/a/apache-extras.org/p/giraffa/</url>
 
     <properties>
-        <compileSource>1.6</compileSource>
+        <compileSource>1.7</compileSource>
         <mavenVersion>2.2.1</mavenVersion>
 
         <hadoop.version>2.5.1</hadoop.version>

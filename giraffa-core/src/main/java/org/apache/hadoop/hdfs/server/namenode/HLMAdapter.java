@@ -19,6 +19,8 @@ package org.apache.hadoop.hdfs.server.namenode;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.apache.giraffa.FileLease;
 
 /**
@@ -43,6 +45,12 @@ public class HLMAdapter {
   public boolean removeLease(FileLease fileLease) {
     String holder = fileLease.getHolder();
     String path = fileLease.getPath();
+    hlm.removeLease(holder, path);
+    return getLeases(holder) == null;
+  }
+
+  public boolean removeLease(FileLease fileLease, String path) {
+    String holder = fileLease.getHolder();
     hlm.removeLease(holder, path);
     return getLeases(holder) == null;
   }
@@ -78,5 +86,14 @@ public class HLMAdapter {
   public Collection<FileLease> getLeases(String holder) {
     LeaseManager.Lease lease = hlm.getLease(holder);
     return wrapLease(lease);
+  }
+
+  public SortedSet<FileLease> getSortedLeases() {
+    SortedSet<LeaseManager.Lease> sortedLeases = hlm.getSortedLeases();
+    SortedSet<FileLease> sortedFileLeases = new TreeSet<FileLease>();
+    for(LeaseManager.Lease lease : sortedLeases) {
+      sortedFileLeases.addAll(wrapLease(lease));
+    }
+    return sortedFileLeases;
   }
 }
