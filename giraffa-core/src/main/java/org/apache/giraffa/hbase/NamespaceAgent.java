@@ -378,7 +378,7 @@ public class NamespaceAgent implements NamespaceService {
     String tableName = getGiraffaTableName(conf);
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(FileField.getFileAttributes()));
-    htd.addFamily(new HColumnDescriptor(FileField.getFileExtenedAttributes()));
+    htd.addFamily(new HColumnDescriptor(FileField.getFileExtendedAttributes()));
     String coprocClass =
         conf.get(GRFA_COPROCESSOR_KEY, GRFA_COPROCESSOR_DEFAULT);
     htd.addCoprocessor(coprocClass, null, Coprocessor.PRIORITY_SYSTEM, null);

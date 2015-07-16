@@ -71,7 +71,7 @@ public enum FileField {
   public static byte[] getFileAttributes() {
     return FILE_ATTRIBUTES.bytes;
   }
-  public static byte[] getFileExtenedAttributes() {
+  public static byte[] getFileExtendedAttributes() {
     return FILE_EXTENDED_ATTRIBUTES.bytes;
   }
   public static byte[] getDsQuota() {
