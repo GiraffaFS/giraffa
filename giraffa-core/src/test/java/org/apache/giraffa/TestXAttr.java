@@ -426,8 +426,8 @@ public class TestXAttr extends FSXAttrBaseTest {
     grfs.setXAttr(path2, "trusted.a2", attrValue2);
     assertEquals(1, grfs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         try {
@@ -454,8 +454,8 @@ public class TestXAttr extends FSXAttrBaseTest {
     }
     assertEquals(0, grfs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         try {
@@ -482,8 +482,8 @@ public class TestXAttr extends FSXAttrBaseTest {
     }
     assertEquals(0, grfs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         try {
@@ -501,8 +501,8 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testCanNotSetXAttrWithoutWPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         userFs.setPermission(path1,
@@ -522,8 +522,8 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testCanNotSetXAttrWithoutParentXPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
 
@@ -545,8 +545,8 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testOnlySuperUserCanGetOrListTRUSTEDXAttr() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         userFs.setXAttr(path1, attrName1, attrValue1);
@@ -558,8 +558,8 @@ public class TestXAttr extends FSXAttrBaseTest {
     // use super user to set trusted xAttr
     grfs.setXAttr(user1Path, "trusted.a1", attrValue2);
 
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         assertEquals(1, getFS().getXAttrs(path1).size());
         assertEquals(1, getFS().listXAttrs(path1).size());
         return null;
@@ -572,8 +572,8 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testCanNotRemoveXAttrWithoutWPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         userFs.setXAttr(path1, attrName1, attrValue1);
@@ -594,8 +594,8 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testCanNotRemoveXAttrWithoutParentXPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction() {
-      public Object run() throws Exception {
+    user1.doAs(new PrivilegedExceptionAction<Void>() {
+      public Void run() throws Exception {
         GiraffaFileSystem userFs = getFS();
         createEmptyFile(userFs, path1);
         userFs.setXAttr(path1, attrName1, attrValue1);
