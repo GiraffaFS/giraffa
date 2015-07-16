@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.giraffa.FSPermissionChecker;
@@ -25,7 +24,6 @@ import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.security.AccessControlException;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,6 +36,7 @@ import java.util.List;
 public class XAttrPermissionFilter {
   static void checkPermissionForApi(FSPermissionChecker pc, XAttr xAttr)
       throws AccessControlException {
+    assert (pc != null && xAttr != null) : "Argument is null";
     if (xAttr.getNameSpace() != XAttr.NameSpace.USER &&
        (xAttr.getNameSpace() != XAttr.NameSpace.TRUSTED || !pc.isSuperUser())) {
       throw new AccessControlException("User doesn\'t have permission"
@@ -47,7 +46,7 @@ public class XAttrPermissionFilter {
 
   static void checkPermissionForApi(FSPermissionChecker pc, List<XAttr> xAttrs)
       throws AccessControlException {
-    Preconditions.checkNotNull(xAttrs);
+    assert (xAttrs != null) : "Argument is null";
     for (XAttr xAttr : xAttrs) {
       checkPermissionForApi(pc, xAttr);
     }
@@ -55,8 +54,9 @@ public class XAttrPermissionFilter {
 
   static List<XAttr> filterXAttrsForApi(FSPermissionChecker pc,
                                         List<XAttr> xAttrs) {
-    Preconditions.checkNotNull(xAttrs);
-    ArrayList filteredXAttrs = Lists.newArrayListWithCapacity(xAttrs.size());
+    assert (xAttrs != null) : "Argument is null";
+    List<XAttr> filteredXAttrs =
+        Lists.newArrayListWithCapacity(xAttrs.size());
     for (XAttr xAttr : xAttrs) {
       if (xAttr.getNameSpace() == XAttr.NameSpace.USER ||
         (xAttr.getNameSpace() == XAttr.NameSpace.TRUSTED && pc.isSuperUser())) {

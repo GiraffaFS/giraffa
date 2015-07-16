@@ -119,7 +119,7 @@ public class INodeManager implements Closeable {
    * Commit the fields of the given INode into HBase.
    */
   public void updateINode(INode node) throws IOException {
-    updateINode(node, null);
+    updateINode(node, null, null);
   }
 
   /**
@@ -127,6 +127,16 @@ public class INodeManager implements Closeable {
    * BlockAction for processing by the BlockManagementAgent.
    */
   public void updateINode(INode node, BlockAction ba)
+      throws IOException {
+    updateINode(node, ba, null);
+  }
+
+  /**
+   * Commit the fields of the give INode into HBase.
+   * Additional stores a BlockAction for processing by the BlockManagementAgent.
+   * If xAttrs is not null, it will add a list of XAttr to the node as well
+   */
+  public void updateINode(INode node, BlockAction ba, List<XAttr> xAttrs)
       throws IOException {
     long ts = Time.now();
     RowKey key = node.getRowKey();
@@ -179,6 +189,14 @@ public class INodeManager implements Closeable {
     // block action
     if(ba != null) {
       put.addColumn(family, FileField.getAction(), ts, Bytes.toBytes(ba.toString()));
+    }
+
+    if (xAttrs != null) {
+      for (XAttr xAttr : xAttrs) {
+        String xAttrColumnName = XAttrHelper.getPrefixName(xAttr);
+        put.addColumn(FileField.getFileExtenedAttributes(),
+            Bytes.toBytes(xAttrColumnName), ts, xAttr.getValue());
+      }
     }
 
     getNSTable().put(put);

@@ -26,7 +26,6 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_KEY;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.giraffa.FSPermissionChecker;
@@ -101,9 +100,9 @@ public class XAttrOp {
     this.nodeManager = nodeManager;
     this.inodeXAttrsLimit = conf.getInt(DFS_NAMENODE_MAX_XATTRS_PER_INODE_KEY,
                             DFS_NAMENODE_MAX_XATTRS_PER_INODE_DEFAULT);
-    Preconditions.checkArgument(inodeXAttrsLimit >= 0,
-       "Cannot set a negative limit on the number of xAttrs per inode (%s).",
-       DFS_NAMENODE_MAX_XATTRS_PER_INODE_KEY);
+    assert inodeXAttrsLimit >= 0 :
+        "Cannot set a negative limit on the number of xAttrs per inode (" +
+        DFS_NAMENODE_MAX_XATTRS_PER_INODE_KEY + ").";
     UserGroupInformation fsOwner = UserGroupInformation.getCurrentUser();
     fsOwnerShortUserName = fsOwner.getShortUserName();
     supergroup = conf.get(DFS_PERMISSIONS_SUPERUSERGROUP_KEY,
@@ -114,9 +113,7 @@ public class XAttrOp {
 
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
           throws IOException {
-    Preconditions.checkNotNull(src);
-    Preconditions.checkNotNull(xAttr);
-    Preconditions.checkNotNull(flag);
+    assert (src != null && xAttr != null && flag != null) : "Argument is null";
     checkIfFileExisted(src);
     FSPermissionChecker pc = getFsPermissionChecker();
     checkXAttrChangeAccess(src, xAttr, pc);
@@ -152,7 +149,7 @@ public class XAttrOp {
 
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
           throws IOException {
-    Preconditions.checkNotNull(src);
+    assert (src != null) : "Argument is null";
     checkIfFileExisted(src);
     final boolean isGetAll = (xAttrs == null || xAttrs.isEmpty());
     FSPermissionChecker pc = getFsPermissionChecker();
@@ -191,7 +188,7 @@ public class XAttrOp {
   }
 
   public List<XAttr> listXAttrs(String src) throws IOException {
-    Preconditions.checkNotNull(src);
+    assert (src != null) : "Argument is null";
     FSPermissionChecker pc = getFsPermissionChecker();
     checkIfFileExisted(src);
     if (isPermissionEnabled) {
@@ -201,8 +198,7 @@ public class XAttrOp {
   }
 
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    Preconditions.checkNotNull(src);
-    Preconditions.checkNotNull(xAttr);
+    assert (src != null && xAttr != null) : "Argument is null";
     checkIfFileExisted(src);
     FSPermissionChecker pc = getFsPermissionChecker();
     if (isPermissionEnabled) {
