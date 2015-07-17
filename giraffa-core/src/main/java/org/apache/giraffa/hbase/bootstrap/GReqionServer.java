@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoordinatedStateManager;
 import org.apache.hadoop.hbase.MiniHBaseCluster.MiniHBaseClusterRegionServer;
-import org.apache.hadoop.hbase.master.GMaster.BSFSConfiguration;
 
 public class GReqionServer extends MiniHBaseClusterRegionServer {
 

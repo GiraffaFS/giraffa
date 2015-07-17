@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hbase.master.GMaster.BSFSConfiguration;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.io.IOUtils;
@@ -266,7 +265,7 @@ public class BSFileSystem extends GiraffaFileSystem {
       Path curPath = stat.getPath();
       FsPermission curPermission = stat.getPermission();
       LOG.debug("Copy: " + stat);
-      if(stat.isDirectory()) {
+      if(stat.isDirectory() && !stat.getPath().isRoot()) {
         giraffaMkdirs(curPath, curPermission);
       } else if(stat.isFile()) {
         InputStream in=null;
