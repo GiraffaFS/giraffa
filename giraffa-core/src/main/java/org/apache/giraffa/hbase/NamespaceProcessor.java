@@ -66,6 +66,7 @@ import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.XAttrOp;
 import org.apache.giraffa.hbase.INodeManager.Function;
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.conf.Configuration;
@@ -130,7 +131,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DataChecksum;
 
-import com.google.common.base.Charsets;
 import com.google.protobuf.Service;
 
 /**
@@ -1497,26 +1497,26 @@ public class NamespaceProcessor implements ClientProtocol,
       throws IOException {
     checkXAttrsConfigFlag();
     checkXAttrSize(xAttr);
-    xAttrOp.setXAttr(src, xAttr, flag);
+    xAttrOp.setXAttr(src, xAttr, flag, getFsPermissionChecker());
   }
 
   @Override
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
       throws IOException {
     checkXAttrsConfigFlag();
-    return xAttrOp.getXAttrs(src, xAttrs);
+    return xAttrOp.getXAttrs(src, xAttrs, getFsPermissionChecker());
   }
 
   @Override
   public List<XAttr> listXAttrs(String src) throws IOException {
     checkXAttrsConfigFlag();
-    return xAttrOp.listXAttrs(src);
+    return xAttrOp.listXAttrs(src, getFsPermissionChecker());
   }
 
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     checkXAttrsConfigFlag();
-    xAttrOp.removeXAttr(src, xAttr);
+    xAttrOp.removeXAttr(src, xAttr, getFsPermissionChecker());
   }
 
   public boolean internalReleaseLease(FileLease lease, String src)
@@ -1559,7 +1559,7 @@ public class NamespaceProcessor implements ClientProtocol,
    */
   private void checkXAttrSize(XAttr xAttr) {
     if(xAttrMaxSize != 0) {
-      int size = xAttr.getName().getBytes(Charsets.UTF_8).length;
+      int size = xAttr.getName().getBytes().length;
       if(xAttr.getValue() != null) {
         size += xAttr.getValue().length;
       }

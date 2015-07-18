@@ -18,11 +18,11 @@
 package org.apache.giraffa.hbase;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Map.Entry;
 
-import com.google.common.collect.Lists;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConstants;
@@ -142,7 +142,7 @@ public class FileFieldDeserializer {
   public static List<XAttr> getXAttrs(Result res) {
     NavigableMap<byte[], byte[]> map =
             res.getFamilyMap(FileField.getFileExtendedAttributes());
-    List<XAttr> resList = Lists.newArrayListWithCapacity(map.size());
+    List<XAttr> resList = new ArrayList<XAttr>();
     for(Entry<byte[], byte[]> entry: map.entrySet()) {
         XAttr xAttr = XAttrHelper.buildXAttr(Bytes.toString(entry.getKey()),
                 entry.getValue());
