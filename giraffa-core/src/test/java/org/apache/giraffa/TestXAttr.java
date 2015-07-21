@@ -73,7 +73,6 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   private static final HBaseTestingUtility UTIL =
     GiraffaTestUtils.getHBaseTestingUtility();
-  private static GiraffaFileSystem grfs;
   private Path path1;
   private Path path2;
   private Path noThisPath;
@@ -86,9 +85,9 @@ public class TestXAttr extends FSXAttrBaseTest {
   private byte[] attrValue3;
   private byte[] attrValue4;
   // need another user since default one is super user
-  private UserGroupInformation user1;
+  private static UserGroupInformation user1;
+  private static FileSystem user1fs;
   private Path user1Path;
-  private static GiraffaFileSystem anotherThreadFs = null;
 
   private class MockMiniDFSCluster extends MiniDFSCluster {
     private MockDistributedFileSystem dfs;
@@ -130,6 +129,11 @@ public class TestXAttr extends FSXAttrBaseTest {
 
     UTIL.startMiniCluster(1);
 
+    conf = new GiraffaConfiguration(UTIL.getConfiguration());
+    GiraffaTestUtils.setGiraffaURI(conf);
+    user1 = createUserForTesting("user1", new String[]{"mygroup"});
+    user1fs = getFS();
+
     new MockUp<FSXAttrBaseTest>() {
       @Mock
       void restart(boolean checkpoint) throws Exception {
@@ -156,26 +160,18 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Before
   public void before() throws IOException {
     // File System Initialization
-    GiraffaConfiguration conf =
-        new GiraffaConfiguration(UTIL.getConfiguration());
-    GiraffaTestUtils.setGiraffaURI(conf);
-    GiraffaFileSystem.format(conf, false);
-    grfs = (GiraffaFileSystem) FileSystem.get(conf);
+    GiraffaFileSystem.format((GiraffaConfiguration)conf, false);
+    fs = (GiraffaFileSystem) FileSystem.get(conf);
 
     createFiles();
     setupForOtherUsers();
     initAttributes();
-    fs = grfs;   // replace fs in FSXAttrBaseTest with grfs
     dfsCluster = new MockMiniDFSCluster();
   }
 
   @After
   public void after() throws IOException {
-    IOUtils.cleanup(LOG, grfs);
-    if (anotherThreadFs != null) {
-      IOUtils.cleanup(LOG, anotherThreadFs);
-      anotherThreadFs = null;
-    }
+    IOUtils.cleanup(LOG, fs);
   }
 
   @After
@@ -186,6 +182,7 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @AfterClass
   public static void afterClass() throws Exception {
+    IOUtils.cleanup(LOG, user1fs);
     UTIL.shutdownMiniCluster();
   }
 
@@ -200,62 +197,62 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test (expected = FileNotFoundException.class)
   public void testCannotAddXAttrToNonExistedFile()
           throws IOException {
-    grfs.setXAttr(noThisPath, attrName1, attrValue1);
+    fs.setXAttr(noThisPath, attrName1, attrValue1);
   }
 
   @Test (expected = NullPointerException.class)
   public void testCanNotSetXAttrWithNullPath() throws IOException {
     try {
-      grfs.setXAttr(null, attrName1, attrValue1);
+      fs.setXAttr(null, attrName1, attrValue1);
       fail("expected NullPointerException");
     } finally {
-      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+      List<String> listOfXAttrNames = fs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
     }
   }
 
   @Test
   public void testCanOverwriteXAttrWithoutAdditionalFlag() throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, attrName1, attrValue2);
-    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName1, attrValue2);
+    List<String> listOfXAttrNames = fs.listXAttrs(path1);
     assertEquals(1, listOfXAttrNames.size());
     assertTrue(listOfXAttrNames.contains(attrName1));
-    assertArrayEquals(attrValue2, grfs.getXAttr(path1, attrName1));
+    assertArrayEquals(attrValue2, fs.getXAttr(path1, attrName1));
   }
 
   @Test
   public void testCanOverwriteXAttrWithoutDestroyOtherXAttr()
       throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, attrName2, attrValue2);
-    grfs.setXAttr(path1, attrName1, attrValue3);
-    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName2, attrValue2);
+    fs.setXAttr(path1, attrName1, attrValue3);
+    List<String> listOfXAttrNames = fs.listXAttrs(path1);
     assertEquals(2, listOfXAttrNames.size());
     assertTrue(listOfXAttrNames.contains(attrName1));
     assertTrue(listOfXAttrNames.contains(attrName2));
-    assertArrayEquals(attrValue3, grfs.getXAttr(path1, attrName1));
-    assertArrayEquals(attrValue2, grfs.getXAttr(path1, attrName2));
+    assertArrayEquals(attrValue3, fs.getXAttr(path1, attrName1));
+    assertArrayEquals(attrValue2, fs.getXAttr(path1, attrName2));
   }
 
   @Test
   public void testAttrNamePrefixIsCaseInsensitive() throws IOException {
     String caseInsensitiveName = "uSeR.attr1";
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, caseInsensitiveName, attrValue2);
-    List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, caseInsensitiveName, attrValue2);
+    List<String> listOfXAttrNames = fs.listXAttrs(path1);
     assertEquals(1, listOfXAttrNames.size());
     assertTrue(listOfXAttrNames.contains(attrName1));
-    assertArrayEquals(attrValue2, grfs.getXAttr(path1, caseInsensitiveName));
+    assertArrayEquals(attrValue2, fs.getXAttr(path1, caseInsensitiveName));
   }
 
   @Test (expected = NullPointerException.class)
   public void testCanNotAddNewXAttrWithNullFlag() throws IOException {
     try {
-      grfs.setXAttr(path1, attrName1, attrValue2, null);
+      fs.setXAttr(path1, attrName1, attrValue2, null);
       fail("expected NullPointerException");
     } finally {
-      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+      List<String> listOfXAttrNames = fs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
     }
   }
@@ -263,11 +260,11 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test (expected = IOException.class)
   public void testCanNotAddNewXAttrWithEmptyFlag() throws IOException {
     try {
-      grfs.setXAttr(path1, attrName1, attrValue2,
+      fs.setXAttr(path1, attrName1, attrValue2,
               EnumSet.noneOf(XAttrSetFlag.class));
       fail("expected IOException");
     } finally {
-      List<String> listOfXAttrNames = grfs.listXAttrs(path1);
+      List<String> listOfXAttrNames = fs.listXAttrs(path1);
       assertEquals(0, listOfXAttrNames.size());
     }
   }
@@ -277,31 +274,31 @@ public class TestXAttr extends FSXAttrBaseTest {
    */
   @Test
   public void testCanGetXAttrValueByPathAndAttrName() throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    assertArrayEquals(attrValue1, grfs.getXAttr(path1, attrName1));
+    fs.setXAttr(path1, attrName1, attrValue1);
+    assertArrayEquals(attrValue1, fs.getXAttr(path1, attrName1));
   }
 
   @Test
   public void testCanGetMapOfXAttrByPathAndSingleElementAttrNameList()
           throws IOException {
     // one to one match
-    grfs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName1, attrValue1);
     List<String> attrNameList = Collections.singletonList(attrName1);
-    Map<String, byte[]> map = grfs.getXAttrs(path1, attrNameList);
+    Map<String, byte[]> map = fs.getXAttrs(path1, attrNameList);
     assertEquals(1, map.size());
     assertTrue(map.containsKey(attrName1));
     assertArrayEquals(attrValue1, map.get(attrName1));
 
-    grfs.setXAttr(path1, attrName2, attrValue2);
+    fs.setXAttr(path1, attrName2, attrValue2);
 
     // now we have two attributes
-    map = grfs.getXAttrs(path1, attrNameList);
+    map = fs.getXAttrs(path1, attrNameList);
     assertEquals(1, map.size());
     assertTrue(map.containsKey(attrName1));
     assertArrayEquals(attrValue1, map.get(attrName1));
 
     attrNameList = Collections.singletonList(attrName2);
-    map = grfs.getXAttrs(path1, attrNameList);
+    map = fs.getXAttrs(path1, attrNameList);
     assertEquals(1, map.size());
     assertTrue(map.containsKey(attrName2));
     assertArrayEquals(attrValue2, map.get(attrName2));
@@ -310,35 +307,35 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test (expected = HadoopIllegalArgumentException.class)
   public void testCanNotGetMapOfXAttrByPathAndEmptyAttrNameList()
           throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName1, attrValue1);
     List<String> attrNameList = Collections.emptyList();
-    grfs.getXAttrs(path1, attrNameList);
+    fs.getXAttrs(path1, attrNameList);
   }
 
   @Test (expected = HadoopIllegalArgumentException.class)
   public void testCanNotGetMapOfXAttrByPathAndNullNameList()
           throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.getXAttrs(path1, null);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.getXAttrs(path1, null);
   }
 
   @Test
   public void testCanGetMapOfXAttrByPathAndMultipleElementsAttrNameList()
           throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, attrName2, attrValue2);
-    grfs.setXAttr(path1, attrName3, attrValue3);
-    grfs.setXAttr(path2, attrName4, attrValue4);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName2, attrValue2);
+    fs.setXAttr(path1, attrName3, attrValue3);
+    fs.setXAttr(path2, attrName4, attrValue4);
     // check if interfere with each other
     List<String> attrNameList = Collections.singletonList(attrName4);
-    Map<String, byte[]> map = grfs.getXAttrs(path2, attrNameList);
+    Map<String, byte[]> map = fs.getXAttrs(path2, attrNameList);
     assertEquals(1, map.size());
     assertTrue(map.containsKey(attrName4));
     assertArrayEquals(attrValue4, map.get(attrName4));
 
     // check if partial match
     attrNameList = Arrays.asList(attrName2, attrName3);
-    map = grfs.getXAttrs(path1, attrNameList);
+    map = fs.getXAttrs(path1, attrNameList);
     assertEquals(2, map.size());
     assertTrue(map.containsKey(attrName2));
     assertArrayEquals(attrValue2, map.get(attrName2));
@@ -347,7 +344,7 @@ public class TestXAttr extends FSXAttrBaseTest {
 
     // check if full match
     attrNameList = Arrays.asList(attrName1, attrName2, attrName3);
-    map = grfs.getXAttrs(path1, attrNameList);
+    map = fs.getXAttrs(path1, attrNameList);
     assertEquals(3, map.size());
     assertTrue(map.containsKey(attrName1));
     assertArrayEquals(attrValue1, map.get(attrName1));
@@ -359,31 +356,31 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @Test
   public void testCanGetXAttrValueMultipleTimes() throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, attrName2, attrValue2);
-    grfs.setXAttr(path2, attrName1, attrValue3);
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName2, attrValue2);
+    fs.setXAttr(path2, attrName1, attrValue3);
 
     // byte[] getXAttr(String src, String name)
-    assertArrayEquals(attrValue1, grfs.getXAttr(path1, attrName1));
-    assertArrayEquals(attrValue2, grfs.getXAttr(path1, attrName2));
-    assertArrayEquals(attrValue3, grfs.getXAttr(path2, attrName1));
+    assertArrayEquals(attrValue1, fs.getXAttr(path1, attrName1));
+    assertArrayEquals(attrValue2, fs.getXAttr(path1, attrName2));
+    assertArrayEquals(attrValue3, fs.getXAttr(path2, attrName1));
   }
 
   @Test
   public void testCanNotGetXAttrFromNonExistedFile() throws IOException {
     try {
-      grfs.getXAttr(noThisPath, attrName1);
+      fs.getXAttr(noThisPath, attrName1);
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException ignored) {}
 
     try {
-      grfs.getXAttrs(noThisPath);
+      fs.getXAttrs(noThisPath);
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException ignored) {}
 
     try {
       List<String> attrNameList = Collections.singletonList(attrName1);
-      grfs.getXAttrs(noThisPath, attrNameList);
+      fs.getXAttrs(noThisPath, attrNameList);
       fail("expected FileNotFoundException");
     } catch (FileNotFoundException ignored) {}
   }
@@ -391,25 +388,25 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test
   public void testCanNotGetXAttrWithNullPath() throws IOException {
     try {
-      grfs.getXAttr(null, attrName1);
+      fs.getXAttr(null, attrName1);
       fail("expected NullPointerException");
     } catch (NullPointerException ignored) {}
 
     try {
-      grfs.getXAttrs(null);
+      fs.getXAttrs(null);
       fail("expected NullPointerException");
     } catch (NullPointerException ignored) {}
 
     try {
       List<String> attrNameList = Collections.singletonList(attrName1);
-      grfs.getXAttrs(null, attrNameList);
+      fs.getXAttrs(null, attrNameList);
       fail("expected NullPointerException");
     } catch (NullPointerException ignored) {}
   }
 
   @Test (expected = NullPointerException.class)
   public void testCanNotGetXAttrWithNullAttrName() throws IOException {
-    grfs.getXAttr(path1, null);
+    fs.getXAttr(path1, null);
   }
 
   /**
@@ -417,25 +414,25 @@ public class TestXAttr extends FSXAttrBaseTest {
    */
   @Test
   public void testCanRemoveAnXAttrWithMultipleVersion() throws IOException {
-    grfs.setXAttr(path1, attrName1, attrValue1);
-    grfs.setXAttr(path1, attrName1, attrValue2);
-    grfs.removeXAttr(path1, attrName1);
-    assertEquals(0, grfs.listXAttrs(path1).size());
+    fs.setXAttr(path1, attrName1, attrValue1);
+    fs.setXAttr(path1, attrName1, attrValue2);
+    fs.removeXAttr(path1, attrName1);
+    assertEquals(0, fs.listXAttrs(path1).size());
   }
 
   @Test (expected = NullPointerException.class)
   public void testCanNotRemoveAnXAttrWithNullPath() throws IOException {
-    grfs.removeXAttr(null, attrName1);
+    fs.removeXAttr(null, attrName1);
   }
 
   @Test (expected = FileNotFoundException.class)
   public void testCanNotRemoveAnXAttrOnNonExistedFile() throws IOException {
-    grfs.removeXAttr(noThisPath, attrName1);
+    fs.removeXAttr(noThisPath, attrName1);
   }
 
   @Test (expected = NullPointerException.class)
   public void testCanNotRemoveAnXAttrWithNullAttrName() throws IOException {
-    grfs.removeXAttr(path1, null);
+    fs.removeXAttr(path1, null);
   }
 
   /**
@@ -443,21 +440,20 @@ public class TestXAttr extends FSXAttrBaseTest {
    */
   @Test
   public void testOnlySuperUserCanSetTRUSTEDXAttr() throws Exception {
-    grfs.setXAttr(path2, "trusted.a2", attrValue2);
-    assertEquals(1, grfs.listXAttrs(path2).size());
+    fs.setXAttr(path2, "trusted.a2", attrValue2);
+    assertEquals(1, fs.listXAttrs(path2).size());
 
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
+        createEmptyFile(user1fs, path1);
         try {
-          userFs.setXAttr(path1, "trusted.a1", attrValue2);
+          user1fs.setXAttr(path1, "trusted.a1", attrValue2);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
-              assertExceptionContains("User doesn\'t have permission", e);
+          assertExceptionContains("User doesn\'t have permission", e);
         }
-        assertEquals(0, userFs.listXAttrs(path1).size());
+        assertEquals(0, user1fs.listXAttrs(path1).size());
         return null;
       }
     });
@@ -466,26 +462,25 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test
   public void testNoUserCanSetSYSTEMXAttr() throws Exception {
     try {
-      grfs.setXAttr(path2, "system.a2", attrValue2);
+      fs.setXAttr(path2, "system.a2", attrValue2);
       fail("expected IOException");
     } catch (IOException e) {
       GenericTestUtils.
           assertExceptionContains("User doesn\'t have permission", e);
     }
-    assertEquals(0, grfs.listXAttrs(path2).size());
+    assertEquals(0, fs.listXAttrs(path2).size());
 
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
+        createEmptyFile(user1fs, path1);
         try {
-          userFs.setXAttr(path1, "system.a1", attrValue1);
+          user1fs.setXAttr(path1, "system.a1", attrValue1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
-              assertExceptionContains("User doesn\'t have permission", e);
+          assertExceptionContains("User doesn\'t have permission", e);
         }
-        assertEquals(0, userFs.listXAttrs(path1).size());
+        assertEquals(0, user1fs.listXAttrs(path1).size());
         return null;
       }
     });
@@ -494,26 +489,25 @@ public class TestXAttr extends FSXAttrBaseTest {
   @Test
   public void testNoUserCanSetSECURITYXAttr() throws Exception {
     try {
-      grfs.setXAttr(path2, "security.a2", attrValue2);
+      fs.setXAttr(path2, "security.a2", attrValue2);
       fail("expected IOException");
     } catch (IOException e) {
       GenericTestUtils.
           assertExceptionContains("User doesn\'t have permission", e);
     }
-    assertEquals(0, grfs.listXAttrs(path2).size());
+    assertEquals(0, fs.listXAttrs(path2).size());
 
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
+        createEmptyFile(user1fs, path1);
         try {
-          userFs.setXAttr(path1, "security.a1", attrValue1);
+          user1fs.setXAttr(path1, "security.a1", attrValue1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.
-              assertExceptionContains("User doesn\'t have permission", e);
+          assertExceptionContains("User doesn\'t have permission", e);
         }
-        assertEquals(0, userFs.listXAttrs(path1).size());
+        assertEquals(0, user1fs.listXAttrs(path1).size());
         return null;
       }
     });
@@ -523,12 +517,11 @@ public class TestXAttr extends FSXAttrBaseTest {
   public void testCanNotSetXAttrWithoutWPermission() throws Exception {
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
-        userFs.setPermission(path1,
-                             FsPermission.createImmutable((short) 352));
+        createEmptyFile(user1fs, path1);
+        user1fs.setPermission(path1,
+            FsPermission.createImmutable((short) 352));
         try {
-          userFs.setXAttr(path1, attrName1, attrValue1);
+          user1fs.setXAttr(path1, attrName1, attrValue1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
@@ -536,22 +529,21 @@ public class TestXAttr extends FSXAttrBaseTest {
         return null;
       }
     });
-    assertEquals(0, grfs.listXAttrs(user1Path).size());
+    assertEquals(0, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotSetXAttrWithoutParentXPermission() throws Exception {
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
+        createEmptyFile(user1fs, path1);
 
         // remove parent node's X permission
         Path path1Parent = new Path("aaa/bbb");
-        userFs.setPermission(path1Parent,
-                             FsPermission.createImmutable((short) 384));
+        user1fs.setPermission(path1Parent,
+            FsPermission.createImmutable((short) 384));
         try {
-          userFs.setXAttr(path1, attrName1, attrValue1);
+          user1fs.setXAttr(path1, attrName1, attrValue1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
@@ -559,48 +551,45 @@ public class TestXAttr extends FSXAttrBaseTest {
         return null;
       }
     });
-    assertEquals(0, grfs.listXAttrs(user1Path).size());
+    assertEquals(0, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testOnlySuperUserCanGetOrListTRUSTEDXAttr() throws Exception {
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
-        userFs.setXAttr(path1, attrName1, attrValue1);
-        assertEquals(1, userFs.getXAttrs(path1).size());
-        assertEquals(1, userFs.listXAttrs(path1).size());
+        createEmptyFile(user1fs, path1);
+        user1fs.setXAttr(path1, attrName1, attrValue1);
+        assertEquals(1, user1fs.getXAttrs(path1).size());
+        assertEquals(1, user1fs.listXAttrs(path1).size());
         return null;
       }
     });
     // use super user to set trusted xAttr
-    grfs.setXAttr(user1Path, "trusted.a1", attrValue2);
+    fs.setXAttr(user1Path, "trusted.a1", attrValue2);
 
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        assertEquals(1, userFs.getXAttrs(path1).size());
-        assertEquals(1, userFs.listXAttrs(path1).size());
+        assertEquals(1, user1fs.getXAttrs(path1).size());
+        assertEquals(1, user1fs.listXAttrs(path1).size());
         return null;
       }
     });
 
-    assertEquals(2, grfs.getXAttrs(user1Path).size());
-    assertEquals(2, grfs.listXAttrs(user1Path).size());
+    assertEquals(2, fs.getXAttrs(user1Path).size());
+    assertEquals(2, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotRemoveXAttrWithoutWPermission() throws Exception {
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
-        userFs.setXAttr(path1, attrName1, attrValue1);
-        userFs.setPermission(path1,
-                             FsPermission.createImmutable((short) 352));
+        createEmptyFile(user1fs, path1);
+        user1fs.setXAttr(path1, attrName1, attrValue1);
+        user1fs.setPermission(path1,
+            FsPermission.createImmutable((short) 352));
         try {
-          userFs.removeXAttr(path1, attrName1);
+          user1fs.removeXAttr(path1, attrName1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
@@ -608,23 +597,22 @@ public class TestXAttr extends FSXAttrBaseTest {
         return null;
       }
     });
-    assertEquals(1, grfs.listXAttrs(user1Path).size());
+    assertEquals(1, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotRemoveXAttrWithoutParentXPermission() throws Exception {
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        GiraffaFileSystem userFs = getFS();
-        createEmptyFile(userFs, path1);
-        userFs.setXAttr(path1, attrName1, attrValue1);
+        createEmptyFile(user1fs, path1);
+        user1fs.setXAttr(path1, attrName1, attrValue1);
 
         // remove parent node's X permission
         Path path1Parent = new Path("aaa/bbb");
-        userFs.setPermission(path1Parent,
-                             FsPermission.createImmutable((short) 384));
+        user1fs.setPermission(path1Parent,
+            FsPermission.createImmutable((short) 384));
         try {
-          userFs.removeXAttr(path1, attrName1);
+          user1fs.removeXAttr(path1, attrName1);
           fail("expected IOException");
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
@@ -632,7 +620,7 @@ public class TestXAttr extends FSXAttrBaseTest {
         return null;
       }
     });
-    assertEquals(1, grfs.listXAttrs(user1Path).size());
+    assertEquals(1, fs.listXAttrs(user1Path).size());
   }
 
   /**
@@ -641,11 +629,11 @@ public class TestXAttr extends FSXAttrBaseTest {
   private void createFiles() throws IOException {
     // file 1
     path1 = new Path("aaa/bbb/ccc");
-    createEmptyFile(grfs, path1);
+    createEmptyFile(fs, path1);
 
     // file 2
     path2 = new Path("aaa/bbb/ddd");
-    createEmptyFile(grfs, path2);
+    createEmptyFile(fs, path2);
 
     // non-existed file
     noThisPath = new Path("noThisFile");
@@ -680,30 +668,21 @@ public class TestXAttr extends FSXAttrBaseTest {
   }
 
   private void setupForOtherUsers() throws IOException {
-    user1 = createUserForTesting("user1", new String[]{"mygroup"});
     user1Path = new Path("/user/user1/" + path1.toUri().getPath());
     Path user1Root = new Path ("/user/user1");
-    grfs.mkdirs(user1Root);
-    grfs.setOwner(user1Root, "user1", "mygroup");
+    fs.mkdirs(user1Root);
+    fs.setOwner(user1Root, "user1", "mygroup");
   }
 
-  static private synchronized GiraffaFileSystem getFS() throws IOException {
-    if (anotherThreadFs == null) {
-      GiraffaConfiguration tmpConf =
-        new GiraffaConfiguration(UTIL.getConfiguration());
-      GiraffaTestUtils.setGiraffaURI(tmpConf);
-      anotherThreadFs = (GiraffaFileSystem)FileSystem.get(tmpConf);
+  static FileSystem getFS() throws IOException {
+    try {
+      return user1.doAs(new PrivilegedExceptionAction<FileSystem>() {
+        public FileSystem run() throws Exception {
+          return (GiraffaFileSystem)FileSystem.get(conf);
+        }
+      });
+    } catch (InterruptedException e) {
+      throw new IOException(e);
     }
-    return anotherThreadFs;
-  }
-
-  public static void main(String[] args) throws Exception {
-    TestXAttr test = new TestXAttr();
-    GiraffaConfiguration conf =
-      new GiraffaConfiguration(UTIL.getConfiguration());
-    GiraffaFileSystem.format(conf, true);
-    GiraffaTestUtils.setGiraffaURI(conf);
-    grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    test.testOnlySuperUserCanSetTRUSTEDXAttr();
   }
 }
