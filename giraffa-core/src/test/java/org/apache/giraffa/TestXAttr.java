@@ -88,6 +88,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   // need another user since default one is super user
   private UserGroupInformation user1;
   private Path user1Path;
+  private static GiraffaFileSystem anotherThreadFs = null;
 
   private class MockMiniDFSCluster extends MiniDFSCluster {
     private MockDistributedFileSystem dfs;
@@ -139,6 +140,16 @@ public class TestXAttr extends FSXAttrBaseTest {
       void initFileSystem() throws Exception {
         // Do nothing.
       }
+
+      @Mock
+      void init() throws Exception {
+        // Do nothing.
+      }
+
+      @Mock
+      void shutdown() {
+        // Do nothing.
+      }
     };
   }
 
@@ -155,13 +166,22 @@ public class TestXAttr extends FSXAttrBaseTest {
     setupForOtherUsers();
     initAttributes();
     fs = grfs;   // replace fs in FSXAttrBaseTest with grfs
-    dfsCluster = new  MockMiniDFSCluster();
+    dfsCluster = new MockMiniDFSCluster();
   }
 
   @After
   public void after() throws IOException {
-    dfsCluster = null;
     IOUtils.cleanup(LOG, grfs);
+    if (anotherThreadFs != null) {
+      IOUtils.cleanup(LOG, anotherThreadFs);
+      anotherThreadFs = null;
+    }
+  }
+
+  @After
+  @Override
+  public void destroyFileSystems() {
+    // Do nothing.
   }
 
   @AfterClass
@@ -513,7 +533,6 @@ public class TestXAttr extends FSXAttrBaseTest {
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }
-
         return null;
       }
     });
@@ -560,8 +579,9 @@ public class TestXAttr extends FSXAttrBaseTest {
 
     user1.doAs(new PrivilegedExceptionAction<Void>() {
       public Void run() throws Exception {
-        assertEquals(1, getFS().getXAttrs(path1).size());
-        assertEquals(1, getFS().listXAttrs(path1).size());
+        GiraffaFileSystem userFs = getFS();
+        assertEquals(1, userFs.getXAttrs(path1).size());
+        assertEquals(1, userFs.listXAttrs(path1).size());
         return null;
       }
     });
@@ -585,7 +605,6 @@ public class TestXAttr extends FSXAttrBaseTest {
         } catch (IOException e) {
           GenericTestUtils.assertExceptionContains("Permission denied", e);
         }
-
         return null;
       }
     });
@@ -668,11 +687,14 @@ public class TestXAttr extends FSXAttrBaseTest {
     grfs.setOwner(user1Root, "user1", "mygroup");
   }
 
-  private GiraffaFileSystem getFS() throws IOException {
-    GiraffaConfiguration tmpConf =
+  static private synchronized GiraffaFileSystem getFS() throws IOException {
+    if (anotherThreadFs == null) {
+      GiraffaConfiguration tmpConf =
         new GiraffaConfiguration(UTIL.getConfiguration());
-    GiraffaTestUtils.setGiraffaURI(tmpConf);
-    return (GiraffaFileSystem) FileSystem.get(tmpConf);
+      GiraffaTestUtils.setGiraffaURI(tmpConf);
+      anotherThreadFs = (GiraffaFileSystem)FileSystem.get(tmpConf);
+    }
+    return anotherThreadFs;
   }
 
   public static void main(String[] args) throws Exception {
