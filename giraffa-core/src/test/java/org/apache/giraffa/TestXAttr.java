@@ -19,6 +19,7 @@ package org.apache.giraffa;
 
 import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.FSXAttrBaseTest;
@@ -40,6 +41,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -120,6 +122,7 @@ public class TestXAttr extends FSXAttrBaseTest {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
+    dfsCluster.shutdown(); // which started in FSXAttrBaseTest
     System.setProperty(
         HBaseTestingUtility.BASE_TEST_DIRECTORY_KEY,
          GiraffaTestUtils.BASE_TEST_DIRECTORY);
@@ -142,11 +145,6 @@ public class TestXAttr extends FSXAttrBaseTest {
 
       @Mock
       void initFileSystem() throws Exception {
-        // Do nothing.
-      }
-
-      @Mock
-      void init() throws Exception {
         // Do nothing.
       }
 
@@ -183,6 +181,8 @@ public class TestXAttr extends FSXAttrBaseTest {
   @AfterClass
   public static void afterClass() throws Exception {
     IOUtils.cleanup(LOG, user1fs);
+    File uselessDirCreatedByBaseClass = new File("build");
+    FileUtil.fullyDelete(uselessDirCreatedByBaseClass);
     UTIL.shutdownMiniCluster();
   }
 
