@@ -107,16 +107,16 @@ public class TestXAttr extends FSXAttrBaseTest {
   private class MockDistributedFileSystem extends DistributedFileSystem {
     @Override
     public byte[] getXAttr(Path path, final String name) throws IOException {
-      return getFS().getXAttr(path, name);
+      return user1fs.getXAttr(path, name);
     }
 
     @Override
     public void removeXAttr(Path path, final String name) throws IOException {
-      getFS().removeXAttr(path, name);
+      user1fs.removeXAttr(path, name);
     }
     @Override
     public List<String> listXAttrs(Path path) throws IOException {
-      return getFS().listXAttrs(path);
+      return user1fs.listXAttrs(path);
     }
   }
 
@@ -443,20 +443,15 @@ public class TestXAttr extends FSXAttrBaseTest {
     fs.setXAttr(path2, "trusted.a2", attrValue2);
     assertEquals(1, fs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        try {
-          user1fs.setXAttr(path1, "trusted.a1", attrValue2);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.
-          assertExceptionContains("User doesn\'t have permission", e);
-        }
-        assertEquals(0, user1fs.listXAttrs(path1).size());
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    try {
+      user1fs.setXAttr(path1, "trusted.a1", attrValue2);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.
+      assertExceptionContains("User doesn\'t have permission", e);
+    }
+    assertEquals(0, user1fs.listXAttrs(path1).size());
   }
 
   @Test
@@ -470,20 +465,15 @@ public class TestXAttr extends FSXAttrBaseTest {
     }
     assertEquals(0, fs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        try {
-          user1fs.setXAttr(path1, "system.a1", attrValue1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.
-          assertExceptionContains("User doesn\'t have permission", e);
-        }
-        assertEquals(0, user1fs.listXAttrs(path1).size());
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    try {
+      user1fs.setXAttr(path1, "system.a1", attrValue1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.
+      assertExceptionContains("User doesn\'t have permission", e);
+    }
+    assertEquals(0, user1fs.listXAttrs(path1).size());
   }
 
   @Test
@@ -497,129 +487,94 @@ public class TestXAttr extends FSXAttrBaseTest {
     }
     assertEquals(0, fs.listXAttrs(path2).size());
 
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        try {
-          user1fs.setXAttr(path1, "security.a1", attrValue1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.
-          assertExceptionContains("User doesn\'t have permission", e);
-        }
-        assertEquals(0, user1fs.listXAttrs(path1).size());
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    try {
+      user1fs.setXAttr(path1, "security.a1", attrValue1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.
+      assertExceptionContains("User doesn\'t have permission", e);
+    }
+    assertEquals(0, user1fs.listXAttrs(path1).size());
   }
 
   @Test
   public void testCanNotSetXAttrWithoutWPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        user1fs.setPermission(path1,
-            FsPermission.createImmutable((short) 352));
-        try {
-          user1fs.setXAttr(path1, attrName1, attrValue1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.assertExceptionContains("Permission denied", e);
-        }
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    user1fs.setPermission(path1,
+        FsPermission.createImmutable((short) 352));
+    try {
+      user1fs.setXAttr(path1, attrName1, attrValue1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.assertExceptionContains("Permission denied", e);
+    }
     assertEquals(0, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotSetXAttrWithoutParentXPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
+    createEmptyFile(user1fs, path1);
 
-        // remove parent node's X permission
-        Path path1Parent = new Path("aaa/bbb");
-        user1fs.setPermission(path1Parent,
-            FsPermission.createImmutable((short) 384));
-        try {
-          user1fs.setXAttr(path1, attrName1, attrValue1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.assertExceptionContains("Permission denied", e);
-        }
-        return null;
-      }
-    });
+    // remove parent node's X permission
+    Path path1Parent = new Path("aaa/bbb");
+    user1fs.setPermission(path1Parent,
+        FsPermission.createImmutable((short) 384));
+    try {
+      user1fs.setXAttr(path1, attrName1, attrValue1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.assertExceptionContains("Permission denied", e);
+    }
     assertEquals(0, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testOnlySuperUserCanGetOrListTRUSTEDXAttr() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        user1fs.setXAttr(path1, attrName1, attrValue1);
-        assertEquals(1, user1fs.getXAttrs(path1).size());
-        assertEquals(1, user1fs.listXAttrs(path1).size());
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    user1fs.setXAttr(path1, attrName1, attrValue1);
+    assertEquals(1, user1fs.getXAttrs(path1).size());
+    assertEquals(1, user1fs.listXAttrs(path1).size());
+
     // use super user to set trusted xAttr
     fs.setXAttr(user1Path, "trusted.a1", attrValue2);
 
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        assertEquals(1, user1fs.getXAttrs(path1).size());
-        assertEquals(1, user1fs.listXAttrs(path1).size());
-        return null;
-      }
-    });
-
+    assertEquals(1, user1fs.getXAttrs(path1).size());
+    assertEquals(1, user1fs.listXAttrs(path1).size());
     assertEquals(2, fs.getXAttrs(user1Path).size());
     assertEquals(2, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotRemoveXAttrWithoutWPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        user1fs.setXAttr(path1, attrName1, attrValue1);
-        user1fs.setPermission(path1,
-            FsPermission.createImmutable((short) 352));
-        try {
-          user1fs.removeXAttr(path1, attrName1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.assertExceptionContains("Permission denied", e);
-        }
-        return null;
-      }
-    });
+    createEmptyFile(user1fs, path1);
+    user1fs.setXAttr(path1, attrName1, attrValue1);
+    user1fs.setPermission(path1,
+        FsPermission.createImmutable((short) 352));
+    try {
+      user1fs.removeXAttr(path1, attrName1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.assertExceptionContains("Permission denied", e);
+    }
     assertEquals(1, fs.listXAttrs(user1Path).size());
   }
 
   @Test
   public void testCanNotRemoveXAttrWithoutParentXPermission() throws Exception {
-    user1.doAs(new PrivilegedExceptionAction<Void>() {
-      public Void run() throws Exception {
-        createEmptyFile(user1fs, path1);
-        user1fs.setXAttr(path1, attrName1, attrValue1);
+    createEmptyFile(user1fs, path1);
+    user1fs.setXAttr(path1, attrName1, attrValue1);
 
-        // remove parent node's X permission
-        Path path1Parent = new Path("aaa/bbb");
-        user1fs.setPermission(path1Parent,
-            FsPermission.createImmutable((short) 384));
-        try {
-          user1fs.removeXAttr(path1, attrName1);
-          fail("expected IOException");
-        } catch (IOException e) {
-          GenericTestUtils.assertExceptionContains("Permission denied", e);
-        }
-        return null;
-      }
-    });
+    // remove parent node's X permission
+    Path path1Parent = new Path("aaa/bbb");
+    user1fs.setPermission(path1Parent,
+        FsPermission.createImmutable((short) 384));
+    try {
+      user1fs.removeXAttr(path1, attrName1);
+      fail("expected IOException");
+    } catch (IOException e) {
+      GenericTestUtils.assertExceptionContains("Permission denied", e);
+    }
     assertEquals(1, fs.listXAttrs(user1Path).size());
   }
 
