@@ -159,7 +159,7 @@ public class TestXAttr extends FSXAttrBaseTest {
   public void before() throws IOException {
     // File System Initialization
     GiraffaFileSystem.format((GiraffaConfiguration)conf, false);
-    fs = (GiraffaFileSystem) FileSystem.get(conf);
+    fs = FileSystem.get(conf);
 
     createFiles();
     setupForOtherUsers();
@@ -678,7 +678,7 @@ public class TestXAttr extends FSXAttrBaseTest {
     try {
       return user1.doAs(new PrivilegedExceptionAction<FileSystem>() {
         public FileSystem run() throws Exception {
-          return (GiraffaFileSystem)FileSystem.get(conf);
+          return FileSystem.get(conf);
         }
       });
     } catch (InterruptedException e) {
