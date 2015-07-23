@@ -31,6 +31,7 @@ import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -39,6 +40,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.util.Time;
 
@@ -117,7 +119,7 @@ public class INodeManager implements Closeable {
    * Commit the fields of the given INode into HBase.
    */
   public void updateINode(INode node) throws IOException {
-    updateINode(node, null);
+    updateINode(node, null, null);
   }
 
   /**
@@ -125,6 +127,16 @@ public class INodeManager implements Closeable {
    * BlockAction for processing by the BlockManagementAgent.
    */
   public void updateINode(INode node, BlockAction ba)
+      throws IOException {
+    updateINode(node, ba, null);
+  }
+
+  /**
+   * Commit the fields of the give INode into HBase.
+   * Additional stores a BlockAction for processing by the BlockManagementAgent.
+   * If xAttrs is not null, it will add a list of XAttr to the node as well
+   */
+  public void updateINode(INode node, BlockAction ba, List<XAttr> xAttrs)
       throws IOException {
     long ts = Time.now();
     RowKey key = node.getRowKey();
@@ -177,6 +189,14 @@ public class INodeManager implements Closeable {
     // block action
     if(ba != null) {
       put.addColumn(family, FileField.getAction(), ts, Bytes.toBytes(ba.toString()));
+    }
+
+    if (xAttrs != null) {
+      for (XAttr xAttr : xAttrs) {
+        String xAttrColumnName = XAttrHelper.getPrefixName(xAttr);
+        put.addColumn(FileField.getFileExtendedAttributes(),
+            Bytes.toBytes(xAttrColumnName), ts, xAttr.getValue());
+      }
     }
 
     getNSTable().put(put);
@@ -299,6 +319,31 @@ public class INodeManager implements Closeable {
     Result result = getNSTable().get(new Get(node.getRowKey().getKey()));
     node.setBlocks(FileFieldDeserializer.getBlocks(result));
     node.setLocations(FileFieldDeserializer.getLocations(result));
+  }
+
+  public void setXAttr(String path, XAttr xAttr) throws IOException {
+    long ts = Time.now();
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Put put = new Put(rowKey.getKey(), ts);
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
+    put.addColumn(FileField.getFileExtendedAttributes(),
+            Bytes.toBytes(realColumnName), ts, xAttr.getValue());
+    getNSTable().put(put);
+  }
+
+  public List<XAttr> getXAttrs(String path) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Result result = getNSTable().get(new Get(rowKey.getKey()));
+    return FileFieldDeserializer.getXAttrs(result);
+  }
+
+  public void removeXAttr(String path, XAttr xAttr) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Delete delete = new Delete(rowKey.getKey());
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
+    delete.addColumns(FileField.getFileExtendedAttributes(),
+                      Bytes.toBytes(realColumnName));
+    getNSTable().delete(delete);
   }
 
   private Table getNSTable() {

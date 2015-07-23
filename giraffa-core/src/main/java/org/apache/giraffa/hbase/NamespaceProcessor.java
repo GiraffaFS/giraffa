@@ -38,6 +38,10 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_DEFAU
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_PERMISSIONS_SUPERUSERGROUP_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_MAX_XATTR_SIZE_KEY;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_DEFAULT;
+import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 import static org.apache.hadoop.util.Time.now;
@@ -62,7 +66,9 @@ import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.XAttrOp;
 import org.apache.giraffa.hbase.INodeManager.Function;
+import org.apache.hadoop.HadoopIllegalArgumentException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BatchedRemoteIterator;
 import org.apache.hadoop.fs.CacheFlag;
@@ -137,6 +143,7 @@ public class NamespaceProcessor implements ClientProtocol,
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
   private INodeManager nodeManager;
+  private XAttrOp xAttrOp;
   private LeaseManager leaseManager;
   private FsServerDefaults serverDefaults;
   private boolean running;
@@ -149,6 +156,8 @@ public class NamespaceProcessor implements ClientProtocol,
   private String fsOwnerShortUserName;
   private String supergroup;
   private boolean isPermissionEnabled;
+  private boolean xAttrsEnabled;
+  private int xAttrMaxSize;
 
   public NamespaceProcessor() {}
   
@@ -175,6 +184,16 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("fsOwner             = " + fsOwner);
     LOG.info("supergroup          = " + supergroup);
     LOG.info("isPermissionEnabled = " + isPermissionEnabled);
+    xAttrsEnabled = conf.getBoolean(DFS_NAMENODE_XATTRS_ENABLED_KEY,
+        DFS_NAMENODE_XATTRS_ENABLED_DEFAULT);
+    LOG.info("xAttrsEnabled = " + xAttrsEnabled);
+    xAttrMaxSize = conf.getInt(DFS_NAMENODE_MAX_XATTR_SIZE_KEY,
+                               DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT);
+    assert xAttrMaxSize >= 0 :
+        "Cannot set a negative value for the maximum size of an xAttr (" +
+        DFS_NAMENODE_MAX_XATTR_SIZE_DEFAULT + ").";
+    String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
+    LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
     RowKeyFactory.registerRowKey(conf);
     int configuredLimit = conf.getInt(
@@ -215,6 +234,7 @@ public class NamespaceProcessor implements ClientProtocol,
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
     this.nodeManager = new INodeManager(e.getTable(tableName));
+    this.xAttrOp = new XAttrOp(nodeManager, conf);
     leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();
     this.running = true;
@@ -990,7 +1010,7 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.debug("Copying " + src + " to " + dst + " with rename flag");
     INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
-    nodeManager.updateINode(dstNode);
+    nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
     return dstNode;
   }
 
@@ -1476,23 +1496,28 @@ public class NamespaceProcessor implements ClientProtocol,
   @Override
   public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    checkXAttrsConfigFlag();
+    checkXAttrSize(xAttr);
+    xAttrOp.setXAttr(src, xAttr, flag, getFsPermissionChecker());
   }
 
   @Override
   public List<XAttr> getXAttrs(String src, List<XAttr> xAttrs)
       throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    checkXAttrsConfigFlag();
+    return xAttrOp.getXAttrs(src, xAttrs, getFsPermissionChecker());
   }
 
   @Override
   public List<XAttr> listXAttrs(String src) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    checkXAttrsConfigFlag();
+    return xAttrOp.listXAttrs(src, getFsPermissionChecker());
   }
 
   @Override
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
-    throw new IOException("Extended Attributes are not supported");
+    checkXAttrsConfigFlag();
+    xAttrOp.removeXAttr(src, xAttr, getFsPermissionChecker());
   }
 
   public boolean internalReleaseLease(FileLease lease, String src)
@@ -1520,6 +1545,31 @@ public class NamespaceProcessor implements ClientProtocol,
 
   public boolean isRunning() {
     return running;
+  }
+
+  public void checkXAttrsConfigFlag() throws IOException {
+    if(!this.xAttrsEnabled) {
+      throw new IOException(String.format("The XAttr operation has been "
+       + "rejected.  Support for XAttrs has been disabled by setting %s to"
+       + " false.", DFS_NAMENODE_XATTRS_ENABLED_KEY));
+    }
+  }
+
+  /**
+   * Derived from {@link org.apache.hadoop.hdfs.server.namenode.FSNamesystem }
+   */
+  private void checkXAttrSize(XAttr xAttr) {
+    if(xAttrMaxSize != 0) {
+      int size = xAttr.getName().getBytes().length;
+      if(xAttr.getValue() != null) {
+        size += xAttr.getValue().length;
+      }
+      if(size > xAttrMaxSize) {
+        throw new HadoopIllegalArgumentException("The XAttr is too big."
+        + " The maximum combined size of the name and value is " + xAttrMaxSize
+        + ", but the total size is " + size);
+      }
+    }
   }
 
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
