@@ -158,12 +158,11 @@ public class GiraffaFileServlet extends HttpServlet {
 
   private FileItem convertToFileItem(FileStatus stat) throws IOException {
     RowKey rowKey = RowKeyFactory.newInstance(stat.getPath().toUri().getPath());
-
-    FileItem file = new FileItem(stat.getLen(), stat.isDirectory(),
-        stat.getReplication(), stat.getBlockSize(), stat.getModificationTime(),
-        stat.getAccessTime(), stat.getPermission(), stat.getOwner(),
-        stat.getGroup(), (stat.isSymlink() ? RowKeyBytes.toBytes(
-            stat.getSymlink().toString()) : null), rowKey);
+    FileItem file = new FileItem(rowKey, stat.getModificationTime(),
+        stat.getAccessTime(), stat.getOwner(), stat.getGroup(),
+        stat.getPermission(), (stat.isSymlink() ? RowKeyBytes.toBytes(
+        stat.getSymlink().toString()) : null), stat.getLen(),
+        stat.getReplication(), stat.getBlockSize());
     file.setTextFile(GiraffaWebUtils.endsWithAny(stat.getPath().toString(), TEXT_FILE_EXT));
     return file;
   }
