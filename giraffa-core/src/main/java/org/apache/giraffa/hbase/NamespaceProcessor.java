@@ -417,8 +417,9 @@ public class NamespaceProcessor implements ClientProtocol,
       long time = now();
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
-      iFile = new INodeFile(key, time, time, pc.getUser(), iParent.getGroup(),
-          masked, null, null, 0, replication, blockSize,
+      long id = nodeManager.generateINodeId();
+      iFile = new INodeFile(key, id, time, time, pc.getUser(),
+          iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
     }
 
@@ -785,7 +786,8 @@ public class NamespaceProcessor implements ClientProtocol,
     } 
 
     long time = now();
-    inode = new INodeDirectory(key, time, time, pc.getUser(),
+    long id = nodeManager.generateINodeId();
+    inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
     // add directory to HBase
@@ -844,7 +846,8 @@ public class NamespaceProcessor implements ClientProtocol,
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
-    INodeDirectory inode = new INodeDirectory(key, time, time, user, group,
+    long id = nodeManager.generateINodeId();
+    INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
     return inode;

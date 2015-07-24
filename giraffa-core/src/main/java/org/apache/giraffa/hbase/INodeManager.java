@@ -145,8 +145,9 @@ public class INodeManager implements Closeable {
     long ts = Time.now();
     RowKey key = node.getRowKey();
     byte[] family = FileField.getFileAttributes();
-    Put put = new Put(node.getRowKey().getKey(), ts);
-    put.addColumn(family, FileField.getFileName(), ts,
+    Put put = new Put(key.getKey(), ts);
+    put.addColumn(family, FileField.getId(), ts, Bytes.toBytes(node.getId()))
+        .addColumn(family, FileField.getFileName(), ts,
             RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
         .addColumn(family, FileField.getUserName(), ts,
             RowKeyBytes.toBytes(node.getOwner()))
@@ -336,7 +337,7 @@ public class INodeManager implements Closeable {
     Put put = new Put(rowKey.getKey(), ts);
     String realColumnName = XAttrHelper.getPrefixName(xAttr);
     put.addColumn(FileField.getFileExtendedAttributes(),
-            Bytes.toBytes(realColumnName), ts, xAttr.getValue());
+        Bytes.toBytes(realColumnName), ts, xAttr.getValue());
     getNSTable().put(put);
   }
 
@@ -355,6 +356,10 @@ public class INodeManager implements Closeable {
     getNSTable().delete(delete);
   }
 
+  public long generateINodeId() {
+    return 0;
+  }
+
   private Table getNSTable() {
     assert nsTable != null : "No Table is set.";
     return nsTable;
@@ -369,6 +374,7 @@ public class INodeManager implements Closeable {
     RowKey key = RowKeyFactory.newInstance(src, result.getRow());
     if (FileFieldDeserializer.getDirectory(result)) {
       return new INodeDirectory(key,
+          FileFieldDeserializer.getId(result),
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),
@@ -380,6 +386,7 @@ public class INodeManager implements Closeable {
           FileFieldDeserializer.getNsQuota(result));
     } else {
       return new INodeFile(key,
+          FileFieldDeserializer.getId(result),
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),
