@@ -38,7 +38,8 @@ import org.apache.hadoop.hdfs.protocol.ClientProtocol;
  * {@link org.apache.giraffa.hbase.NamespaceAgent} is the default implementation of
  * {@link NamespaceService} for HBase.
  */
-public interface NamespaceService extends ClientProtocol, Closeable {
+public interface NamespaceService
+    extends ClientProtocol, FileIdProtocol, Closeable {
   
   public void initialize(GiraffaConfiguration conf) throws IOException;
 

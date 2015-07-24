@@ -18,6 +18,7 @@
 package org.apache.giraffa.hbase;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -358,6 +359,18 @@ public class INodeManager implements Closeable {
 
   public long generateINodeId() {
     return 0;
+  }
+
+  public long findINodeId(RowKey parentKey, Path src) throws IOException {
+    String fileName = src.getName();
+    try (ResultScanner rs = getListingScanner(parentKey)) {
+      for (Result result : rs) {
+        if (FileFieldDeserializer.getFileName(result).equals(fileName)) {
+          return FileFieldDeserializer.getId(result);
+        }
+      }
+    }
+    throw new FileNotFoundException("Path does not exist: " + src);
   }
 
   private Table getNSTable() {

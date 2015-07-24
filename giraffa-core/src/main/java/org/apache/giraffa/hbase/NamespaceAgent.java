@@ -48,7 +48,10 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.FileIdProtocol;
+import org.apache.giraffa.FileIdProtocolServiceTranslatorPB;
 import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
 import org.apache.giraffa.NamespaceService;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
@@ -138,6 +141,11 @@ public class NamespaceAgent implements NamespaceService {
                                   "grfa.namespace.processor.class"; 
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
+  public static final String GRFA_FILE_ID_PROCESSOR_KEY =
+      "grfa.file.id.processor.class";
+  public static final String GRFA_FILE_ID_PROCESSOR_DEFAULT =
+      FileIdProcessor.class.getName();
+
 
   private Admin hbAdmin;
   private Table nsTable;
@@ -387,6 +395,10 @@ public class NamespaceAgent implements NamespaceService {
         GRFA_NAMESPACE_PROCESSOR_KEY, GRFA_NAMESPACE_PROCESSOR_DEFAULT);
     htd.addCoprocessor(nsProcClass, null, Coprocessor.PRIORITY_SYSTEM, null);
     LOG.info("Namespace processor is set to: " + nsProcClass);
+    String idProcClass =
+        conf.get(GRFA_FILE_ID_PROCESSOR_KEY, GRFA_FILE_ID_PROCESSOR_DEFAULT);
+    htd.addCoprocessor(idProcClass, null, Coprocessor.PRIORITY_SYSTEM, null);
+    LOG.info("FileId processor is set to: " + idProcClass);
     return htd;
   }
 
@@ -831,5 +843,13 @@ public class NamespaceAgent implements NamespaceService {
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     ClientProtocol proxy = getRegionProxy(src);
     proxy.removeXAttr(src, xAttr);
+  }
+
+  @Override // FileIdProtocol
+  public long getFileId(byte[] parentKey, String src) throws IOException {
+    CoprocessorRpcChannel channel = nsTable.coprocessorService(parentKey);
+    FileIdProtocol proxy = new FileIdProtocolServiceTranslatorPB(
+        FileIdProtocolService.newBlockingStub(channel));
+    return proxy.getFileId(parentKey, src);
   }
 }
