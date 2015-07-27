@@ -76,6 +76,7 @@ public class TestExceptionHandling {
 
   @AfterClass
   public static void afterClass() throws Exception {
+    LOG.info("Shutting down mini cluster: SHV !!");
     UTIL.shutdownMiniCluster();
   }
 
