@@ -458,6 +458,12 @@
                                              outputdir="${generated.sources}/java"
                                              package="org.apache.giraffa.web"
                                              webxml="${build.webapps}/WEB-INF/web.xml"/>
+
+                                <exec executable="protoc">
+                                    <arg value="-I=${basedir}/src/main/proto" />
+                                    <arg value="--java_out=${generated.sources}/java"/>
+                                    <arg value="${basedir}/src/main/proto/grfa.proto"/>
+                                </exec>
                             </target>
                         </configuration>
                         <goals>
