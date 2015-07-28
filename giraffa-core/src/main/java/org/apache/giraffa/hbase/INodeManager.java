@@ -63,10 +63,12 @@ public class INodeManager implements Closeable {
 
   /** The Namespace table */
   private Table nsTable;
+  private INodeIdGenerator idGen;
 
-  public INodeManager(Table nsTable) {
+  public INodeManager(Table nsTable) throws IOException {
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
+    idGen = new INodeIdGenerator(nsTable.getConfiguration());
   }
 
   @Override
@@ -76,6 +78,10 @@ public class INodeManager implements Closeable {
       if(nsTable != null) {
         nsTable.close();
         nsTable = null;
+      }
+      if(idGen != null) {
+        idGen.close();
+        idGen = null;
       }
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
@@ -361,8 +367,8 @@ public class INodeManager implements Closeable {
     getNSTable().delete(delete);
   }
 
-  public long generateINodeId() {
-    return 0;
+  public long nextINodeId() throws IOException {
+    return idGen.nextId();
   }
 
   public long findINodeId(RowKey parentKey, Path src) throws IOException {

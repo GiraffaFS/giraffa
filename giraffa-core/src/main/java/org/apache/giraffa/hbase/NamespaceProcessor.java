@@ -420,7 +420,7 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
       long time = now();
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
-      long id = nodeManager.generateINodeId();
+      long id = nodeManager.nextINodeId();
       iFile = new INodeFile(key, id, time, time, pc.getUser(),
           iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
@@ -789,7 +789,7 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
     } 
 
     long time = now();
-    long id = nodeManager.generateINodeId();
+    long id = nodeManager.nextINodeId();
     inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
@@ -837,19 +837,21 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
 
     RowKey key = RowKeyFactory.newInstance(src.toString());
     long time = now();
+    long id;
     String user, group;
     if (parent == null) {
       // root directory settings
+      id = INodeIdGenerator.ROOT_ID;
       user = fsOwnerShortUserName;
       group = supergroup;
       masked = FsPermission.createImmutable((short)0755);
     } else {
+      id = nodeManager.nextINodeId();
       user = pc.getUser();
       group = iParent.getGroup();
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
-    long id = nodeManager.generateINodeId();
     INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
