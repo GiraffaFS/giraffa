@@ -4,7 +4,11 @@ is not an official project of the Apache Software Foundation.
 Giraffa project is related to Apache Hadoop and Apache HBase projects.
 Giraffa is licensed under Apache License 2.0.
 
-Considering that maven v3 is already installed:
+Requirements:
+
+* JDK 1.6+
+* Maven 3.0 or later
+* ProtocolBuffer 2.5.0
 
 Build Giraffa jar:
 
