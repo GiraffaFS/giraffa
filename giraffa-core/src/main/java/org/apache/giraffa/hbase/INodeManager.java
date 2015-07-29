@@ -168,14 +168,14 @@ public class INodeManager implements Closeable {
 
     // file/directory specific columns
     if (node.isDir()) {
-      INodeDirectory dir = node.asDir();
+      INodeDirectory dir = INodeDirectory.valueOf(node);
       put.addColumn(family, FileField.getDirectory(), ts, EMPTY)
           .addColumn(family, FileField.getDsQuota(), ts,
               Bytes.toBytes(dir.getDsQuota()))
           .addColumn(family, FileField.getNsQuota(), ts,
               Bytes.toBytes(dir.getNsQuota()));
     } else {
-      INodeFile file = node.asFile();
+      INodeFile file = INodeFile.valueOf(node);
       put.addColumn(family, FileField.getLength(), ts,
               Bytes.toBytes(file.getLen()))
           .addColumn(family, FileField.getReplication(), ts,
@@ -280,7 +280,7 @@ public class INodeManager implements Closeable {
           dir.setEmpty(false);
           if (FileFieldDeserializer.getDirectory(result)) {
             INode child = newINodeByParent(key.getPath(), result);
-            directories.add(child.asDir());
+            directories.add(INodeDirectory.valueOf(child));
           }
         }
       } finally {

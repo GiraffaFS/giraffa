@@ -17,13 +17,17 @@
  */
 package org.apache.giraffa;
 
-import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
-
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 
+import java.io.IOException;
+
+/**
+ * Stores all metadata related to a directory in the namespace, including the
+ * associated quotas.
+ */
 public class INodeDirectory extends INode {
 
   private long dsQuota;
@@ -83,14 +87,14 @@ public class INodeDirectory extends INode {
   public HdfsFileStatus getFileStatus() {
     return new HdfsFileStatus(0, true, 0, 0, getModificationTime(),
         getAccessTime(), getPermission(), getOwner(), getGroup(), getSymlink(),
-        getPath(), GRANDFATHER_INODE_ID, 0);
+        getPathBytes(), getId(), 0);
   }
 
   @Override // INode
   public HdfsLocatedFileStatus getLocatedFileStatus() {
     return new HdfsLocatedFileStatus(0, true, 0, 0, getModificationTime(),
         getAccessTime(), getPermission(), getOwner(), getGroup(), getSymlink(),
-        getPath(), GRANDFATHER_INODE_ID, null, 0);
+        getPathBytes(), getId(), null, 0);
   }
 
   @Override // INode
@@ -98,5 +102,13 @@ public class INodeDirectory extends INode {
     return new INodeDirectory(newKey, getModificationTime(), getAccessTime(),
         getOwner(), getGroup(), getPermission(), getSymlink(), getRenameState(),
         dsQuota, nsQuota);
+  }
+
+  public static INodeDirectory valueOf(INode node) throws IOException {
+    if (node.isDir()) {
+      return (INodeDirectory) node;
+    } else {
+      throw new IOException("Path is not a directory: " + node.getPath());
+    }
   }
 }

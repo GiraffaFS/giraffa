@@ -226,11 +226,7 @@ public class GiraffaWebJsonWrappers {
     }
 
     public String getName() {
-      return new Path(getRowKey().getPath()).getName();
-    }
-
-    public String getPath() {
-      return getRowKey().getPath();
+      return new Path(getPath()).getName();
     }
 
     public String getPermissionString() {

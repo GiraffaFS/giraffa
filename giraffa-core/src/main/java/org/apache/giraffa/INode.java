@@ -20,12 +20,19 @@ package org.apache.giraffa;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
+import org.apache.hadoop.hdfs.server.namenode.INodeId;
 
 import java.io.IOException;
 
+/**
+ * Stores all metadata related to a file or directory in the namespace,
+ * including the {@link RowKey} of the associated row in the database. The
+ * fields of an {@code INode} are associated with both files and directories.
+ */
 public abstract class INode {
 
   private final RowKey key;
+  private final long id;
   private long mtime;
   private long atime;
   private String owner;
@@ -46,6 +53,7 @@ public abstract class INode {
         byte[] symlink,
         RenameState renameState) {
     this.key = key;
+    this.id = INodeId.GRANDFATHER_INODE_ID;
     this.mtime = mtime;
     this.atime = atime;
     this.owner = owner;
@@ -55,12 +63,20 @@ public abstract class INode {
     setRenameState(renameState);
   }
 
-  final byte[] getPath() {
-    return RowKeyBytes.toBytes(key.getPath());
+  final public String getPath() {
+    return key.getPath();
+  }
+
+  final byte[] getPathBytes() {
+    return RowKeyBytes.toBytes(getPath());
   }
 
   final public RowKey getRowKey() {
     return key;
+  }
+
+  final public long getId() {
+    return id;
   }
 
   /**
@@ -151,24 +167,8 @@ public abstract class INode {
 
   public abstract INode cloneWithNewRowKey(RowKey newKey);
 
-  final public INodeFile asFile() throws IOException {
-    if (!isDir()) {
-      return (INodeFile) this;
-    } else {
-      throw new IOException("Path is a directory: " + key.getPath());
-    }
-  }
-
-  final public INodeDirectory asDir() throws IOException {
-    if (isDir()) {
-      return (INodeDirectory) this;
-    } else {
-      throw new IOException("Path is not a directory: " + key.getPath());
-    }
-  }
-
   @Override
   public String toString() {
-    return "\"" + getRowKey().getPath() + "\":" + permission;
+    return "\"" + getPath() + "\":" + permission;
   }
 }

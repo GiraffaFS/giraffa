@@ -18,7 +18,6 @@
 package org.apache.giraffa;
 
 import static org.apache.giraffa.GiraffaConstants.FileState.UNDER_CONSTRUCTION;
-import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -29,9 +28,14 @@ import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 import org.apache.hadoop.hdfs.protocol.LocatedBlock;
 import org.apache.hadoop.hdfs.protocol.LocatedBlocks;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Stores all metadata related to a file in the namespace, including the list of
+ * blocks and locations.
+ */
 public class INodeFile extends INode {
 
   private long length;
@@ -160,7 +164,7 @@ public class INodeFile extends INode {
   public HdfsFileStatus getFileStatus() {
     return new HdfsFileStatus(length, false, replication, blocksize,
         getModificationTime(), getAccessTime(), getPermission(), getOwner(),
-        getGroup(), getSymlink(), getPath(), GRANDFATHER_INODE_ID, 0);
+        getGroup(), getSymlink(), getPathBytes(), getId(), 0);
   }
 
   @Override // INode
@@ -175,8 +179,7 @@ public class INodeFile extends INode {
         locatedBlocksList, lastBlock, isLastBlockComplete);
     return new HdfsLocatedFileStatus(length, false, replication, blocksize,
         getModificationTime(), getAccessTime(), getPermission(), getOwner(),
-        getGroup(), getSymlink(), getPath(), GRANDFATHER_INODE_ID,
-        locatedBlocks, 0);
+        getGroup(), getSymlink(), getPathBytes(), getId(), locatedBlocks, 0);
   }
 
   @Override // INode
@@ -184,5 +187,13 @@ public class INodeFile extends INode {
     return new INodeFile(newKey, getModificationTime(), getAccessTime(),
         getOwner(), getGroup(), getPermission(), getSymlink(), getRenameState(),
         length, replication, blocksize, fileState, lease, blocks, locations);
+  }
+
+  public static INodeFile valueOf(INode node) throws IOException {
+    if (!node.isDir()) {
+      return (INodeFile) node;
+    } else {
+      throw new IOException("Path is a directory: " + node.getPath());
+    }
   }
 }

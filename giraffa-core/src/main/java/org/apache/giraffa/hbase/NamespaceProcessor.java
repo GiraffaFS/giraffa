@@ -267,7 +267,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throws AccessControlException, FileNotFoundException,
              NotReplicatedYetException, SafeModeException,
              UnresolvedLinkException, IOException {
-    INodeFile iNode = getINode(src).asFile();
+    INodeFile iNode = getINodeAsFile(src);
 
     // Calls addBlock on HDFS by putting another empty Block in HBase
     if(previous != null) {
@@ -318,7 +318,7 @@ public class NamespaceProcessor implements ClientProtocol,
                           ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    INodeFile iNode = getINode(src).asFile();
+    INodeFile iNode = getINodeAsFile(src);
     checkLease(src, iNode, clientName);
 
     // set the state and replace the block, then put the iNode
@@ -382,7 +382,7 @@ public class NamespaceProcessor implements ClientProtocol,
         throw new FileAlreadyExistsException(
             "File already exists as directory: " + src);
       }
-      INodeFile file = iFile.asFile();
+      INodeFile file = INodeFile.valueOf(iFile);
       if(overwrite) {
         if (!delete(file, false, true, null)) {
           throw new IOException("Cannot override existing file: " + src);
@@ -473,8 +473,9 @@ public class NamespaceProcessor implements ClientProtocol,
                          FSPermissionChecker pc)
       throws IOException {
     boolean result = node.isDir() ?
-        deleteDirectory(node.asDir(), recursive, deleteBlocks, pc) :
-        deleteFile(node.asFile(), deleteBlocks);
+        deleteDirectory(
+            INodeDirectory.valueOf(node), recursive, deleteBlocks, pc) :
+        deleteFile(INodeFile.valueOf(node), deleteBlocks);
 
     // delete time penalty (workaround for HBASE-2256)
     try {
@@ -541,9 +542,9 @@ public class NamespaceProcessor implements ClientProtocol,
           @Override
           public void apply(INode input) throws IOException {
             if (!input.isDir())
-              deleteFile(input.asFile(), deleteBlocks);
+              deleteFile(INodeFile.valueOf(input), deleteBlocks);
             else
-              dirsToDelete.add(input.asDir());
+              dirsToDelete.add(INodeDirectory.valueOf(input));
           }
         });
 
@@ -554,7 +555,7 @@ public class NamespaceProcessor implements ClientProtocol,
       }
     }
     else if(!nodeManager.isEmptyDirectory(node)) {
-      throw new PathIsNotEmptyDirectoryException(node.getRowKey().getPath()
+      throw new PathIsNotEmptyDirectoryException(node.getPath()
           + " is non empty");
     }
 
@@ -598,7 +599,7 @@ public class NamespaceProcessor implements ClientProtocol,
       throw new FileNotFoundException("File does not exist: " + src);
     }
 
-    INodeFile file = iNode.asFile();
+    INodeFile file = INodeFile.valueOf(iNode);
     List<LocatedBlock> al = UnlocatedBlock.toLocatedBlocks(file.getBlocks(),
         file.getLocations());
     boolean underConstruction = (file.getFileState().equals(FileState.CLOSED));
@@ -627,7 +628,7 @@ public class NamespaceProcessor implements ClientProtocol,
       pc.check(nodeManager.getParentINode(path), FsAction.EXECUTE);
     }
 
-    INodeDirectory node = getINode(path).asDir();
+    INodeDirectory node = getINodeAsDir(path);
     return new ContentSummary(0L, 0L, 1L, node.getNsQuota(), 0L,
         node.getDsQuota());
   }
@@ -664,7 +665,7 @@ public class NamespaceProcessor implements ClientProtocol,
       pc.check(nodeManager.getParentINode(src), FsAction.EXECUTE);
     }
 
-    return getINode(src).asFile().getFileState() == FileState.CLOSED;
+    return getINodeAsFile(src).getFileState() == FileState.CLOSED;
   }
 
   @Override // ClientProtocol
@@ -729,7 +730,7 @@ public class NamespaceProcessor implements ClientProtocol,
       pc.check(nodeManager.getParentINode(src), FsAction.EXECUTE);
     }
 
-    return getINode(src).asFile().getBlockSize();
+    return getINodeAsFile(src).getBlockSize();
   }
 
   @Override // ClientProtocol
@@ -932,13 +933,13 @@ public class NamespaceProcessor implements ClientProtocol,
         assert rootSrcNode != null;
         assert rootSrcNode.isDir();
         List<INodeDirectory> directories =
-            nodeManager.getDirectories(rootSrcNode.asDir());
+            nodeManager.getDirectories(INodeDirectory.valueOf(rootSrcNode));
         for (INodeDirectory dir : directories) {
           // duplicate each INode in subdirectory
           nodeManager.map(dir, new Function() {
             @Override
             public void apply(INode srcNode) throws IOException {
-              String iSrc = srcNode.getRowKey().getPath();
+              String iSrc = srcNode.getPath();
               String iDst = changeBase(iSrc, base, newBase);
               copyWithRenameFlag(srcNode, iDst);
             }
@@ -962,7 +963,7 @@ public class NamespaceProcessor implements ClientProtocol,
     // Stage 3: remove RenameState flags
     if(directoryRename) { // first do Stage 3 for all children
       List<INodeDirectory> directories =
-          nodeManager.getDirectories(rootDstNode.asDir());
+          nodeManager.getDirectories(INodeDirectory.valueOf(rootDstNode));
       for (INodeDirectory dir : directories) {
         nodeManager.map(dir, new Function() {
           @Override
@@ -1002,7 +1003,7 @@ public class NamespaceProcessor implements ClientProtocol,
    * Unsets the rename flag from the given node and updates the namespace.
    */
   private void removeRenameFlag(INode dstNode) throws IOException {
-    LOG.debug("Removing rename flag from "+dstNode.getRowKey().getPath());
+    LOG.debug("Removing rename flag from "+dstNode.getPath());
     dstNode.setRenameState(RenameState.FALSE());
     nodeManager.updateINode(dstNode);
   }
@@ -1098,7 +1099,7 @@ public class NamespaceProcessor implements ClientProtocol,
     for(FileLease lease : leases) {
       INode iNode = nodeManager.getINode(lease.getPath());
       if(iNode != null) {
-        INodeFile file = iNode.asFile();
+        INodeFile file = INodeFile.valueOf(iNode);
         file.setLease(lease);
         nodeManager.updateINodeLease(file);
         LOG.info("Renewed lease: " + lease);
@@ -1183,7 +1184,7 @@ public class NamespaceProcessor implements ClientProtocol,
       getFsPermissionChecker().checkSuperuserPrivilege();
     }
 
-    INodeDirectory node = getINode(src).asDir();
+    INodeDirectory node = getINodeAsDir(src);
     
     // sanity check
     if ((namespaceQuota < 0 && namespaceQuota != HdfsConstants.QUOTA_DONT_SET && 
@@ -1217,7 +1218,7 @@ public class NamespaceProcessor implements ClientProtocol,
     if(node.isDir())
       return false;
 
-    node.asFile().setReplication(replication);
+    INodeFile.valueOf(node).setReplication(replication);
     nodeManager.updateINode(node);
     return true;
   }
@@ -1501,7 +1502,7 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("Recovering " + lease + ", src=" + src);
 
     try {
-      INodeFile iNode = getINode(src).asFile();
+      INodeFile iNode = getINodeAsFile(src);
       if(iNode.getBlocks().size() == 0) {
         LOG.info("Zero blocks detected.");
         return false;
@@ -1551,6 +1552,14 @@ public class NamespaceProcessor implements ClientProtocol,
   private FSPermissionChecker getFsPermissionChecker() throws IOException {
     UserGroupInformation ugi = HBaseRpcUtil.getRemoteUser();
     return new FSPermissionChecker(fsOwnerShortUserName, supergroup, ugi);
+  }
+
+  private INodeFile getINodeAsFile(String src) throws IOException {
+    return INodeFile.valueOf(getINode(src));
+  }
+
+  private INodeDirectory getINodeAsDir(String src) throws IOException {
+    return INodeDirectory.valueOf(getINode(src));
   }
 
   private INode getINode(String src) throws IOException {
