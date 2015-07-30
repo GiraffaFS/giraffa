@@ -34,4 +34,19 @@
     <name>hbase.rpc.callerfactory.class</name>
     <value>org.apache.hadoop.hbase.client.GiraffaRpcRetryingCallerFactory</value>
   </property>
+
+  <property>
+    <name>hbase.master.impl</name>
+    <value>org.apache.hadoop.hbase.master.GMaster</value>
+  </property>
+
+  <property>
+    <name>fs.bsfs.impl</name>
+    <value>org.apache.giraffa.hbase.bootstrap.BSFileSystem</value>
+  </property>
+
+  <!-- property>
+    <name>hbase.rootdir</name>
+    <value>bsfs:///</value>
+  </property-->
 </configuration>

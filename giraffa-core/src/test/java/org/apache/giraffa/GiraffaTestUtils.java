@@ -17,7 +17,9 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_BOOTSTRAP_FS_IMPL;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -69,6 +71,7 @@ public class GiraffaTestUtils {
         HConstants.DEFAULT_HBASE_RPC_TIMEOUT);
     conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
         DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
+    conf.set("fs.bsfs.impl", GRFA_BOOTSTRAP_FS_IMPL);
     return new HBaseTestingUtility(conf);
   }
 

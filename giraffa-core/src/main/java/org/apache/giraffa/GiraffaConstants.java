@@ -18,7 +18,7 @@
 package org.apache.giraffa;
 
 public interface GiraffaConstants {
-  enum FileState {
+  public static enum FileState {
     CLOSED, UNDER_CONSTRUCTION, DELETED, RECOVERING
   }
 
@@ -26,5 +26,9 @@ public interface GiraffaConstants {
     CLOSE, ALLOCATE, DELETE, RECOVER
   }
 
-  String UTF8 = "UTF-8";
+  public static final String UTF8 = "UTF-8";
+
+  public static final String GIRAFFA_SHARED_STATE_KEY = "GiraffaSharedState";
+
+  public static final long   GRFA_SUPER_BLOCK_ID = 777L;
 }

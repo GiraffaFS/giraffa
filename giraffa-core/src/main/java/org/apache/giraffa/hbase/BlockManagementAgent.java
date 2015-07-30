@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_BLOCK_MANAGER_ADDRESS_KEY;
 import static org.apache.giraffa.GiraffaConstants.FileState;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
@@ -105,7 +106,9 @@ public class BlockManagementAgent extends BaseRegionObserver {
     RegionCoprocessorEnvironment e = (RegionCoprocessorEnvironment) env;
     LOG.info("Start BlockManagementAgent...");
     Configuration conf = e.getConfiguration();
-    String bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+    String bmAddress = conf.get(GRFA_BLOCK_MANAGER_ADDRESS_KEY);
+    if(bmAddress == null)
+      bmAddress = conf.get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     LOG.info("BlockManagementAgent address: " + bmAddress);
     if(bmAddress != null)
       conf.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, bmAddress);
@@ -464,11 +467,11 @@ public class BlockManagementAgent extends BaseRegionObserver {
         GRFA_TMP_FILE_PREFFIX + temporaryFileId.incrementAndGet());
   }
 
-  private String getGiraffaBlockPathName(ExtendedBlock block) {
+  private static String getGiraffaBlockPathName(ExtendedBlock block) {
     return getGiraffaBlockPath(block).toUri().getPath();
   }
 
-  private Path getGiraffaBlockPath(ExtendedBlock block) {
+  public static Path getGiraffaBlockPath(ExtendedBlock block) {
     return new Path(GRFA_BLOCKS_DIR,
         GRFA_BLOCK_FILE_PREFFIX + block.getBlockName());
   }
