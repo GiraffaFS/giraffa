@@ -75,7 +75,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
 
     ResultScanner resultScanner;
     if (!StringUtils.isEmpty(dataRequest.getEndKey())) {
-      RowKey rowKey = RowKeyFactory.newInstance(null, RowKeyBytes.toBytes(
+      RowKey rowKey = RowKeyFactory.newInstance(null, -1, RowKeyBytes.toBytes(
           dataRequest.getEndKey()));
       s.setStartRow(rowKey.getKey());
       resultScanner = table.getScanner(s);

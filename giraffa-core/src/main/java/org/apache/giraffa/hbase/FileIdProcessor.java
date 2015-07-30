@@ -77,7 +77,7 @@ public class FileIdProcessor
   public long getFileId(byte[] parentKey, String src) throws IOException {
     Path srcPath = new Path(src);
     String parentPath = srcPath.getParent().toString();
-    RowKey parentRowKey = RowKeyFactory.newInstance(parentPath, parentKey);
+    RowKey parentRowKey = RowKeyFactory.newInstance(parentPath, -1, parentKey);
     return nodeManager.findINodeId(parentRowKey, srcPath);
   }
 }

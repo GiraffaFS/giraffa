@@ -42,12 +42,29 @@ public abstract class RowKey {
    * Set full path to the file system object represented by the row.
    * setKey() does not guarantee that the key will be generated,
    * only that the path is set making it ready for the key generation.
-   * @param src
-   * @throws IOException 
    */
   public abstract void setPath(String src) throws IOException;
 
-  public abstract void set(String src, byte[] bytes) throws IOException;
+  /**
+   * Get the id of the file system object represented by the underlying row.
+   * Implementations are not required to store or compute the id and may safely
+   * return -1 instead.
+   * @return the INode ID at this row, 0 if the INode does not exist, and -1 if
+   *         unknown.
+   * @throws IOException there was a problem in computing the id
+   */
+  public abstract long getINodeId() throws IOException;
+
+  /**
+   * Set the id of the file system object represented by the underlying row.
+   * Implementations are not required to store or use this id in any way.
+   * @param inodeId the id of the INode at this row, 0 if the INode does not
+   *                exist, and -1 unknown.
+   */
+  public abstract void setINodeId(long inodeId);
+
+  public abstract void set(String src, long inodeId, byte[] bytes)
+      throws IOException;
 
   /**
    * Get the row key of the file system object.
@@ -69,8 +86,16 @@ public abstract class RowKey {
 
   public abstract byte[] getStopListingKey();
 
+  /**
+   * Return whether or not the generated key should be cached. This method will
+   * first generate the key if it has not already been done.
+   */
   public abstract boolean shouldCache();
 
+  /**
+   * Return a String representation of the underlying byte array for use in
+   * {@link #toString()}.
+   */
   public abstract String getKeyString();
 
   @Override // Object

@@ -34,7 +34,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   private static final int depth = 3;
   private static final int length = 8 * depth;
-  private static final int offset = length - 8;
+  private static final int lastIdOffset = length - 8;
   private static final byte[] ROOT_KEY = new byte[length];
   private static final byte[] ERROR_KEY = new byte[length];
   private static final ThreadLocal<FileIdProtocol> service =
@@ -47,17 +47,17 @@ public class FileIdRowKey extends RowKey implements Serializable {
     }
   }
 
-  private String src;
-  private byte[] bytes;
-  private boolean shouldCache;
-
-  public FileIdRowKey() {
-    shouldCache = true;
-  }
-
   public static void setFileIdProtocol(FileIdProtocol protocol) {
     service.set(protocol);
   }
+
+  private String src;
+  private long inodeId = -1;
+  private byte[] bytes;
+  private byte[] parentKey;
+  private boolean shouldCache = true;
+
+  public FileIdRowKey() {}
 
   @Override // RowKey
   public String getPath() {
@@ -65,15 +65,34 @@ public class FileIdRowKey extends RowKey implements Serializable {
   }
 
   @Override // RowKey
-  public void setPath(String src)
-      throws IOException {
+  public void setPath(String src) throws IOException {
     this.src = src;
   }
 
   @Override // RowKey
-  public void set(String src, byte[] bytes)
-      throws IOException {
-    this.src = src;
+  public long getINodeId() throws IOException {
+    if (inodeId == -1) {
+      if (bytes != null) {
+        inodeId = RowKeyBytes.toLong(bytes, length - 8);
+      } else {
+        FileIdProtocol protocol = service.get();
+        assert protocol != null;
+        inodeId = protocol.getFileId(getParentKey(), getPath());
+      }
+    }
+    assert inodeId >= 0;
+    return inodeId;
+  }
+
+  @Override // RowKey
+  public void setINodeId(long inodeId) {
+    this.inodeId = inodeId;
+  }
+
+  @Override // RowKey
+  public void set(String src, long inodeId, byte[] bytes) throws IOException {
+    setPath(src);
+    setINodeId(inodeId);
     this.bytes = bytes;
   }
 
@@ -87,26 +106,16 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] generateKey() {
-    Path path = new Path(src);
-    if (path.isRoot()) {
+    if (new Path(getPath()).isRoot()) {
       return ROOT_KEY;
     }
 
     try {
-      // get parent key
-      RowKey parentKey = RowKeyFactory.newInstance(path.getParent());
-      byte[] b = parentKey.getKey();
-      assert b.length == length;
-
-      // get file id and append to parent key
-      FileIdProtocol protocol = service.get();
-      if (protocol == null) {
-        throw new RuntimeException("FileIdProtocol implementation not set.");
-      }
-      long fileId = protocol.getFileId(b, src);
+      byte[] b = getParentKey();
+      long fileId = getINodeId();
       shouldCache &= fileId != 0;
       lshift(b, 8);
-      putLong(b, offset, fileId);
+      putLong(b, lastIdOffset, fileId);
       return b;
     } catch (IOException e) {
       LOG.error("Failed to generate row key for " + getPath(), e);
@@ -121,17 +130,17 @@ public class FileIdRowKey extends RowKey implements Serializable {
     if (startAfter.length == 0) {
       b = getKey();
       lshift(b, 8);
-      putLong(b, offset, 0);
+      putLong(b, lastIdOffset, 0);
     } else {
-      Path p = new Path(src, new String(startAfter));
       try {
-        b = RowKeyFactory.newInstance(p).getKey();
+        Path p = new Path(getPath(), new String(startAfter));
+        RowKey startKey = RowKeyFactory.newInstance(p.toString());
+        b = startKey.getKey();
+        putLong(b, lastIdOffset, startKey.getINodeId() + 1);
       } catch (IOException e) {
         LOG.error("Failed to get start listing key for " + getPath(), e);
         return ERROR_KEY;
       }
-      long id = RowKeyBytes.toLong(b, offset);
-      putLong(b, offset, id + 1);
     }
     return b;
   }
@@ -140,7 +149,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
   public byte[] getStopListingKey() {
     byte[] b = getKey();
     lshift(b, 8);
-    putLong(b, offset, Long.MAX_VALUE);
+    putLong(b, lastIdOffset, Long.MAX_VALUE);
     return b;
   }
 
@@ -161,5 +170,13 @@ public class FileIdRowKey extends RowKey implements Serializable {
       sb.append(RowKeyBytes.toLong(b, i));
     }
     return sb.toString();
+  }
+
+  private byte[] getParentKey() throws IOException {
+    if (parentKey == null) {
+      String parent = new Path(getPath()).getParent().toString();
+      parentKey = RowKeyFactory.newInstance(parent).getKey();
+    }
+    return parentKey;
   }
 }

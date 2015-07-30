@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
@@ -63,19 +62,6 @@ public class RowKeyFactory {
 
   /**
    * Create new instance of RowKey based on file path.
-   * RowKey.bytes field may remain uninitialized depending on the
-   * file path resolution implementation. {@link RowKey#getKey()} will further
-   * generate the bytes.
-   *
-   * @param src file path
-   * @return new RowKey instance
-   */
-  public static RowKey newInstance(Path src) throws IOException {
-    return newInstance(src.toString());
-  }
-
-  /**
-   * Create new instance of RowKey based on file path.
    * RowKey.bytes field may remain uninitialized depending on the 
    * file path resolution implementation. {@link RowKey#getKey()} will further
    * generate the bytes.
@@ -85,21 +71,40 @@ public class RowKeyFactory {
    * @throws IOException
    */
   public static RowKey newInstance(String src) throws IOException {
-    return newInstance(src, null);
+    return newInstance(src, -1);
   }
 
   /**
-   * Create new instance of RowKey based on file path and key bytes.
+   * Create new instance of RowKey based on file path and inode id.
+   * RowKey.bytes field may remain uninitialized depending on the
+   * file path resolution implementation. {@link RowKey#getKey()} will further
+   * generate the bytes.
+   *
+   * @param src file path
+   * @param inodeId id of the INode located at {@code src}; 0 if the path is
+   *                nonexistent; -1 if unknown.
+   * @return new RowKey instance
+   * @throws IOException
+   */
+  public static RowKey newInstance(String src, long inodeId)
+      throws IOException {
+    return newInstance(src, inodeId, null);
+  }
+
+  /**
+   * Create new instance of RowKey based on file path, inode id, and key bytes.
    * RowKey will be fully defined in this case.
    * No file path resolution to generate bytes is necessary.
    * This can be used when the key is returned from the namespace service
    * as a byte array.
    * 
    * @param src file path
+   * @param inodeId id of the INode located at {@code src}; 0 if the path is
+   *                nonexistent; -1 if unknown.
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src, byte[] bytes)
+  public static RowKey newInstance(String src, long inodeId, byte[] bytes)
       throws IOException {
     // try cache
     RowKey key = null;
@@ -110,16 +115,18 @@ public class RowKeyFactory {
       return key;
 
     // generate new RowKey
-    return createRowKey(src, bytes);
+    return createRowKey(src, inodeId, bytes);
   }
 
-  public static RowKey createRowKey(String src, byte[] bytes)
+  public static RowKey createRowKey(String src, long inodeId, byte[] bytes)
       throws IOException {
     RowKey key = ReflectionUtils.newInstance(RowKeyClass, null);
-    if(bytes == null)
+    if(bytes == null) {
       key.setPath(src);
+      key.setINodeId(inodeId);
+    }
     else
-      key.set(src, bytes);
+      key.set(src, inodeId, bytes);
 
     synchronized(RowKeyFactory.class) {
       if(isCaching() && key.shouldCache())

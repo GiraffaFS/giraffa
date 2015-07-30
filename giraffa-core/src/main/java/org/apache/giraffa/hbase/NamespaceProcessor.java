@@ -416,11 +416,11 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
 
     // if file did not exist, create its INode now
     if(iFile == null) {
-      RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
       long id = nodeManager.nextINodeId();
+      RowKey key = RowKeyFactory.newInstance(src, id);
       iFile = new INodeFile(key, id, time, time, pc.getUser(),
           iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
@@ -766,9 +766,7 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
       pc.check(iParent, FsAction.WRITE_EXECUTE);
     }
 
-    RowKey key = RowKeyFactory.newInstance(src);
-    INode inode = nodeManager.getINode(key);
-
+    INode inode = nodeManager.getINode(src);
     if(inode != null) {  // already exists
       return true;
     }
@@ -790,6 +788,7 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
 
     long time = now();
     long id = nodeManager.nextINodeId();
+    RowKey key = RowKeyFactory.newInstance(src, id);
     inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
@@ -835,7 +834,6 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
       iParent = mkdirsRecursive(parent, masked, inheritPermissions, pc);
     }
 
-    RowKey key = RowKeyFactory.newInstance(src.toString());
     long time = now();
     long id;
     String user, group;
@@ -852,6 +850,7 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
+    RowKey key = RowKeyFactory.newInstance(src.toString(), id);
     INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);

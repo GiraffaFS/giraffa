@@ -30,6 +30,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   private short depth;
   private String path;
+  private long inodeId = -1;
   private byte[] bytes;
 
   public FullPathRowKey() {}
@@ -55,7 +56,19 @@ public class FullPathRowKey extends RowKey implements Serializable {
   }
 
   @Override // RowKey
-  public void set(String src, byte[] bytes) throws IOException {
+  public long getINodeId()
+      throws IOException {
+    return inodeId;
+  }
+
+  @Override // RowKey
+  public void setINodeId(long inodeId) {
+    this.inodeId = inodeId;
+  }
+
+  @Override // RowKey
+  public void set(String src, long inodeId, byte[] bytes) throws IOException {
+    setINodeId(inodeId);
     initialize(RowKeyBytes.toShort(bytes), src, bytes);
     assert RowKeyBytes.compareTo(RowKeyBytes.toBytes(src), 0,
         RowKeyBytes.toBytes(src).length, bytes, 2, bytes.length-2) == 0 : 
