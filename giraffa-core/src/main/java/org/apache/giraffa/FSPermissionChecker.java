@@ -134,7 +134,7 @@ public class FSPermissionChecker {
     return new StringBuilder("Permission denied: ")
         .append("user=").append(getUser()).append(", ")
         .append("access=").append(access).append(", ")
-        .append("inode=\"").append(inode.getRowKey().getPath()).append("\":")
+        .append("inode=\"").append(inode.getPath()).append("\":")
         .append(inode.getOwner()).append(':')
         .append(inode.getGroup()).append(':')
         .append(inode.isDir() ? 'd' : '-')

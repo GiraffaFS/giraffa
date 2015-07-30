@@ -201,10 +201,17 @@ public class TestGiraffaUpgrade {
             parseLine(br, "PERMISSION_STRING"));
 
         // COMMIT IT!
-        INode node = new INode(length, isDirectory, replication, blockSize,
-            modTime.getTime(), accessTime.getTime(), perm, userName,
-            groupName, null, RowKeyFactory.newInstance(path), dsQuota, nsQuota,
-            FileState.CLOSED, RenameState.FALSE(), blocks, locations, null);
+        INode node;
+        RowKey key = RowKeyFactory.newInstance(path);
+        if (isDirectory) {
+          node = new INodeDirectory(key, modTime.getTime(),
+              accessTime.getTime(), userName, groupName, perm, null, null,
+              dsQuota, nsQuota);
+        } else {
+          node = new INodeFile(key, modTime.getTime(), accessTime.getTime(),
+              userName, groupName, perm, null, null, length, replication,
+              blockSize, FileState.CLOSED, null, blocks, locations);
+        }
         try {
           nodeManager.updateINode(node);
           LOG.debug("COMMITTED: " + path + ", with BLOCKS:" + blocks);
