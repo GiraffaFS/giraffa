@@ -38,7 +38,7 @@
 
   <property>
     <name>grfa.rowkey.class</name>
-    <value>org.apache.giraffa.FullPathRowKey</value>
+    <value>org.apache.giraffa.FileIdRowKey</value>
     <description>
       Class that implements RowKey for the namespace table.
     </description>

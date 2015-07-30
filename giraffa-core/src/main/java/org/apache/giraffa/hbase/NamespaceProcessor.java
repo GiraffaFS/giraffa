@@ -58,6 +58,8 @@ import java.util.ListIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FSPermissionChecker;
+import org.apache.giraffa.FileIdProtocol;
+import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.INodeDirectory;
@@ -138,7 +140,7 @@ import com.google.protobuf.Service;
 
 /**
   */
-public class NamespaceProcessor implements ClientProtocol,
+public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
     Coprocessor, CoprocessorService {
   // RPC service fields
   ClientNamenodeProtocolServerSideCallbackTranslatorPB translator =
@@ -199,6 +201,7 @@ public class NamespaceProcessor implements ClientProtocol,
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
     RowKeyFactory.registerRowKey(conf);
+    FileIdRowKey.setFileIdProtocol(this);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
@@ -1498,6 +1501,12 @@ public class NamespaceProcessor implements ClientProtocol,
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     checkXAttrsConfigFlag();
     xAttrOp.removeXAttr(src, xAttr, getFsPermissionChecker());
+  }
+
+  @Override // FileIdProtocol
+  public long getFileId(byte[] parentKey, String src) throws IOException {
+    FileIdProtocol proxy = nodeManager.getFileIdProtocolProxy(parentKey);
+    return proxy.getFileId(parentKey, src);
   }
 
   public boolean internalReleaseLease(FileLease lease, String src)

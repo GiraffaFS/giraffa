@@ -50,6 +50,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileIdProtocol;
 import org.apache.giraffa.FileIdProtocolServiceTranslatorPB;
+import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
 import org.apache.giraffa.NamespaceService;
@@ -160,6 +161,7 @@ public class NamespaceAgent implements NamespaceService {
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
     RowKeyFactory.registerRowKey(conf);
+    FileIdRowKey.setFileIdProtocol(this);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
     String tableName = getGiraffaTableName(conf);
@@ -198,7 +200,7 @@ public class NamespaceAgent implements NamespaceService {
     return getRegionProxy(RowKeyFactory.newInstance(src));
   }
 
-  private ClientProtocol getRegionProxy(RowKey key) {
+  private ClientProtocol getRegionProxy(RowKey key) throws IOException {
     // load blocking stub for protocol based on row key
     CoprocessorRpcChannel channel = nsTable.coprocessorService(key.getKey());
     final ClientNamenodeProtocol.BlockingInterface stub =

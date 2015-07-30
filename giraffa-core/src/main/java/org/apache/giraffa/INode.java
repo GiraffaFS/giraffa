@@ -167,6 +167,6 @@ public abstract class INode {
 
   @Override
   public String toString() {
-    return "\"" + getPath() + "\":" + permission;
+    return getClass().getSimpleName() + "[" + getRowKey() + "]";
   }
 }

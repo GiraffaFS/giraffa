@@ -107,6 +107,11 @@ public class FullPathRowKey extends RowKey implements Serializable {
     return RowKeyBytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
   }
 
+  @Override // RowKey
+  public String getKeyString() {
+    return RowKeyBytes.toString(getKey());
+  }
+
   private byte[] directoryStartKey() {
     String startPath = path.endsWith("/") ? path : path + "/";
     FullPathRowKey startKey = new FullPathRowKey();

@@ -27,8 +27,8 @@ public class GiraffaConfiguration extends Configuration {
   public static final String  GRFA_TABLE_NAME_KEY = "grfa.table.name";
   public static final String  GRFA_TABLE_NAME_DEFAULT = "Namespace";
   public static final String  GRFA_ROW_KEY_KEY = "grfa.rowkey.class";
-  public static final Class<FullPathRowKey>  GRFA_ROW_KEY_DEFAULT =
-                              FullPathRowKey.class;
+  public static final Class<FileIdRowKey> GRFA_ROW_KEY_DEFAULT =
+      FileIdRowKey.class;
   public static final String  GRFA_CACHING_KEY = "grfa.rowkey.caching";
   public static final Boolean GRFA_CACHING_DEFAULT = true;
   public static final String  GRFA_NAMESPACE_SERVICE_KEY = 

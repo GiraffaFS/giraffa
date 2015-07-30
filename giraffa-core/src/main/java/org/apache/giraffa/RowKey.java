@@ -69,9 +69,11 @@ public abstract class RowKey {
 
   public abstract byte[] getStopListingKey();
 
+  public abstract String getKeyString();
+
   @Override // Object
   public String toString() {
-    return getClass().getSimpleName() + ": " + RowKeyBytes.toString(getKey())
-        +" | " + getPath();
+    return getClass().getSimpleName() + ": "
+        + getKeyString() + " | " + getPath();
   }
 }

@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
@@ -58,6 +59,19 @@ public class RowKeyFactory {
       RowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
           GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT, RowKey.class);
     }
+  }
+
+  /**
+   * Create new instance of RowKey based on file path.
+   * RowKey.bytes field may remain uninitialized depending on the
+   * file path resolution implementation. {@link RowKey#getKey()} will further
+   * generate the bytes.
+   *
+   * @param src file path
+   * @return new RowKey instance
+   */
+  public static RowKey newInstance(Path src) throws IOException {
+    return newInstance(src.toString());
   }
 
   /**
