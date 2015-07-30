@@ -928,7 +928,7 @@ public class NamespaceProcessor implements ClientProtocol,
     if(rootDstNode == null) {
       if(directoryRename) { // first do Stage 1 for all children
         final URI base = new Path(src).toUri();
-        final URI newBase = URI.create(dst + Path.SEPARATOR);
+        final URI newBase = URI.create(dst+Path.SEPARATOR);
 
         assert rootSrcNode != null;
         assert rootSrcNode.isDir();

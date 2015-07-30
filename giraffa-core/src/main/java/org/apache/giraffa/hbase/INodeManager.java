@@ -249,8 +249,7 @@ public class INodeManager implements Closeable {
     final List<INode> nodes = new ArrayList<INode>();
     map(dir, startAfter, limit, new Function() {
       @Override
-      public void apply(INode input)
-          throws IOException {
+      public void apply(INode input) throws IOException {
         nodes.add(input);
       }
     });
