@@ -49,8 +49,11 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   private String src;
   private byte[] bytes;
+  private boolean shouldCache;
 
-  public FileIdRowKey() {}
+  public FileIdRowKey() {
+    shouldCache = true;
+  }
 
   public static void setFileIdProtocol(FileIdProtocol protocol) {
     service.set(protocol);
@@ -101,11 +104,13 @@ public class FileIdRowKey extends RowKey implements Serializable {
         throw new RuntimeException("FileIdProtocol implementation not set.");
       }
       long fileId = protocol.getFileId(b, src);
+      shouldCache &= fileId != 0;
       lshift(b, 8);
       putLong(b, offset, fileId);
       return b;
     } catch (IOException e) {
       LOG.error("Failed to generate row key for " + getPath(), e);
+      shouldCache = false;
       return ERROR_KEY;
     }
   }
@@ -137,6 +142,14 @@ public class FileIdRowKey extends RowKey implements Serializable {
     lshift(b, 8);
     putLong(b, offset, Long.MAX_VALUE);
     return b;
+  }
+
+  @Override // RowKey
+  public boolean shouldCache() {
+    if (bytes == null) {
+      bytes = generateKey();
+    }
+    return shouldCache;
   }
 
   @Override // RowKey

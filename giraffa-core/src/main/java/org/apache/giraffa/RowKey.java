@@ -69,6 +69,8 @@ public abstract class RowKey {
 
   public abstract byte[] getStopListingKey();
 
+  public abstract boolean shouldCache();
+
   public abstract String getKeyString();
 
   @Override // Object

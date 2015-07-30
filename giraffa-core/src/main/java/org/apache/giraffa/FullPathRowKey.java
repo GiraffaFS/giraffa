@@ -108,6 +108,11 @@ public class FullPathRowKey extends RowKey implements Serializable {
   }
 
   @Override // RowKey
+  public boolean shouldCache() {
+    return true;
+  }
+
+  @Override // RowKey
   public String getKeyString() {
     return RowKeyBytes.toString(getKey());
   }

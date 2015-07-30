@@ -122,7 +122,7 @@ public class RowKeyFactory {
       key.set(src, bytes);
 
     synchronized(RowKeyFactory.class) {
-      if(isCaching())
+      if(isCaching() && key.shouldCache())
         Cache.put(src, key);
     }
     return key;
