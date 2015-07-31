@@ -15,40 +15,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase;
+package org.apache.giraffa;
 
-import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
-import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
 import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
 import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;
-import org.apache.hadoop.hbase.protobuf.ResponseConverter;
+import org.apache.giraffa.GiraffaProtos.GiraffaProtocolService;
+import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolServerSideTranslatorPB;
 
 import java.io.IOException;
 
-public class FileIdProtocolServiceServerSideTranslatorPB
-    extends FileIdProtocolService {
+public class GiraffaProtocolServiceServerSideTranslatorPB
+    extends ClientNamenodeProtocolServerSideTranslatorPB
+    implements GiraffaProtocolService.BlockingInterface {
 
-  private FileIdProtocol impl;
+  private final GiraffaProtocol server;
 
-  public FileIdProtocolServiceServerSideTranslatorPB(FileIdProtocol impl) {
-    this.impl = impl;
+  public GiraffaProtocolServiceServerSideTranslatorPB(GiraffaProtocol server)
+      throws IOException {
+    super(server);
+    this.server = server;
   }
 
-  @Override // FileIdProtocolService
-  public void getFileId(RpcController controller,
-                        GetFileIdRequestProto request,
-                        RpcCallback<GetFileIdResponseProto> done) {
+  @Override
+  public GetFileIdResponseProto getFileId(RpcController controller,
+                                          GetFileIdRequestProto req)
+      throws ServiceException {
     try {
-      byte[] parentKey = request.getParentKey().toByteArray();
-      String src = request.getSrc();
-      long fileId = impl.getFileId(parentKey, src);
-      done.run(GetFileIdResponseProto.newBuilder().setFileId(fileId).build());
+      long result =
+          server.getFileId(req.getParentKey().toByteArray(), req.getSrc());
+      return GetFileIdResponseProto.newBuilder().setFileId(result).build();
     } catch (IOException e) {
-      ResponseConverter.setControllerException(controller, e);
-      done.run(null);
+      throw new ServiceException(e);
     }
   }
 }

@@ -25,11 +25,8 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
-import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.FileIdProtocolServiceTranslatorPB;
 import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.GiraffaPBHelper;
-import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.INodeDirectory;
 import org.apache.giraffa.INodeFile;
@@ -45,7 +42,6 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
@@ -382,12 +378,6 @@ public class INodeManager implements Closeable {
       }
     }
     return 0;
-  }
-
-  public FileIdProtocol getFileIdProtocolProxy(byte[] key) {
-    CoprocessorRpcChannel channel = getNSTable().coprocessorService(key);
-    return new FileIdProtocolServiceTranslatorPB(
-        FileIdProtocolService.newBlockingStub(channel));
   }
 
   private Table getNSTable() {

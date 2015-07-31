@@ -20,18 +20,20 @@ package org.apache.giraffa;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ServiceException;
 
-import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
 import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
+import org.apache.giraffa.GiraffaProtos.GiraffaProtocolService.BlockingInterface;
+import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB;
 import org.apache.hadoop.ipc.ProtobufHelper;
 
 import java.io.IOException;
 
-public class FileIdProtocolServiceTranslatorPB implements FileIdProtocol {
+public class GiraffaProtocolServiceTranslatorPB
+    extends ClientNamenodeProtocolTranslatorPB implements GiraffaProtocol {
 
-  private FileIdProtocolService.BlockingInterface service;
+  private final BlockingInterface service;
 
-  public FileIdProtocolServiceTranslatorPB(
-      FileIdProtocolService.BlockingInterface service) {
+  public GiraffaProtocolServiceTranslatorPB(BlockingInterface service) {
+    super(new GiraffaProtocolServiceAdapterPB(service));
     this.service = service;
   }
 

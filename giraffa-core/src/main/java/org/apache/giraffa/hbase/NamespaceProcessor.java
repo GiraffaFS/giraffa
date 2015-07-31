@@ -58,10 +58,11 @@ import java.util.ListIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FSPermissionChecker;
-import org.apache.giraffa.FileIdProtocol;
 import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaProtocol;
+import org.apache.giraffa.GiraffaProtos.GiraffaProtocolService;
 import org.apache.giraffa.INodeDirectory;
 import org.apache.giraffa.INodeFile;
 import org.apache.giraffa.LeaseManager;
@@ -104,7 +105,6 @@ import org.apache.hadoop.hdfs.protocol.CacheDirectiveEntry;
 import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
 import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
 import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
-import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.CorruptFileBlocks;
 import org.apache.hadoop.hdfs.protocol.DSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.DatanodeID;
@@ -123,7 +123,6 @@ import org.apache.hadoop.hdfs.protocol.RollingUpgradeInfo;
 import org.apache.hadoop.hdfs.protocol.SnapshotAccessControlException;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
-import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.namenode.LeaseExpiredException;
@@ -140,12 +139,12 @@ import com.google.protobuf.Service;
 
 /**
   */
-public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
+public class NamespaceProcessor implements GiraffaProtocol,
     Coprocessor, CoprocessorService {
   // RPC service fields
-  ClientNamenodeProtocolServerSideCallbackTranslatorPB translator =
-      new ClientNamenodeProtocolServerSideCallbackTranslatorPB(this);
-  Service service = ClientNamenodeProtocol.newReflectiveService(translator);
+  GiraffaProtocolServiceServerSideCallbackTranslatorPB translator =
+      new GiraffaProtocolServiceServerSideCallbackTranslatorPB(this);
+  Service service = GiraffaProtocolService.newReflectiveService(translator);
 
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
@@ -252,6 +251,14 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
     running = false;
     nodeManager.close();
     leaseManager.stopMonitor();
+  }
+
+  @Override // FileIdProtocol
+  public long getFileId(byte[] parentKey, String src) throws IOException {
+    Path srcPath = new Path(src);
+    String parentPath = srcPath.getParent().toString();
+    RowKey parentRowKey = RowKeyFactory.newInstance(parentPath, -1, parentKey);
+    return nodeManager.findINodeId(parentRowKey, srcPath);
   }
 
   @Override // ClientProtocol
@@ -1502,12 +1509,6 @@ public class NamespaceProcessor implements ClientProtocol, FileIdProtocol,
   public void removeXAttr(String src, XAttr xAttr) throws IOException {
     checkXAttrsConfigFlag();
     xAttrOp.removeXAttr(src, xAttr, getFsPermissionChecker());
-  }
-
-  @Override // FileIdProtocol
-  public long getFileId(byte[] parentKey, String src) throws IOException {
-    FileIdProtocol proxy = nodeManager.getFileIdProtocolProxy(parentKey);
-    return proxy.getFileId(parentKey, src);
   }
 
   public boolean internalReleaseLease(FileLease lease, String src)

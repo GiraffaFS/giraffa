@@ -1,12 +1,33 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.giraffa.hbase;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import org.apache.giraffa.DummyResponsePB;
+import org.apache.giraffa.GiraffaProtocol;
+import org.apache.giraffa.GiraffaProtocolServiceServerSideTranslatorPB;
+import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
+import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;
+import org.apache.giraffa.GiraffaProtos.GiraffaProtocolService;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
-import org.apache.hadoop.hdfs.protocol.ClientProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.GetAclStatusResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.AclProtos.ModifyAclEntriesRequestProto;
@@ -31,7 +52,6 @@ import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AllowS
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AllowSnapshotResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AppendRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.AppendResponseProto;
-import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.CompleteResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ConcatRequestProto;
@@ -148,7 +168,6 @@ import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.RemoveXAttrRequestProto
 import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.RemoveXAttrResponseProto;
 import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.SetXAttrRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.XAttrProtos.SetXAttrResponseProto;
-import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolServerSideTranslatorPB;
 import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenRequestProto;
 import org.apache.hadoop.security.proto.SecurityProtos.CancelDelegationTokenResponseProto;
 import org.apache.hadoop.security.proto.SecurityProtos.GetDelegationTokenRequestProto;
@@ -160,28 +179,35 @@ import java.io.IOException;
 
 /**
  * This class is used on the server side. Calls come across the wire for the
- * for protocol {@link ClientNamenodeProtocol.Interface}. This class uses
+ * for protocol {@link GiraffaProtocolService.Interface}. This class uses
  * callbacks; for blocking services, see
- * {@link ClientNamenodeProtocolServerSideTranslatorPB}.
+ * {@link GiraffaProtocolServiceServerSideTranslatorPB}.
  * This class translates the PB data types to the native data types used inside
- * the NN as specified in the generic ClientProtocol.
+ * Giraffa as specified in {@link GiraffaProtocol}.
  */
-public class ClientNamenodeProtocolServerSideCallbackTranslatorPB
-    implements ClientNamenodeProtocol.Interface {
-  private ClientNamenodeProtocol.BlockingInterface blockingTranslator;
+public class GiraffaProtocolServiceServerSideCallbackTranslatorPB
+    implements GiraffaProtocolService.Interface {
 
-  /**
-   * Constructor
-   * 
-   * @param server - the NN server
-   */
-  public ClientNamenodeProtocolServerSideCallbackTranslatorPB(
-      ClientProtocol server) {
+  private GiraffaProtocolServiceServerSideTranslatorPB blockingTranslator;
+
+  public GiraffaProtocolServiceServerSideCallbackTranslatorPB(
+      GiraffaProtocol server) {
     try {
-      this.blockingTranslator =
-          new ClientNamenodeProtocolServerSideTranslatorPB(server);
+      blockingTranslator =
+          new GiraffaProtocolServiceServerSideTranslatorPB(server);
     } catch (IOException e) { // will never happen
       e.printStackTrace();
+    }
+  }
+
+  @Override
+  public void getFileId(RpcController controller,
+                        GetFileIdRequestProto req,
+                        RpcCallback<GetFileIdResponseProto> done) {
+    try {
+      done.run(blockingTranslator.getFileId(controller, req));
+    } catch (ServiceException e) {
+      handleRemoteException(controller, e, done);
     }
   }
 

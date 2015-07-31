@@ -37,10 +37,6 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
@@ -49,12 +45,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.FileIdProtocolServiceTranslatorPB;
 import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.GiraffaConfiguration;
-import org.apache.giraffa.GiraffaProtos.FileIdProtocolService;
+import org.apache.giraffa.GiraffaProtocol;
+import org.apache.giraffa.GiraffaProtocolServiceTranslatorPB;
+import org.apache.giraffa.GiraffaProtos.GiraffaProtocolService;
 import org.apache.giraffa.NamespaceService;
-import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
 import org.apache.hadoop.fs.CacheFlag;
@@ -111,8 +107,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseResponseProto;
-import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolPB;
-import org.apache.hadoop.hdfs.protocolPB.ClientNamenodeProtocolTranslatorPB;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
@@ -120,13 +114,11 @@ import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
 import org.apache.hadoop.io.EnumSetWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.retry.Idempotent;
-import org.apache.hadoop.ipc.ProtobufHelper;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.util.DataChecksum;
 
 import com.google.protobuf.RpcCallback;
-import com.google.protobuf.ServiceException;
 
  /**
   * NamespaceAgent is the proxy used by DFSClient to communicate with HBase
@@ -142,11 +134,6 @@ public class NamespaceAgent implements NamespaceService {
                                   "grfa.namespace.processor.class"; 
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
-  public static final String GRFA_FILE_ID_PROCESSOR_KEY =
-      "grfa.file.id.processor.class";
-  public static final String GRFA_FILE_ID_PROCESSOR_DEFAULT =
-      FileIdProcessor.class.getName();
-
 
   private Admin hbAdmin;
   private Table nsTable;
@@ -196,40 +183,16 @@ public class NamespaceAgent implements NamespaceService {
     }
   }
 
-  private ClientProtocol getRegionProxy(String src) throws IOException {
-    return getRegionProxy(RowKeyFactory.newInstance(src));
+  private GiraffaProtocol getRegionProxy(String src) throws IOException {
+    return getRegionProxy(RowKeyFactory.newInstance(src).getKey());
   }
 
-  private ClientProtocol getRegionProxy(RowKey key) throws IOException {
+  private GiraffaProtocol getRegionProxy(byte[] key) throws IOException {
     // load blocking stub for protocol based on row key
-    CoprocessorRpcChannel channel = nsTable.coprocessorService(key.getKey());
-    final ClientNamenodeProtocol.BlockingInterface stub =
-        ClientNamenodeProtocol.newBlockingStub(channel);
-    
-    // create a handler for forwarding proxy calls to blocking stub
-    InvocationHandler handler = new InvocationHandler(){
-      @Override
-      public Object invoke(Object proxy, Method method, Object[] args)
-          throws Throwable {
-        try {
-          return method.invoke(stub, args);
-        }catch(InvocationTargetException e) {
-          if(LOG.isDebugEnabled()) {
-            LOG.debug(ProtobufHelper.getRemoteException(
-                (ServiceException) e.getCause()).getMessage());
-          }
-          throw e.getCause();
-        }
-      }
-    };
-    
-    // create a proxy implementation of ClientNamenodeProtocolPB
-    Class<ClientNamenodeProtocolPB> classObj = ClientNamenodeProtocolPB.class;
-    ClientNamenodeProtocolPB clientPB =
-        (ClientNamenodeProtocolPB) Proxy.newProxyInstance(
-            classObj.getClassLoader(), new Class[]{classObj}, handler);
-    
-    return new ClientNamenodeProtocolTranslatorPB(clientPB);
+    CoprocessorRpcChannel channel = nsTable.coprocessorService(key);
+    final GiraffaProtocolService.BlockingInterface stub =
+        GiraffaProtocolService.newBlockingStub(channel);
+    return new GiraffaProtocolServiceTranslatorPB(stub);
   }
 
   @Override // ClientProtocol
@@ -397,10 +360,6 @@ public class NamespaceAgent implements NamespaceService {
         GRFA_NAMESPACE_PROCESSOR_KEY, GRFA_NAMESPACE_PROCESSOR_DEFAULT);
     htd.addCoprocessor(nsProcClass, null, Coprocessor.PRIORITY_SYSTEM, null);
     LOG.info("Namespace processor is set to: " + nsProcClass);
-    String idProcClass =
-        conf.get(GRFA_FILE_ID_PROCESSOR_KEY, GRFA_FILE_ID_PROCESSOR_DEFAULT);
-    htd.addCoprocessor(idProcClass, null, Coprocessor.PRIORITY_SYSTEM, null);
-    LOG.info("FileId processor is set to: " + idProcClass);
     return htd;
   }
 
@@ -849,9 +808,7 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // FileIdProtocol
   public long getFileId(byte[] parentKey, String src) throws IOException {
-    CoprocessorRpcChannel channel = nsTable.coprocessorService(parentKey);
-    FileIdProtocol proxy = new FileIdProtocolServiceTranslatorPB(
-        FileIdProtocolService.newBlockingStub(channel));
+    FileIdProtocol proxy = getRegionProxy(parentKey);
     return proxy.getFileId(parentKey, src);
   }
 }

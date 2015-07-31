@@ -22,7 +22,7 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.hbase.ClientNamenodeProtocolServerSideCallbackTranslatorPB;
+import org.apache.giraffa.hbase.GiraffaProtocolServiceServerSideCallbackTranslatorPB;
 import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.ParentNotDirectoryException;
@@ -40,7 +40,7 @@ import org.junit.Test;
 /**
  * Tests that Exceptions are properly transmitted from server to client. The
  * tests were selected based on the types of error serializations done in
- * {@link ClientNamenodeProtocolServerSideCallbackTranslatorPB}
+ * {@link GiraffaProtocolServiceServerSideCallbackTranslatorPB}
  */
 public class TestExceptionHandling {
   private static final HBaseTestingUtility UTIL =
