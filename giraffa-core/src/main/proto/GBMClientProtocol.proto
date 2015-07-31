@@ -1,0 +1,56 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+option java_package = "org.apache.hadoop.giraffa.protocol.proto";
+option java_outer_classname = "GBMClientProtocolProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+package giraffa;
+
+import "hdfs.proto";
+import "grfa.proto";
+
+message AllocateBlockFileRequestProto {
+  required string src = 1;
+  repeated UnlocatedBlockProto blocks = 2;
+  required string clientName = 3;
+}
+
+message AllocateBlockFileResponseProto {
+  required hadoop.hdfs.LocatedBlockProto block = 1;
+}
+
+message CloseBlockFileRequestProto {
+  required hadoop.hdfs.ExtendedBlockProto block = 1;
+  required string clientName = 2;
+}
+
+message CloseBlockFileResponseProto {
+}
+
+service GBMClientProtocolService {
+  /**
+    * Allocates block from a node-specific range of blocks.
+    */
+  rpc allocateBlockFile(AllocateBlockFileRequestProto) returns(AllocateBlockFileResponseProto);
+
+  /**
+    * Closes file with allocated block.
+    */
+  rpc closeBlockFile(CloseBlockFileRequestProto) returns(CloseBlockFileResponseProto);
+}

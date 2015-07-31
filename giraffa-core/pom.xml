@@ -463,7 +463,8 @@
                                     <arg value="-I=${basedir}/src/main/proto" />
                                     <arg value="--java_out=${generated.sources}/java"/>
                                     <arg value="${basedir}/src/main/proto/grfa.proto"/>
-                                </exec>
+                                    <arg value="${basedir}/src/main/proto/GBMClientProtocol.proto"/>
+                                </exec>                                
                             </target>
                         </configuration>
                         <goals>
