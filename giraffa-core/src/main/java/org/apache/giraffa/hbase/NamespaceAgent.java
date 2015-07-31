@@ -45,7 +45,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaProtocol;
 import org.apache.giraffa.GiraffaProtocolServiceTranslatorPB;
@@ -135,6 +134,7 @@ public class NamespaceAgent implements NamespaceService {
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
 
+  private RowKeyFactory keyFactory;
   private Admin hbAdmin;
   private Table nsTable;
   private Connection connection;
@@ -147,8 +147,7 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
-    RowKeyFactory.registerRowKey(conf);
-    FileIdRowKey.setFileIdProtocol(this);
+    this.keyFactory = new RowKeyFactory(this, conf);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
     String tableName = getGiraffaTableName(conf);
@@ -184,7 +183,7 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   private GiraffaProtocol getRegionProxy(String src) throws IOException {
-    return getRegionProxy(RowKeyFactory.newInstance(src).getKey());
+    return getRegionProxy(keyFactory.newInstance(src).getKey());
   }
 
   private GiraffaProtocol getRegionProxy(byte[] key) throws IOException {

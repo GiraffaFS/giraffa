@@ -18,43 +18,55 @@
 package org.apache.giraffa;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ReflectionUtils;
 
 /**
- * Create new {@link RowKey} using this factory.
- * The factory should be first initialized by calling
- * {@link #registerRowKey(Configuration)}.
- * If {@link Configuration} specifies caching, the keys will be cached 
- * for faster instantiation.<br>
+ * Create new {@link RowKey} using this factory. If {@link Configuration}
+ * specifies caching, the keys will be cached for faster instantiation.<br>
  * This class is thread safe.
  */
 public class RowKeyFactory {
-  private static Map<String, RowKey> Cache;
+
+  private static ConcurrentHashMap<String, RowKey> Cache;
   private static Class<? extends RowKey> RowKeyClass;
 
-  public static synchronized boolean isCaching() {
+  private final GiraffaProtocol service;
+  private final Configuration conf;
+
+  public RowKeyFactory(GiraffaProtocol service,
+                       Configuration conf) {
+    this.service = service;
+    this.conf = conf;
+    registerRowKey(conf);
+  }
+
+  public static RowKeyFactory newInstance(GiraffaFileSystem grfs) {
+    return new RowKeyFactory(grfs.grfaClient.getNamespaceService(),
+        grfs.getConf());
+  }
+
+  public static boolean isCaching() {
     return Cache != null;
   }
 
-  public static synchronized Class<? extends RowKey> getRowKeyClass() {
+  public static Class<? extends RowKey> getRowKeyClass() {
     return RowKeyClass;
   }
 
   /**
-   * Register RowKey class, specified by {@link Configuration} and 
+   * Register RowKey class, specified by {@link Configuration} and
    * turn on caching is requested.
    * @param conf configuration specifying row key class and caching choice.
    */
-  public static void registerRowKey(Configuration conf) {
-    boolean caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
-        GiraffaConfiguration.GRFA_CACHING_DEFAULT);
-    synchronized(RowKeyFactory.class) {
-      if(caching)
-        Cache = new HashMap<String, RowKey>();
+  private static synchronized void registerRowKey(Configuration conf) {
+    if (RowKeyClass == null) {
+      boolean caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
+          GiraffaConfiguration.GRFA_CACHING_DEFAULT);
+      if (caching)
+        Cache = new ConcurrentHashMap<>();
       RowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
           GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT, RowKey.class);
     }
@@ -70,7 +82,7 @@ public class RowKeyFactory {
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src) throws IOException {
+  public RowKey newInstance(String src) throws IOException {
     return newInstance(src, -1);
   }
 
@@ -86,7 +98,7 @@ public class RowKeyFactory {
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src, long inodeId)
+  public RowKey newInstance(String src, long inodeId)
       throws IOException {
     return newInstance(src, inodeId, null);
   }
@@ -104,13 +116,10 @@ public class RowKeyFactory {
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src, long inodeId, byte[] bytes)
+  public RowKey newInstance(String src, long inodeId, byte[] bytes)
       throws IOException {
     // try cache
-    RowKey key = null;
-    synchronized(RowKeyFactory.class) {
-      key = isCaching() ? Cache.get(src) : null;
-    }
+    RowKey key = isCaching() ? Cache.get(src) : null;
     if(key != null)
       return key;
 
@@ -118,19 +127,20 @@ public class RowKeyFactory {
     return createRowKey(src, inodeId, bytes);
   }
 
-  public static RowKey createRowKey(String src, long inodeId, byte[] bytes)
+  public RowKey createRowKey(String src, long inodeId, byte[] bytes)
       throws IOException {
-    RowKey key = ReflectionUtils.newInstance(RowKeyClass, null);
-    if(bytes == null) {
+    RowKey key = ReflectionUtils.newInstance(RowKeyClass, conf);
+    if (bytes == null) {
+      key.setKeyFactory(this);
+      key.setService(service);
       key.setPath(src);
       key.setINodeId(inodeId);
+    } else {
+      key.set(this, service, src, inodeId, bytes);
     }
-    else
-      key.set(src, inodeId, bytes);
 
-    synchronized(RowKeyFactory.class) {
-      if(isCaching() && key.shouldCache())
-        Cache.put(src, key);
+    if (isCaching() && key.shouldCache()) {
+      Cache.put(src, key);
     }
     return key;
   }

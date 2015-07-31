@@ -31,25 +31,14 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   private static final long serialVersionUID = 123456789009L;
   private static final Log LOG = LogFactory.getLog(FileIdRowKey.class);
+  private static final String DEPTH_KEY = "grfa.fileidrowkey.depth";
+  private static final int DEPTH_DEFAULT = 3;
 
-  private static final int depth = 3;
-  private static final int length = 8 * depth;
-  private static final int lastIdOffset = length - 8;
-  private static final byte[] ROOT_KEY = new byte[length];
-  private static final byte[] ERROR_KEY = new byte[length];
-  private static final ThreadLocal<FileIdProtocol> service =
-      new ThreadLocal<>();
-
-  static {
-    putLong(ROOT_KEY, length - 8, 1000L);
-    for (int i = 0; i < length; i += 8) {
-      putLong(ERROR_KEY, i, Long.MAX_VALUE);
-    }
-  }
-
-  public static void setFileIdProtocol(FileIdProtocol protocol) {
-    service.set(protocol);
-  }
+  private static boolean initialized;
+  private static int length;
+  private static int lastIdOffset;
+  private static byte[] ROOT_KEY;
+  private static byte[] ERROR_KEY;
 
   private String src;
   private long inodeId = -1;
@@ -72,13 +61,10 @@ public class FileIdRowKey extends RowKey implements Serializable {
   @Override // RowKey
   public long getINodeId() throws IOException {
     if (inodeId == -1) {
-      if (bytes != null) {
-        inodeId = RowKeyBytes.toLong(bytes, length - 8);
-      } else {
-        FileIdProtocol protocol = service.get();
-        assert protocol != null;
-        inodeId = protocol.getFileId(getParentKey(), getPath());
-      }
+      inodeId = bytes != null ?
+          RowKeyBytes.toLong(bytes, length - 8) :
+          getService().getFileId(getParentKey(), getPath());
+      shouldCache = inodeId > 0;
     }
     assert inodeId >= 0;
     return inodeId;
@@ -87,6 +73,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
   @Override // RowKey
   public void setINodeId(long inodeId) {
     this.inodeId = inodeId;
+    shouldCache = inodeId > 0;
   }
 
   @Override // RowKey
@@ -106,6 +93,8 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] generateKey() {
+    initialize();
+
     if (new Path(getPath()).isRoot()) {
       return ROOT_KEY;
     }
@@ -113,7 +102,6 @@ public class FileIdRowKey extends RowKey implements Serializable {
     try {
       byte[] b = getParentKey();
       long fileId = getINodeId();
-      shouldCache &= fileId != 0;
       lshift(b, 8);
       putLong(b, lastIdOffset, fileId);
       return b;
@@ -126,6 +114,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] getStartListingKey(byte[] startAfter) {
+    initialize();
     byte[] b;
     if (startAfter.length == 0) {
       b = getKey();
@@ -134,7 +123,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
     } else {
       try {
         Path p = new Path(getPath(), new String(startAfter));
-        RowKey startKey = RowKeyFactory.newInstance(p.toString());
+        RowKey startKey = getKeyFactory().newInstance(p.toString());
         b = startKey.getKey();
         putLong(b, lastIdOffset, startKey.getINodeId() + 1);
       } catch (IOException e) {
@@ -147,6 +136,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] getStopListingKey() {
+    initialize();
     byte[] b = getKey();
     lshift(b, 8);
     putLong(b, lastIdOffset, Long.MAX_VALUE);
@@ -163,6 +153,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public String getKeyString() {
+    initialize();
     byte[] b = getKey();
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < length; i += 8) {
@@ -172,10 +163,25 @@ public class FileIdRowKey extends RowKey implements Serializable {
     return sb.toString();
   }
 
+  private void initialize() {
+    if (!initialized) {
+      int depth = getConf().getInt(DEPTH_KEY, DEPTH_DEFAULT);
+      length = 8 * depth;
+      lastIdOffset = length - 8;
+      ROOT_KEY = new byte[length];
+      ERROR_KEY = new byte[length];
+      putLong(ROOT_KEY, length - 8, 1000L);
+      for (int i = 0; i < length; i++) {
+        ERROR_KEY[i] = Byte.MAX_VALUE;
+      }
+      initialized = true;
+    }
+  }
+
   private byte[] getParentKey() throws IOException {
     if (parentKey == null) {
       String parent = new Path(getPath()).getParent().toString();
-      parentKey = RowKeyFactory.newInstance(parent).getKey();
+      parentKey = getKeyFactory().newInstance(parent).getKey();
     }
     return parentKey;
   }

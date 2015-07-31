@@ -17,6 +17,9 @@
  */
 package org.apache.giraffa;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
+
 import java.io.IOException;
 
 /**
@@ -31,7 +34,38 @@ import java.io.IOException;
  * <p>
  * Extend this class to define a specific row key implementation.
  */
-public abstract class RowKey {
+public abstract class RowKey implements Configurable {
+
+  private Configuration conf;
+  private RowKeyFactory keyFactory;
+  private GiraffaProtocol service;
+
+  @Override // Configurable
+  public final Configuration getConf() {
+    return conf;
+  }
+
+  @Override // Configurable
+  public final void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  public final RowKeyFactory getKeyFactory() {
+    return keyFactory;
+  }
+
+  public final void setKeyFactory(RowKeyFactory keyFactory) {
+    this.keyFactory = keyFactory;
+  }
+
+  public final GiraffaProtocol getService() {
+    return service;
+  }
+
+  public final void setService(GiraffaProtocol service) {
+    this.service = service;
+  }
+
   /**
    * Get full path of the file system object represented by the underlying row.
    * @return full path
@@ -62,6 +96,17 @@ public abstract class RowKey {
    *                exist, and -1 unknown.
    */
   public abstract void setINodeId(long inodeId);
+
+  public void set(RowKeyFactory keyFactory,
+                  GiraffaProtocol service,
+                  String src,
+                  long inodeId,
+                  byte[] bytes)
+      throws IOException {
+    setKeyFactory(keyFactory);
+    setService(service);
+    set(src, inodeId, bytes);
+  }
 
   public abstract void set(String src, long inodeId, byte[] bytes)
       throws IOException;

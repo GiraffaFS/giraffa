@@ -5,12 +5,15 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaConfiguration;
+import org.apache.giraffa.GiraffaFileSystem;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.hbase.FileFieldDeserializer;
 import org.apache.giraffa.web.GiraffaWebJsonWrappers.LocatedBlockDescriptor;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Result;
@@ -42,6 +45,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
   private static final Log LOG = LogFactory.getLog(GiraffaFileServlet.class);
   private static final long serialVersionUID = 1L;
 
+  private transient RowKeyFactory keyFactory;
   private transient Table table;
   private transient ObjectMapper mapper = new ObjectMapper();
 
@@ -52,6 +56,13 @@ public class GiraffaHbaseServlet extends HttpServlet {
   @Override
   public void init() throws ServletException {
     super.init();
+    try {
+      GiraffaConfiguration conf = new GiraffaConfiguration();
+      GiraffaFileSystem grfs = (GiraffaFileSystem) FileSystem.get(conf);
+      keyFactory = RowKeyFactory.newInstance(grfs);
+    } catch (IOException e) {
+      throw new ServletException(e);
+    }
   }
 
   @Override
@@ -75,7 +86,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
 
     ResultScanner resultScanner;
     if (!StringUtils.isEmpty(dataRequest.getEndKey())) {
-      RowKey rowKey = RowKeyFactory.newInstance(null, -1, RowKeyBytes.toBytes(
+      RowKey rowKey = keyFactory.newInstance(null, -1, RowKeyBytes.toBytes(
           dataRequest.getEndKey()));
       s.setStartRow(rowKey.getKey());
       resultScanner = table.getScanner(s);

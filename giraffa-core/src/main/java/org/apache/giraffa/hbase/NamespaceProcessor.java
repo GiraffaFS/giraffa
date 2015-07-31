@@ -58,7 +58,6 @@ import java.util.ListIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FSPermissionChecker;
-import org.apache.giraffa.FileIdRowKey;
 import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.GiraffaProtocol;
@@ -146,6 +145,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
       new GiraffaProtocolServiceServerSideCallbackTranslatorPB(this);
   Service service = GiraffaProtocolService.newReflectiveService(translator);
 
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
   private LeaseManager leaseManager;
@@ -199,8 +199,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
-    RowKeyFactory.registerRowKey(conf);
-    FileIdRowKey.setFileIdProtocol(this);
+    keyFactory = new RowKeyFactory(this, conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
@@ -238,7 +237,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     this.leaseManager =
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
-    this.nodeManager = new INodeManager(e.getTable(tableName));
+    this.nodeManager = new INodeManager(keyFactory, e.getTable(tableName));
     this.xAttrOp = new XAttrOp(nodeManager, conf);
     leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();
@@ -257,7 +256,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
   public long getFileId(byte[] parentKey, String src) throws IOException {
     Path srcPath = new Path(src);
     String parentPath = srcPath.getParent().toString();
-    RowKey parentRowKey = RowKeyFactory.newInstance(parentPath, -1, parentKey);
+    RowKey parentRowKey = keyFactory.newInstance(parentPath, -1, parentKey);
     return nodeManager.findINodeId(parentRowKey, srcPath);
   }
 
@@ -427,7 +426,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
       long id = nodeManager.nextINodeId();
-      RowKey key = RowKeyFactory.newInstance(src, id);
+      RowKey key = keyFactory.newInstance(src, id);
       iFile = new INodeFile(key, id, time, time, pc.getUser(),
           iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
@@ -795,7 +794,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
 
     long time = now();
     long id = nodeManager.nextINodeId();
-    RowKey key = RowKeyFactory.newInstance(src, id);
+    RowKey key = keyFactory.newInstance(src, id);
     inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
@@ -857,7 +856,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
-    RowKey key = RowKeyFactory.newInstance(src.toString(), id);
+    RowKey key = keyFactory.newInstance(src.toString(), id);
     INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
@@ -1007,7 +1006,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     RowKey srcKey = srcNode.getRowKey();
     String src = srcKey.getPath();
     LOG.debug("Copying " + src + " to " + dst + " with rename flag");
-    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+    INode dstNode = srcNode.cloneWithNewRowKey(keyFactory.newInstance(dst));
     dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
     nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
     return dstNode;

@@ -49,6 +49,7 @@ public class GiraffaFileServlet extends HttpServlet {
 
   private transient ObjectMapper mapper = new ObjectMapper();
   private transient GiraffaFileSystem grfs;
+  private transient RowKeyFactory keyFactory;
 
   @Override
   public void init() throws ServletException {
@@ -59,6 +60,7 @@ public class GiraffaFileServlet extends HttpServlet {
     } catch (IOException e) {
       throw new ServletException(e);
     }
+    keyFactory = RowKeyFactory.newInstance(grfs);
   }
 
   @Override
@@ -157,7 +159,7 @@ public class GiraffaFileServlet extends HttpServlet {
   }
 
   private FileItem convertToFileItem(FileStatus stat) throws IOException {
-    RowKey rowKey = RowKeyFactory.newInstance(stat.getPath().toUri().getPath());
+    RowKey rowKey = keyFactory.newInstance(stat.getPath().toUri().getPath());
     FileItem file = new FileItem(rowKey, stat.getModificationTime(),
         stat.getAccessTime(), stat.getOwner(), stat.getGroup(),
         stat.getPermission(), (stat.isSymlink() ? RowKeyBytes.toBytes(

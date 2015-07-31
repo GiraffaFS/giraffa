@@ -58,6 +58,7 @@ public class TestRename {
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
   private Connection connection;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -76,7 +77,8 @@ public class TestRename {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
+    keyFactory = RowKeyFactory.newInstance(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
@@ -117,7 +119,7 @@ public class TestRename {
     dst = new Path(grfs.getWorkingDirectory(), dst).toUri().getPath();
 
     INode srcNode = nodeManager.getINode(src);
-    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
+    INode dstNode = srcNode.cloneWithNewRowKey(keyFactory.newInstance(dst));
 
     // renameFile state should be set if PUT_NOFLAG has not been completed
     if(stage == PUT_SETFLAG || stage == DELETE) {

@@ -111,11 +111,13 @@ public class GiraffaTestUtils {
    * @throws IOException
    */
   public static INodeManager getNodeManager(GiraffaConfiguration conf,
-      Connection connection) throws IOException {
+                                            Connection connection,
+                                            RowKeyFactory keyFactory)
+      throws IOException {
     TableName tableName =
         TableName.valueOf(getGiraffaTableName(conf));
     Table table = connection.getTable(tableName);
-    return new INodeManager(table);
+    return new INodeManager(keyFactory, table);
   }
 
   static void listStatusRecursive(

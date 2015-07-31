@@ -62,6 +62,7 @@ public class TestLeaseManagement {
   private GiraffaFileSystem grfs;
   private GiraffaConfiguration conf;
   private Connection connection;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -89,7 +90,8 @@ public class TestLeaseManagement {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
+    keyFactory = RowKeyFactory.newInstance(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
@@ -237,7 +239,8 @@ public class TestLeaseManagement {
           IOUtils.cleanup(LOG, connection);
           connection = ConnectionFactory.createConnection(conf);
           IOUtils.cleanup(LOG, nodeManager);
-          nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
+          nodeManager =
+              GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
           iNode = INodeFile.valueOf(nodeManager.getINode(src));
         } catch (ConnectException ignored) {}
       } while(iNode == null);
