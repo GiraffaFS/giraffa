@@ -312,8 +312,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-        <!-- test dependencies -->
         <dependency>
             <groupId>org.jmockit</groupId>
             <artifactId>jmockit</artifactId>
@@ -426,6 +424,28 @@
             </plugin>
 
             <plugin>
+                <groupId>com.github.igor-petruk.protobuf</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <configuration>
+                    <protocCommand>${protoc.path}</protocCommand>
+                    <inputDirectories>
+                        <inputDirectory>${basedir}/src/main/proto/</inputDirectory>
+                    </inputDirectories>
+                    <includeDirectories>
+                        <includeDirectory>${basedir}/src/main/proto/includes/</includeDirectory>
+                    </includeDirectories>
+                    <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.6</version>
                 <executions>
@@ -458,12 +478,6 @@
                                              outputdir="${generated.sources}/java"
                                              package="org.apache.giraffa.web"
                                              webxml="${build.webapps}/WEB-INF/web.xml"/>
-
-                                <exec executable="protoc">
-                                    <arg value="-I=${basedir}/src/main/proto" />
-                                    <arg value="--java_out=${generated.sources}/java"/>
-                                    <arg value="${basedir}/src/main/proto/grfa.proto"/>
-                                </exec>
                             </target>
                         </configuration>
                         <goals>

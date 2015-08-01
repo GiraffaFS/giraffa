@@ -22,8 +22,7 @@
 
         <!-- ProtocolBuffer version, used to verify the protoc version and -->
         <!-- define the protobuf JAR version                               -->
-        <protobuf.version>2.5.0</protobuf.version>
-        <protoc.path>${env.HADOOP_PROTOC_PATH}</protoc.path>
+        <protoc.path>protoc</protoc.path>
 
         <!-- maven plugin versions -->
         <maven.surefire.plugin.version>2.16</maven.surefire.plugin.version>
@@ -33,6 +32,7 @@
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
         <maven.jar.plugin.version>2.4</maven.jar.plugin.version>
         <maven.javadoc.plugin.version>2.9</maven.javadoc.plugin.version>
+        <maven.protoc.plugin.version>0.6.5</maven.protoc.plugin.version>
         <exec.maven.plugin.version>1.2.1</exec.maven.plugin.version>
 
         <!-- reporting plugins -->
@@ -103,6 +103,11 @@
                     <version>${maven.source.plugin.version}</version>
                 </plugin>
                 <plugin>
+                    <groupId>com.github.igor-petruk.protobuf</groupId>
+                    <artifactId>protobuf-maven-plugin</artifactId>
+                    <version>${maven.protoc.plugin.version}</version>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
                     <version>${maven.site.plugin}</version>
@@ -142,15 +147,6 @@
 	                    <xmlOutput>true</xmlOutput>
 	                    <excludeFilterFile>${basedir}/src/main/resources/findbugs-exclude.xml</excludeFilterFile>
 	                </configuration>
-            	  </plugin>
-                <plugin>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-maven-plugins</artifactId>
-                    <version>${hadoop.version}</version>
-                    <configuration>
-                        <protocVersion>${protobuf.version}</protocVersion>
-                        <protocCommand>${protoc.path}</protocCommand>
-                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
