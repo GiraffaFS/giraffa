@@ -174,7 +174,6 @@ public class TestLeaseManagement {
         if(iNode.getFileState() == FileState.CLOSED)
           break;
       }
-      assert iNode != null : "INode was null. File was not closed in 10 secs.";
       assertThat(iNode.getFileState(), is(FileState.CLOSED));
       assertThat(iNode.getLen(), is(2L));
       assertThat(iNode.getLease(), is(nullValue()));
