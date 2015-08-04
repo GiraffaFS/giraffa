@@ -20,6 +20,7 @@ package org.apache.giraffa.hbase;
 import static org.apache.giraffa.GiraffaConstants.FileState;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
+import static org.apache.giraffa.hbase.FileFieldDeserializer.getFileState;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;
@@ -47,7 +48,9 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -182,6 +185,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
     List<Cell> kvs = put.getFamilyCellMap().get(FileField.getFileAttributes());
     // If not File Attributes related then skip processing
     if (kvs == null) { return; }
+    if (checkFileClosed(put.getRow(), kvs, e)) { return; }
+
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
       return;
@@ -438,6 +443,31 @@ public class BlockManagementAgent extends BaseRegionObserver {
     updateField(kvs, FileField.LENGTH, Bytes.toBytes(fileInfo.getLen()));
     updateField(kvs, FileField.FILE_STATE,
         Bytes.toBytes(FileState.CLOSED.toString()));
+  }
+
+  /**
+   * Check if some ones tries to update lease while the file is closed
+   */
+  private boolean checkFileClosed( byte[] key, List<Cell> kvs,
+      ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+    if (findField(kvs, FileField.LEASE) != null) {
+      Result nodeInfo = e.getEnvironment().getRegion().get(new Get(key));
+      if(getFileState(nodeInfo).equals(FileState.CLOSED)) {
+        if (kvs.size() == 1) { // it's updateINodeLease
+          // If updateINodeLease try to update lease after it's been CLOSED,
+          // discard it
+          LOG.warn("Attempt to update lease for a file that has been already"
+                   + " closed. Ignoring.");
+          kvs.clear();
+          return true;
+        } else {
+          // Not sure how to handle this case so leave a warning here
+          LOG.warn("Could not update INode with lease while the file"
+                   + " is closed.");
+        }
+      }
+    }
+    return false;
   }
 
   private boolean recoverBlockFile(ExtendedBlock block) throws IOException {
