@@ -456,6 +456,8 @@ public class BlockManagementAgent extends BaseRegionObserver {
         if (kvs.size() == 1) { // it's updateINodeLease
           // If updateINodeLease try to update lease after it's been CLOSED,
           // discard it
+          LOG.warn("Attempt to update lease for a file that has been already"
+                   + " closed. Ignoring.");
           kvs.clear();
           return true;
         } else {
