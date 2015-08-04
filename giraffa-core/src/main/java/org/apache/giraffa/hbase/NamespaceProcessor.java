@@ -66,6 +66,7 @@ import org.apache.giraffa.INodeDirectory;
 import org.apache.giraffa.INodeFile;
 import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.INode;
+import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.UnlocatedBlock;
@@ -937,7 +938,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
       RowKey dstKey = keyFactory.newInstance(dst, rootSrcNode.getId());
       if (srcKey.equals(dstKey)) {
         LOG.debug("Applying atomic in-place rename");
-        rootDstNode = rootSrcNode.rename(dstKey);
+        rootDstNode = rootSrcNode.cloneWithNewRowKey(dstKey);
         nodeManager.updateINode(rootDstNode);
         return;
       }
@@ -950,7 +951,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
 
     if(rootSrcNode != null) {
       // Stage 1: copy into new row with RenameState flag
-      rootDstNode = nodeManager.copyWithRenameFlag(rootSrcNode, dst);
+      rootDstNode = copyWithRenameFlag(rootSrcNode, dst);
       if(directoryRename) {
         final URI base = new Path(src).toUri();
         final URI newBase = URI.create(dst+Path.SEPARATOR);
@@ -965,7 +966,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
             public void apply(INode srcNode) throws IOException {
               String iSrc = srcNode.getPath();
               String iDst = changeBase(iSrc, base, newBase);
-              nodeManager.copyWithRenameFlag(srcNode, iDst);
+              copyWithRenameFlag(srcNode, iDst);
             }
           });
         }
@@ -986,12 +987,12 @@ public class NamespaceProcessor implements GiraffaProtocol,
         nodeManager.map(dir, new Function() {
           @Override
           public void apply(INode dstNode) throws IOException {
-            nodeManager.removeRenameFlag(dstNode);
+            removeRenameFlag(dstNode);
           }
         });
       }
     }
-    nodeManager.removeRenameFlag(rootDstNode);
+    removeRenameFlag(rootDstNode);
   }
 
   /**
@@ -1000,6 +1001,31 @@ public class NamespaceProcessor implements GiraffaProtocol,
   private static String changeBase(String src, URI base, URI newBase) {
     URI rel = base.relativize(URI.create(src));
     return newBase.resolve(rel).toString();
+  }
+
+  /**
+   * Creates a duplicate of srcNode in the namespace named dst and sets the
+   * rename flag on the duplicate.
+   */
+  private INode copyWithRenameFlag(INode srcNode, String dst)
+      throws IOException {
+    RowKey srcKey = srcNode.getRowKey();
+    String src = srcKey.getPath();
+    LOG.debug("Copying " + src + " to " + dst + " with rename flag");
+    RowKey dstKey = keyFactory.newInstance(dst, nodeManager.nextINodeId());
+    INode dstNode = srcNode.cloneWithNewRowKey(dstKey);
+    dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
+    nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
+    return dstNode;
+  }
+
+  /**
+   * Unsets the rename flag from the given node and updates the namespace.
+   */
+  private void removeRenameFlag(INode dstNode) throws IOException {
+    LOG.debug("Removing rename flag from "+dstNode.getPath());
+    dstNode.setRenameState(RenameState.FALSE());
+    nodeManager.updateINode(dstNode);
   }
 
   /**

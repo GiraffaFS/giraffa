@@ -144,8 +144,8 @@ public abstract class RowKey implements Configurable {
 
   @Override // Object
   public String toString() {
-    return getClass().getSimpleName() + ": "
-        + getKeyString() + " | " + getPath();
+    return getClass().getSimpleName() + ": " + getKeyString()
+        +" | " + getPath();
   }
 
   /**

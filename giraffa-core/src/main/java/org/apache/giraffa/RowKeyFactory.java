@@ -57,7 +57,7 @@ public class RowKeyFactory {
   }
 
   /**
-   * Register RowKey class, specified by {@link Configuration} and
+   * Register RowKey class, specified by {@link Configuration} and 
    * turn on caching is requested.
    * @param conf configuration specifying row key class and caching choice.
    */

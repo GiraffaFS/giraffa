@@ -100,10 +100,10 @@ public class INodeDirectory extends INode {
   }
 
   @Override // INode
-  public INodeDirectory rename(RowKey newKey, long newId) {
-    return new INodeDirectory(newKey, newId, getModificationTime(),
-        getAccessTime(), getOwner(), getGroup(), getPermission(), getSymlink(),
-        getRenameState(), dsQuota, nsQuota);
+  public INodeDirectory cloneWithNewRowKey(RowKey newKey) {
+    return new INodeDirectory(newKey, newKey.getINodeId(),
+        getModificationTime(), getAccessTime(), getOwner(), getGroup(),
+        getPermission(), getSymlink(), getRenameState(), dsQuota, nsQuota);
   }
 
   public static INodeDirectory valueOf(INode node) throws IOException {

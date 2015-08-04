@@ -58,6 +58,7 @@ public class TestRename {
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
   private Connection connection;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -76,7 +77,7 @@ public class TestRename {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    RowKeyFactory keyFactory = RowKeyFactory.newInstance(grfs);
+    keyFactory = RowKeyFactory.newInstance(grfs);
     nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
@@ -110,23 +111,31 @@ public class TestRename {
   }
 
   /**
-   * Completes the given stage of the rename process
+   * Completes the given stage of the rename process.
    */
-
   private void doRenameStage(String src, String dst, RenameRecoveryState stage)
       throws IOException {
     src = new Path(grfs.getWorkingDirectory(), src).toUri().getPath();
     dst = new Path(grfs.getWorkingDirectory(), dst).toUri().getPath();
 
     if (stage == PUT_SETFLAG) {
+      LOG.debug("Copying " + src + " to " + dst + " with rename flag");
       INode srcNode = nodeManager.getINode(src);
-      nodeManager.copyWithRenameFlag(srcNode, dst);
-    } else if (stage == DELETE) {
+      RowKey dstKey = keyFactory.newInstance(dst, nodeManager.nextINodeId());
+      INode dstNode = srcNode.cloneWithNewRowKey(dstKey);
+      dstNode.setRenameState(RenameState.TRUE(srcNode.getRowKey().getKey()));
+      nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
+    }
+
+    if (stage == DELETE) {
       INode srcNode = nodeManager.getINode(src);
       nodeManager.delete(srcNode);
-    } else if (stage == PUT_NOFLAG) {
+    }
+
+    if (stage == PUT_NOFLAG) {
       INode dstNode = nodeManager.getINode(dst);
-      nodeManager.removeRenameFlag(dstNode);
+      dstNode.setRenameState(RenameState.FALSE());
+      nodeManager.updateINode(dstNode);
     }
   }
 
@@ -211,6 +220,23 @@ public class TestRename {
   }
 
   @Test
+  public void testFileRenameRecoveryStage1Complete() throws IOException {
+    grfs.mkdirs(new Path("dir"));
+    createTestFile("test", 'A');
+    doRenameStage("test", "dir/test", PUT_SETFLAG);
+    renameFile("test", "dir/test", false);
+  }
+
+  @Test
+  public void testFileRenameRecoveryStage2Complete() throws IOException {
+    grfs.mkdirs(new Path("dir"));
+    createTestFile("test", 'A');
+    doRenameStage("test", "dir/test", PUT_SETFLAG);
+    doRenameStage("test", "dir/test", DELETE);
+    renameFile("test", "dir/test", false);
+  }
+
+  @Test
   public void testFileRenameOverwrite() throws IOException {
     createTestFile("test", 'A');
     createTestFile("test2", 'B');
@@ -230,23 +256,6 @@ public class TestRename {
     createTestFile("test", 'A');
     createTestFile("dir/test", 'B');
     renameFile("test", "dir/test", true);
-  }
-
-  @Test
-  public void testFileMoveRecoveryStage1Complete() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    createTestFile("test", 'A');
-    doRenameStage("test", "dir/test", PUT_SETFLAG);
-    renameFile("test", "dir/test", false);
-  }
-
-  @Test
-  public void testFileMoveRecoveryStage2Complete() throws IOException {
-    grfs.mkdirs(new Path("dir"));
-    createTestFile("test", 'A');
-    doRenameStage("test", "dir/test", PUT_SETFLAG);
-    doRenameStage("test", "dir/test", DELETE);
-    renameFile("test", "dir/test", false);
   }
 
   // ==== FILE RENAME: FAIL CASES ===-=
@@ -343,7 +352,6 @@ public class TestRename {
     doRenameStage("/a/1", "/dir/a/1", PUT_SETFLAG);
     doRenameStage("/a/2", "/dir/a/2", PUT_SETFLAG);
     doRenameStage("/a/b", "/dir/a/b", PUT_SETFLAG);
-
     renameDir("/a", "/dir/a", false);
   }
 
@@ -378,7 +386,6 @@ public class TestRename {
     doRenameStage("/a/b/c/1", "/dir/a/b/c/1", DELETE);
     doRenameStage("/a/b/c", "/dir/a/b/c", DELETE);
     doRenameStage("/a/b/2", "/dir/a/b/2", DELETE);
-
     renameDir("/a", "/dir/a", false, isFile, firstChar);
   }
 
@@ -422,7 +429,6 @@ public class TestRename {
     doRenameStage("/a/1", "/dir/a/1", PUT_NOFLAG);
     doRenameStage("/a/2", "/dir/a/2", PUT_NOFLAG);
     doRenameStage("/a/b", "/dir/a/b", PUT_NOFLAG);
-
     renameDir("/a", "/dir/a", false, isFile, firstChar);
   }
 

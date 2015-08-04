@@ -163,11 +163,7 @@ public abstract class INode {
 
   public abstract HdfsLocatedFileStatus getLocatedFileStatus();
 
-  final public INode rename(RowKey newKey) {
-    return rename(newKey, getId());
-  }
-
-  public abstract INode rename(RowKey newKey, long newId);
+  public abstract INode cloneWithNewRowKey(RowKey newKey);
 
   @Override
   public String toString() {

@@ -30,7 +30,6 @@ import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.INode;
 import org.apache.giraffa.INodeDirectory;
 import org.apache.giraffa.INodeFile;
-import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
@@ -354,7 +353,7 @@ public class INodeManager implements Closeable {
     Put put = new Put(rowKey.getKey(), ts);
     String realColumnName = XAttrHelper.getPrefixName(xAttr);
     put.addColumn(FileField.getFileExtendedAttributes(),
-        Bytes.toBytes(realColumnName), ts, xAttr.getValue());
+            Bytes.toBytes(realColumnName), ts, xAttr.getValue());
     getNSTable().put(put);
   }
 
@@ -369,34 +368,8 @@ public class INodeManager implements Closeable {
     Delete delete = new Delete(rowKey.getKey());
     String realColumnName = XAttrHelper.getPrefixName(xAttr);
     delete.addColumns(FileField.getFileExtendedAttributes(),
-        Bytes.toBytes(realColumnName));
+                      Bytes.toBytes(realColumnName));
     getNSTable().delete(delete);
-  }
-
-  /**
-   * Creates a duplicate of srcNode in the namespace named dst and sets the
-   * rename flag on the duplicate.
-   */
-  public INode copyWithRenameFlag(INode srcNode, String dst)
-      throws IOException {
-    RowKey srcKey = srcNode.getRowKey();
-    String src = srcKey.getPath();
-    LOG.info("Copying " + src + " to " + dst + " with rename flag");
-    long newId = nextINodeId();
-    RowKey dstKey = keyFactory.newInstance(dst, newId);
-    INode dstNode = srcNode.rename(dstKey, newId);
-    dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
-    updateINode(dstNode, null, getXAttrs(src));
-    return dstNode;
-  }
-
-  /**
-   * Unsets the rename flag from the given node and updates the namespace.
-   */
-  public void removeRenameFlag(INode dstNode) throws IOException {
-    LOG.debug("Removing rename flag from "+dstNode.getPath());
-    dstNode.setRenameState(RenameState.FALSE());
-    updateINode(dstNode);
   }
 
   public long nextINodeId() throws IOException {
