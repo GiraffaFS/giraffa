@@ -103,7 +103,6 @@ import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
 import org.apache.hadoop.hdfs.protocol.RollingUpgradeInfo;
 import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
-import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.ClientNamenodeProtocol;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseRequestProto;
 import org.apache.hadoop.hdfs.protocol.proto.ClientNamenodeProtocolProtos.RenewLeaseResponseProto;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
@@ -522,19 +521,19 @@ public class NamespaceAgent implements NamespaceService {
   public void renewLease(final String clientName)
       throws AccessControlException, IOException {
     try {
-      nsTable.coprocessorService(ClientNamenodeProtocol.class,
+      nsTable.coprocessorService(GiraffaProtocolService.class,
           HConstants.EMPTY_START_ROW,
           HConstants.EMPTY_START_ROW,
-              new Batch.Call<ClientNamenodeProtocol, Void>() {
+              new Batch.Call<GiraffaProtocolService, Void>() {
                   @Override
-                  public Void call(ClientNamenodeProtocol instance)
+                  public Void call(GiraffaProtocolService instance)
                       throws IOException {
                     RenewLeaseRequestProto req =
                         RenewLeaseRequestProto.newBuilder()
                             .setClientName(clientName).build();
                     ServerRpcController controller = new ServerRpcController();
                     RpcCallback<RenewLeaseResponseProto> rpcCallback =
-                        new BlockingRpcCallback<RenewLeaseResponseProto>();
+                        new BlockingRpcCallback<>();
                     instance.renewLease(controller, req, rpcCallback);
                     return null;
                   }
