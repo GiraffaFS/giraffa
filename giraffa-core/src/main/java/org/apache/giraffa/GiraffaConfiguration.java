@@ -47,6 +47,11 @@ public class GiraffaConfiguration extends Configuration {
 
   public static final String  GRFA_WEB_ADDRESS_KEY = "grfa.http-address";
   public static final String  GRFA_WEB_ADDRESS_DEFAULT = "0.0.0.0:40010";
+  
+  public static final String  GRFA_GBM_SERVICE_RPC_BIND_HOST_KEY = "grfa.gbmnode.servicerpc-bind-host";
+  public static final String  GRFA_GBM_SERVICE_RPC_ADDRESS_DEFAULT = "0.0.0.0:40020";
+  public static final String  GRFA_GBM_HANDLER_COUNT_KEY = "grfa.gbmnode.service.handler.count";
+  public static final int     GRFA_GBM_HANDLER_COUNT_DEFAULT = 5;
 
   static {
     // adds the default resources
