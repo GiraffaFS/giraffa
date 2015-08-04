@@ -185,7 +185,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     List<Cell> kvs = put.getFamilyCellMap().get(FileField.getFileAttributes());
     // If not File Attributes related then skip processing
     if (kvs == null) { return; }
-    if (checkIfRacing(kvs, e, put)) { return; }
+    if (checkFileClosed(put.getRow(), kvs, e)) { return; }
 
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
@@ -445,30 +445,27 @@ public class BlockManagementAgent extends BaseRegionObserver {
         Bytes.toBytes(FileState.CLOSED.toString()));
   }
 
-  private boolean checkIfRacing(List<Cell> kvs,
-                                ObserverContext<RegionCoprocessorEnvironment> e,
-                                Put put) throws IOException {
-    // from updateINodeLease
-    // if updateINodeLease try to update lease after it's been CLOSED
-    // discard it
-    if ((kvs.size() == 1) && (findField(kvs, FileField.LEASE) != null)) {
-      if (isFileStateEquals(e, put , FileState.CLOSED)){
-        kvs.clear();
-        return true;
+  /**
+   * Check if some ones tries to update lease while the file is closed
+   */
+  private boolean checkFileClosed( byte[] key, List<Cell> kvs,
+      ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+    if (findField(kvs, FileField.LEASE) != null) {
+      Result nodeInfo = e.getEnvironment().getRegion().get(new Get(key));
+      if(getFileState(nodeInfo).equals(FileState.CLOSED)) {
+        if (kvs.size() == 1) { // it's updateINodeLease
+          // If updateINodeLease try to update lease after it's been CLOSED,
+          // discard it
+          kvs.clear();
+          return true;
+        } else {
+          // Not sure how to handle this case so leave a warning here
+          LOG.warn("Could not update INode with lease while the file"
+                   + " is closed.");
+        }
       }
     }
     return false;
-  }
-
-  /**
-   * Get current INode info and check if FileState equals given value
-   */
-  private boolean isFileStateEquals(
-      ObserverContext<RegionCoprocessorEnvironment> e, Put put, FileState fs)
-      throws IOException{
-    byte[] key = put.getRow();
-    Result nodeInfo = e.getEnvironment().getRegion().get(new Get(key));
-    return getFileState(nodeInfo).equals(fs);
   }
 
   private boolean recoverBlockFile(ExtendedBlock block) throws IOException {
