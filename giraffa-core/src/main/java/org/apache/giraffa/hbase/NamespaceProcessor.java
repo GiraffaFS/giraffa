@@ -269,10 +269,12 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public LocatedBlock addBlock(String src, String clientName,
-                               ExtendedBlock previous,
-                               DatanodeInfo[] excludeNodes, long fileId,
-                               String[] favoredNodes)
+  public synchronized LocatedBlock addBlock(String src,
+                                            String clientName,
+                                            ExtendedBlock previous,
+                                            DatanodeInfo[] excludeNodes,
+                                            long fileId,
+                                            String[] favoredNodes)
       throws AccessControlException, FileNotFoundException,
              NotReplicatedYetException, SafeModeException,
              UnresolvedLinkException, IOException {
@@ -323,8 +325,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean complete(String src, String clientName,
-                          ExtendedBlock last, long fileId)
+  public synchronized boolean complete(String src, String clientName,
+                                       ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
     INodeFile iNode = getINodeAsFile(src);
@@ -352,18 +354,19 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public HdfsFileStatus create(String src, FsPermission masked,
-                               String clientName,
-                               EnumSetWritable<CreateFlag> createFlag,
-                               boolean createParent, short replication,
-                               long blockSize)
+  public synchronized HdfsFileStatus create(String src,
+                                            FsPermission masked,
+                                            String clientName,
+                                            EnumSetWritable<CreateFlag> flag,
+                                            boolean createParent,
+                                            short replication,
+                                            long blockSize)
       throws AccessControlException, AlreadyBeingCreatedException,
              DSQuotaExceededException, FileAlreadyExistsException,
              FileNotFoundException, NSQuotaExceededException,
              ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
              SnapshotAccessControlException, IOException {
     assertNotRoot(src);
-    EnumSet<CreateFlag> flag = createFlag.get();
     boolean overwrite = flag.contains(CreateFlag.OVERWRITE);
     boolean append = flag.contains(CreateFlag.APPEND);
     boolean create = flag.contains(CreateFlag.CREATE);
@@ -458,7 +461,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
    * If any failure occurs along the way, the deletion process will stop.
    */
   @Override // ClientProtocol
-  public boolean delete(String src, boolean recursive) throws IOException {
+  public synchronized boolean delete(String src, boolean recursive)
+      throws IOException {
     assertNotRoot(src);
     INode node = nodeManager.getINode(src);
     INode parent = nodeManager.getParentINode(src);
@@ -759,7 +763,9 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean mkdirs(String src, FsPermission masked, boolean createParent)
+  public synchronized boolean mkdirs(String src,
+                                     FsPermission masked,
+                                     boolean createParent)
       throws AccessControlException, FileAlreadyExistsException,
       FileNotFoundException, NSQuotaExceededException,
       ParentNotDirectoryException, SafeModeException, UnresolvedLinkException,
@@ -874,7 +880,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean recoverLease(String src, String clientName) throws IOException {
+  public synchronized boolean recoverLease(String src, String clientName)
+      throws IOException {
     Collection<FileLease> leases = leaseManager.getLeases(clientName);
     if(leases == null)
       return false;
@@ -906,7 +913,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void rename2(String src, String dst, Rename... options)
+  public synchronized void rename2(String src, String dst, Rename... options)
       throws AccessControlException, DSQuotaExceededException,
       FileAlreadyExistsException, FileNotFoundException,
       NSQuotaExceededException, ParentNotDirectoryException, SafeModeException,
@@ -1108,8 +1115,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void renewLease(String clientName) throws AccessControlException,
-      IOException {
+  public synchronized void renewLease(String clientName)
+      throws AccessControlException, IOException {
     Collection<FileLease> leases = leaseManager.renewLease(clientName);
     if(leases == null || leases.isEmpty()) {
       LOG.warn("No leases; did not renew.");
@@ -1143,7 +1150,9 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void setOwner(String src, String username, String groupname)
+  public synchronized void setOwner(String src,
+                                    String username,
+                                    String groupname)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
     if(username == null && groupname == null)
@@ -1176,7 +1185,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void setPermission(String src, FsPermission permission)
+  public synchronized void setPermission(String src, FsPermission permission)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
 
@@ -1197,7 +1206,9 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void setQuota(String src, long namespaceQuota, long diskspaceQuota)
+  public synchronized void setQuota(String src,
+                                    long namespaceQuota,
+                                    long diskspaceQuota)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     if (isPermissionEnabled) {
@@ -1220,7 +1231,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public boolean setReplication(String src, short replication)
+  public synchronized boolean setReplication(String src, short replication)
       throws AccessControlException, DSQuotaExceededException,
       FileNotFoundException, SafeModeException, UnresolvedLinkException,
       IOException {
@@ -1250,7 +1261,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override // ClientProtocol
-  public void setTimes(String src, long mtime, long atime)
+  public synchronized void setTimes(String src, long mtime, long atime)
       throws AccessControlException, FileNotFoundException,
       UnresolvedLinkException, IOException {
     INode node = nodeManager.getINode(src);
@@ -1491,7 +1502,9 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override
-  public void setXAttr(String src, XAttr xAttr, EnumSet<XAttrSetFlag> flag)
+  public synchronized void setXAttr(String src,
+                                    XAttr xAttr,
+                                    EnumSet<XAttrSetFlag> flag)
       throws IOException {
     checkXAttrsConfigFlag();
     checkXAttrSize(xAttr);
@@ -1512,7 +1525,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
   }
 
   @Override
-  public void removeXAttr(String src, XAttr xAttr) throws IOException {
+  public synchronized void removeXAttr(String src, XAttr xAttr)
+      throws IOException {
     checkXAttrsConfigFlag();
     xAttrOp.removeXAttr(src, xAttr, getFsPermissionChecker());
   }
