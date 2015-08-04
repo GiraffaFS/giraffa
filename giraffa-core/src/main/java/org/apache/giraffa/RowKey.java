@@ -85,9 +85,8 @@ public abstract class RowKey implements Configurable {
    * return -1 instead.
    * @return the INode ID at this row, 0 if the INode does not exist, and -1 if
    *         unknown.
-   * @throws IOException there was a problem in computing the id
    */
-  public abstract long getINodeId() throws IOException;
+  public abstract long getINodeId();
 
   /**
    * Set the id of the file system object represented by the underlying row.
@@ -137,15 +136,21 @@ public abstract class RowKey implements Configurable {
    */
   public abstract boolean shouldCache();
 
-  /**
-   * Return a String representation of the underlying byte array for use in
-   * {@link #toString()}.
-   */
-  public abstract String getKeyString();
+  @Override // Object
+  public abstract boolean equals(Object o);
+
+  @Override // Object
+  public abstract int hashCode();
 
   @Override // Object
   public String toString() {
     return getClass().getSimpleName() + ": "
         + getKeyString() + " | " + getPath();
   }
+
+  /**
+   * Return a String representation of the underlying byte array for use in
+   * {@link #toString()}.
+   */
+  public abstract String getKeyString();
 }

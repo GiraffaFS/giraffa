@@ -46,7 +46,7 @@
 
   <property>
     <name>grfa.rowkey.caching</name>
-    <value>true</value>
+    <value>false</value>
     <description>
       True if row key caching is enabled.
     </description>

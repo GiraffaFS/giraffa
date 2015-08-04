@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class FileIdRowKey extends RowKey implements Serializable {
 
@@ -59,15 +60,26 @@ public class FileIdRowKey extends RowKey implements Serializable {
   }
 
   @Override // RowKey
-  public long getINodeId() throws IOException {
-    if (inodeId == -1) {
-      inodeId = bytes != null ?
-          RowKeyBytes.toLong(bytes, length - 8) :
-          getService().getFileId(getParentKey(), getPath());
+  public long getINodeId() {
+    try {
+      computeINodeId();
+      return inodeId;
+    } catch (IOException e) {
+      LOG.error("Failed to compute INode ID for " + getPath(), e);
+      return -1;
+    }
+  }
+
+  private void computeINodeId() throws IOException {
+    try {
+      if (inodeId == -1) {
+        inodeId = bytes != null ?
+            RowKeyBytes.toLong(bytes, length - 8) :
+            getService().getFileId(getParentKey(), getPath());
+      }
+    } finally {
       shouldCache = inodeId > 0;
     }
-    assert inodeId >= 0;
-    return inodeId;
   }
 
   @Override // RowKey
@@ -85,9 +97,7 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] getKey() {
-    if (bytes == null) {
-      bytes = generateKey();
-    }
+    generateKeyIfNull();
     return bytes.clone();
   }
 
@@ -100,10 +110,11 @@ public class FileIdRowKey extends RowKey implements Serializable {
     }
 
     try {
-      byte[] b = getParentKey();
-      long fileId = getINodeId();
+      byte[] b = getParentKey().clone();
       lshift(b, 8);
-      putLong(b, lastIdOffset, fileId);
+      computeINodeId();
+      assert inodeId >= 0;
+      putLong(b, lastIdOffset, inodeId);
       return b;
     } catch (IOException e) {
       LOG.error("Failed to generate row key for " + getPath(), e);
@@ -145,10 +156,25 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public boolean shouldCache() {
-    if (bytes == null) {
-      bytes = generateKey();
-    }
+    generateKeyIfNull();
     return shouldCache;
+  }
+
+  @Override // Object
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof FileIdRowKey)) return false;
+
+    FileIdRowKey that = (FileIdRowKey) o;
+    generateKeyIfNull();
+    that.generateKeyIfNull();
+    return Arrays.equals(bytes, that.bytes);
+  }
+
+  @Override // Object
+  public int hashCode() {
+    generateKeyIfNull();
+    return Arrays.hashCode(bytes);
   }
 
   @Override // RowKey
@@ -161,6 +187,12 @@ public class FileIdRowKey extends RowKey implements Serializable {
       sb.append(RowKeyBytes.toLong(b, i));
     }
     return sb.toString();
+  }
+
+  private void generateKeyIfNull() {
+    if (bytes == null) {
+      bytes = generateKey();
+    }
   }
 
   private void initialize() {

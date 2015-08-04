@@ -19,6 +19,7 @@ package org.apache.giraffa;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Implementation of a row key based on the file's full path.
@@ -56,8 +57,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
   }
 
   @Override // RowKey
-  public long getINodeId()
-      throws IOException {
+  public long getINodeId() {
     return inodeId;
   }
 
@@ -123,6 +123,20 @@ public class FullPathRowKey extends RowKey implements Serializable {
   @Override // RowKey
   public boolean shouldCache() {
     return true;
+  }
+
+  @Override // Object
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof FullPathRowKey)) return false;
+
+    FullPathRowKey that = (FullPathRowKey) o;
+    return Objects.equals(path, that.path);
+  }
+
+  @Override // Object
+  public int hashCode() {
+    return path != null ? path.hashCode() : 0;
   }
 
   @Override // RowKey
