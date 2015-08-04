@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
+
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -30,8 +32,6 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class INodeIdGenerator {
-
-  public static final long ROOT_ID = 1000L;
 
   private static final String ID_PATH = "/inodeId";
   private static final String LOCK_PATH = "/inodeIdLock";
@@ -67,7 +67,7 @@ public class INodeIdGenerator {
 
   private void initialize() throws IOException {
     try {
-      id.initialize(ROOT_ID);
+      id.initialize(ROOT_INODE_ID);
     } catch (Exception e) {
       throw new IOException(e);
     }

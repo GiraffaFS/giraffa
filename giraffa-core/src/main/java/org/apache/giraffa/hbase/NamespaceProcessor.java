@@ -44,6 +44,8 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_D
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.FileNotFoundException;
@@ -124,7 +126,6 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
-import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.hdfs.server.namenode.LeaseExpiredException;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
@@ -331,7 +332,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
     INodeFile iNode;
-    if (fileId != INodeId.GRANDFATHER_INODE_ID) {
+    if (fileId != GRANDFATHER_INODE_ID) {
       INode node = nodeManager.getINode(keyFactory.newInstance(src, fileId));
       if (node == null) {
         throw new FileNotFoundException("Path does not exist: " + src);
@@ -862,7 +863,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     String user, group;
     if (parent == null) {
       // root directory settings
-      id = INodeIdGenerator.ROOT_ID;
+      id = ROOT_INODE_ID;
       user = fsOwnerShortUserName;
       group = supergroup;
       masked = FsPermission.createImmutable((short)0755);
