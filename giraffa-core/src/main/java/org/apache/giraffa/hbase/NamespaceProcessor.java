@@ -124,6 +124,7 @@ import org.apache.hadoop.hdfs.protocol.SnapshotDiffReport;
 import org.apache.hadoop.hdfs.protocol.SnapshottableDirectoryStatus;
 import org.apache.hadoop.hdfs.security.token.block.DataEncryptionKey;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
+import org.apache.hadoop.hdfs.server.namenode.INodeId;
 import org.apache.hadoop.hdfs.server.namenode.LeaseExpiredException;
 import org.apache.hadoop.hdfs.server.namenode.NotReplicatedYetException;
 import org.apache.hadoop.hdfs.server.namenode.SafeModeException;
@@ -329,7 +330,17 @@ public class NamespaceProcessor implements GiraffaProtocol,
                                        ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    INodeFile iNode = getINodeAsFile(src);
+    INodeFile iNode;
+    if (fileId != INodeId.GRANDFATHER_INODE_ID) {
+      INode node = nodeManager.getINode(keyFactory.newInstance(src, fileId));
+      if (node == null) {
+        throw new FileNotFoundException("Path does not exist: " + src);
+      }
+      iNode = INodeFile.valueOf(node);
+    } else {
+      iNode = getINodeAsFile(src);
+    }
+
     checkLease(src, iNode, clientName);
 
     // set the state and replace the block, then put the iNode
