@@ -427,8 +427,8 @@ public class NamespaceProcessor implements GiraffaProtocol,
           leaseManager.addLease(new FileLease(clientName, src, time));
       long id = nodeManager.nextINodeId();
       RowKey key = keyFactory.newInstance(src, id);
-      iFile = new INodeFile(key, id, time, time, pc.getUser(),
-          iParent.getGroup(), masked, null, null, 0, replication, blockSize,
+      iFile = new INodeFile(key, time, time, pc.getUser(), iParent.getGroup(),
+          masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
     }
 
@@ -795,7 +795,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     long time = now();
     long id = nodeManager.nextINodeId();
     RowKey key = keyFactory.newInstance(src, id);
-    inode = new INodeDirectory(key, id, time, time, pc.getUser(),
+    inode = new INodeDirectory(key, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
     // add directory to HBase
@@ -857,7 +857,7 @@ public class NamespaceProcessor implements GiraffaProtocol,
     }
 
     RowKey key = keyFactory.newInstance(src.toString(), id);
-    INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
+    INodeDirectory inode = new INodeDirectory(key, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
     return inode;

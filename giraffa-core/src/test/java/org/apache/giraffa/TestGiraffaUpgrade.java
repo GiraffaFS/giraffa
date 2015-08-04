@@ -204,13 +204,13 @@ public class TestGiraffaUpgrade {
 
         // COMMIT IT!
         INode node;
-        RowKey key = keyFactory.newInstance(path);
+        RowKey key = keyFactory.newInstance(path, id);
         if (isDirectory) {
-          node = new INodeDirectory(key, id, modTime.getTime(),
+          node = new INodeDirectory(key, modTime.getTime(),
               accessTime.getTime(), userName, groupName, perm, null, null,
               dsQuota, nsQuota);
         } else {
-          node = new INodeFile(key, id, modTime.getTime(), accessTime.getTime(),
+          node = new INodeFile(key, modTime.getTime(), accessTime.getTime(),
               userName, groupName, perm, null, null, length, replication,
               blockSize, FileState.CLOSED, null, blocks, locations);
         }

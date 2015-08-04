@@ -37,7 +37,6 @@ public class INodeDirectory extends INode {
   private transient Boolean isEmpty;
 
   public INodeDirectory(RowKey key,
-                        long id,
                         long mtime,
                         long atime,
                         String owner,
@@ -47,8 +46,7 @@ public class INodeDirectory extends INode {
                         RenameState renameState,
                         long dsQuota,
                         long nsQuota) {
-    super(key, id, mtime, atime, owner, group, permission, symlink,
-        renameState);
+    super(key, mtime, atime, owner, group, permission, symlink, renameState);
     setQuota(nsQuota, dsQuota);
   }
 
@@ -101,9 +99,9 @@ public class INodeDirectory extends INode {
 
   @Override // INode
   public INodeDirectory cloneWithNewRowKey(RowKey newKey) {
-    return new INodeDirectory(newKey, newKey.getINodeId(),
-        getModificationTime(), getAccessTime(), getOwner(), getGroup(),
-        getPermission(), getSymlink(), getRenameState(), dsQuota, nsQuota);
+    return new INodeDirectory(newKey, getModificationTime(), getAccessTime(),
+        getOwner(), getGroup(), getPermission(), getSymlink(), getRenameState(),
+        dsQuota, nsQuota);
   }
 
   public static INodeDirectory valueOf(INode node) throws IOException {

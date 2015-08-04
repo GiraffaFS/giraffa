@@ -154,9 +154,8 @@ public class INodeManager implements Closeable {
       throws IOException {
     LOG.info("Updating " + node);
     long ts = Time.now();
+    assert node.getId() > 0;
     RowKey key = node.getRowKey();
-    assert key.getINodeId() > 0;
-    assert key.shouldCache();
     byte[] family = FileField.getFileAttributes();
     Put put = new Put(key.getKey(), ts);
     put.addColumn(family, FileField.getId(), ts, Bytes.toBytes(node.getId()))
@@ -402,7 +401,7 @@ public class INodeManager implements Closeable {
     long id = FileFieldDeserializer.getId(result);
     RowKey key = keyFactory.newInstance(src, id, result.getRow());
     if (FileFieldDeserializer.getDirectory(result)) {
-      return new INodeDirectory(key, id,
+      return new INodeDirectory(key,
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),
@@ -413,7 +412,7 @@ public class INodeManager implements Closeable {
           FileFieldDeserializer.getDsQuota(result),
           FileFieldDeserializer.getNsQuota(result));
     } else {
-      return new INodeFile(key, id,
+      return new INodeFile(key,
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),

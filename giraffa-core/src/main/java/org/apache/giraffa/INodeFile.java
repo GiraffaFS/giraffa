@@ -47,7 +47,6 @@ public class INodeFile extends INode {
   private List<DatanodeInfo[]> locations;
 
   public INodeFile(RowKey key,
-                   long id,
                    long mtime,
                    long atime,
                    String owner,
@@ -62,8 +61,7 @@ public class INodeFile extends INode {
                    FileLease lease,
                    List<UnlocatedBlock> blocks,
                    List<DatanodeInfo[]> locations) {
-    super(key, id, mtime, atime, owner, group, permission, symlink,
-        renameState);
+    super(key, mtime, atime, owner, group, permission, symlink, renameState);
     this.length = length;
     this.replication = replication;
     this.blocksize = blocksize;
@@ -186,10 +184,9 @@ public class INodeFile extends INode {
 
   @Override // INode
   public INodeFile cloneWithNewRowKey(RowKey newKey) {
-    return new INodeFile(newKey, newKey.getINodeId(), getModificationTime(),
-        getAccessTime(), getOwner(), getGroup(), getPermission(), getSymlink(),
-        getRenameState(), length, replication, blocksize, fileState, lease,
-        blocks, locations);
+    return new INodeFile(newKey, getModificationTime(), getAccessTime(),
+        getOwner(), getGroup(), getPermission(), getSymlink(), getRenameState(),
+        length, replication, blocksize, fileState, lease, blocks, locations);
   }
 
   public static INodeFile valueOf(INode node) throws IOException {

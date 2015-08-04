@@ -29,7 +29,6 @@ import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
 public abstract class INode {
 
   private final RowKey key;
-  private final long id;
   private long mtime;
   private long atime;
   private String owner;
@@ -42,7 +41,6 @@ public abstract class INode {
    * Construct an INode from the RowKey and file attributes.
    */
   INode(RowKey key,
-        long id,
         long mtime,
         long atime,
         String owner,
@@ -51,7 +49,6 @@ public abstract class INode {
         byte[] symlink,
         RenameState renameState) {
     this.key = key;
-    this.id = id;
     this.mtime = mtime;
     this.atime = atime;
     this.owner = owner;
@@ -74,7 +71,7 @@ public abstract class INode {
   }
 
   final public long getId() {
-    return id;
+    return key.getINodeId();
   }
 
   /**
