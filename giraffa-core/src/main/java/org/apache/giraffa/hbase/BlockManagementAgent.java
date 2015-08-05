@@ -452,7 +452,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
     if (findField(kvs, FileField.LEASE) != null) {
       Result nodeInfo = e.getEnvironment().getRegion().get(new Get(key));
-      if(nodeInfo.getRow() != null &&
+      if(!nodeInfo.isEmpty() &&
          getFileState(nodeInfo).equals(FileState.CLOSED)) {
         if (kvs.size() == 1) { // it's updateINodeLease
           // If updateINodeLease try to update lease after it's been CLOSED,
