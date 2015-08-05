@@ -39,7 +39,7 @@ public class RowKeyBytes {
     return null;
   }
   
-  // Follows the convention used in HBase Bytes for compatibality.
+  // Follows the convention used in HBase Bytes for compatibility.
   public static byte[] toBytes(short toConv) {
     byte[] b = new byte[2];
     b[1] = (byte) toConv;
