@@ -435,6 +435,7 @@
                         <includeDirectory>${basedir}/src/main/proto/includes/</includeDirectory>
                     </includeDirectories>
                     <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
+                    <cleanOutputFolder>false</cleanOutputFolder>
                 </configuration>
                 <executions>
                     <execution>
