@@ -24,7 +24,7 @@ import java.util.TreeSet;
 import org.apache.giraffa.FileLease;
 
 /**
- * HDFS LeasManager adapter.
+ * HDFS LeaseManager adapter.
  * Used to implement giraffa.LeaseManager for now.
  */
 public class HLMAdapter {

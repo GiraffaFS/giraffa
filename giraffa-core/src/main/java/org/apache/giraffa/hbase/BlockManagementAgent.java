@@ -117,7 +117,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     if(!hdfs.mkdirs(new Path(GRFA_BLOCKS_DIR)))
       msg = "Cannot create finalized block directory: " + GRFA_BLOCKS_DIR;
     else if(!hdfs.mkdirs(new Path(GRFA_TMP_BLOCKS_DIR)))
-      msg = "Cannot create remporary block directory: " + GRFA_TMP_BLOCKS_DIR;
+      msg = "Cannot create temporary block directory: " + GRFA_TMP_BLOCKS_DIR;
     if(msg != null) {
       LOG.error(msg);
       throw new IOException(msg);
@@ -309,7 +309,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       List<DatanodeInfo[]> al_locs =
           byteArrayToLocsList(CellUtil.cloneValue(locsKv));
 
-      // get new empty Block, seperate into blocks/locations, and add to lists
+      // get new empty Block, separate into blocks/locations, and add to lists
       LocatedBlock locatedBlock = allocateBlockFile(al_blks);
       UnlocatedBlock blk = new UnlocatedBlock(locatedBlock);
       DatanodeInfo[] locs = locatedBlock.getLocations();
