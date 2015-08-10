@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.hadoop.fs.CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY;
+
 import junit.extensions.TestSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
@@ -41,6 +43,7 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   public void setUp() throws Exception {
     GiraffaConfiguration conf =
         new GiraffaConfiguration(UTIL.getConfiguration());
+    conf.set(FS_PERMISSIONS_UMASK_KEY, TEST_UMASK);
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     fs = FileSystem.get(conf);
@@ -51,11 +54,6 @@ public class TestGiraffaFSContract extends FileSystemContractBaseTest {
   protected void tearDown() throws Exception {
     super.tearDown();
     fs.close();
-  }
-
-  @Override
-  public void testMkdirsWithUmask() throws Exception {
-    // TODO: need #32 permission support to be implemented
   }
 
   @Override

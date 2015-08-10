@@ -88,10 +88,10 @@ public class DirectoryTable implements Serializable {
 
   public byte[] toBytes() throws IOException {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    ObjectOutputStream objout = new ObjectOutputStream(bos);
-    objout.writeObject(childrenKeys);
+    ObjectOutputStream objOut = new ObjectOutputStream(bos);
+    objOut.writeObject(childrenKeys);
     byte[] retVal = bos.toByteArray();
-    objout.close();
+    objOut.close();
     return retVal;
   }
 }

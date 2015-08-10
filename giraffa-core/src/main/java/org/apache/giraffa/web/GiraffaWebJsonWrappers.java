@@ -1,7 +1,7 @@
 package org.apache.giraffa.web;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.giraffa.INode;
+import org.apache.giraffa.INodeFile;
 import org.apache.giraffa.RowKey;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -194,7 +194,7 @@ public class GiraffaWebJsonWrappers {
 
   @JsonIgnoreProperties({"key", "blocks", "fileState", "fileStatus",
       "locatedFileStatus", "getRowKey", "blocksBytes", "permission"})
-  public static class FileItem extends INode {
+  public static class FileItem extends INodeFile {
 
     private String preview;
     private boolean isTextFile;
@@ -202,11 +202,11 @@ public class GiraffaWebJsonWrappers {
     /**
      * Construct an INode from the RowKey and file attributes.
      */
-    public FileItem(long length, boolean directory, short replication, long blockSize,
-                    long mtime, long atime, FsPermission perms, String owner,
-                    String group, byte[] symlink, RowKey rowKey) {
-      super(length, directory, replication, blockSize, mtime, atime, perms, owner, group,
-          symlink, rowKey, 0, 0, null, null, null, null, null);
+    public FileItem(RowKey rowKey, long mtime, long atime, String owner,
+                    String group, FsPermission perms, byte[] symlink,
+                    long length, short replication, long blockSize) {
+      super(rowKey, mtime, atime, owner, group, perms, symlink, null, length,
+          replication, blockSize, null, null, null, null);
     }
 
     public String getPreview() {
@@ -226,11 +226,7 @@ public class GiraffaWebJsonWrappers {
     }
 
     public String getName() {
-      return new Path(getRowKey().getPath()).getName();
-    }
-
-    public String getPath() {
-      return getRowKey().getPath();
+      return new Path(getPath()).getName();
     }
 
     public String getPermissionString() {

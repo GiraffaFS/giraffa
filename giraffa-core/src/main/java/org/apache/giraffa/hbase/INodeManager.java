@@ -25,12 +25,16 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
+import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.INode;
+import org.apache.giraffa.INodeDirectory;
+import org.apache.giraffa.INodeFile;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyBytes;
 import org.apache.giraffa.RowKeyFactory;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Table;
@@ -39,6 +43,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hdfs.XAttrHelper;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.util.Time;
 
@@ -50,6 +55,7 @@ import com.google.common.collect.Iterables;
  */
 public class INodeManager implements Closeable {
   private static final Log LOG = LogFactory.getLog(INodeManager.class);
+  private static final byte[] EMPTY = new byte[0];
 
   /** The Namespace table */
   private Table nsTable;
@@ -70,6 +76,11 @@ public class INodeManager implements Closeable {
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
     }
+  }
+
+  public INode getParentINode(String path) throws IOException {
+    Path parent = new Path(path).getParent();
+    return parent == null ? null : getINode(parent.toString());
   }
 
   /**
@@ -98,12 +109,12 @@ public class INodeManager implements Closeable {
   /**
    * Commit only the lease field of the given INode into HBase.
    */
-  public void updateINodeLease(INode node) throws IOException {
+  public void updateINodeLease(INodeFile node) throws IOException {
     long ts = Time.now();
     Put put = new Put(node.getRowKey().getKey(), ts);
     // lease update
     put.addColumn(FileField.getFileAttributes(), FileField.getLease(), ts,
-        node.getLeaseBytes());
+        GiraffaPBHelper.hdfsLeaseToBytes(node.getLease()));
 
     getNSTable().put(put);
   }
@@ -112,7 +123,7 @@ public class INodeManager implements Closeable {
    * Commit the fields of the given INode into HBase.
    */
   public void updateINode(INode node) throws IOException {
-    updateINode(node, null);
+    updateINode(node, null, null);
   }
 
   /**
@@ -120,6 +131,16 @@ public class INodeManager implements Closeable {
    * BlockAction for processing by the BlockManagementAgent.
    */
   public void updateINode(INode node, BlockAction ba)
+      throws IOException {
+    updateINode(node, ba, null);
+  }
+
+  /**
+   * Commit the fields of the give INode into HBase.
+   * Additional stores a BlockAction for processing by the BlockManagementAgent.
+   * If xAttrs is not null, it will add a list of XAttr to the node as well
+   */
+  public void updateINode(INode node, BlockAction ba, List<XAttr> xAttrs)
       throws IOException {
     long ts = Time.now();
     RowKey key = node.getRowKey();
@@ -131,24 +152,14 @@ public class INodeManager implements Closeable {
             RowKeyBytes.toBytes(node.getOwner()))
         .addColumn(family, FileField.getGroupName(), ts,
             RowKeyBytes.toBytes(node.getGroup()))
-        .addColumn(family, FileField.getLength(), ts,
-            Bytes.toBytes(node.getLen()))
         .addColumn(family, FileField.getPermissions(), ts,
             Bytes.toBytes(node.getPermission().toShort()))
         .addColumn(family, FileField.getMTime(), ts,
             Bytes.toBytes(node.getModificationTime()))
         .addColumn(family, FileField.getATime(), ts,
             Bytes.toBytes(node.getAccessTime()))
-        .addColumn(family, FileField.getDsQuota(), ts,
-            Bytes.toBytes(node.getDsQuota()))
-        .addColumn(family, FileField.getNsQuota(), ts,
-            Bytes.toBytes(node.getNsQuota()))
-        .addColumn(family, FileField.getReplication(), ts,
-            Bytes.toBytes(node.getReplication()))
-        .addColumn(family, FileField.getBlockSize(), ts,
-            Bytes.toBytes(node.getBlockSize()))
         .addColumn(family, FileField.getRenameState(), ts,
-            node.getRenameStateBytes());
+            GiraffaPBHelper.convert(node.getRenameState()).toByteArray());
 
     // symlink
     if(node.getSymlink() != null) {
@@ -156,22 +167,42 @@ public class INodeManager implements Closeable {
     }
 
     // file/directory specific columns
-    if(node.isDir()) {
-      put.addColumn(family, FileField.getDirectory(), ts,
-          Bytes.toBytes(node.isDir()));
-    }
-    else {
-      put.addColumn(family, FileField.getBlock(), ts, node.getBlocksBytes())
-          .addColumn(family, FileField.getLocations(), ts, node.getLocationsBytes())
+    if (node.isDir()) {
+      INodeDirectory dir = INodeDirectory.valueOf(node);
+      put.addColumn(family, FileField.getDirectory(), ts, EMPTY)
+          .addColumn(family, FileField.getDsQuota(), ts,
+              Bytes.toBytes(dir.getDsQuota()))
+          .addColumn(family, FileField.getNsQuota(), ts,
+              Bytes.toBytes(dir.getNsQuota()));
+    } else {
+      INodeFile file = INodeFile.valueOf(node);
+      put.addColumn(family, FileField.getLength(), ts,
+              Bytes.toBytes(file.getLen()))
+          .addColumn(family, FileField.getReplication(), ts,
+              Bytes.toBytes(file.getReplication()))
+          .addColumn(family, FileField.getBlockSize(), ts,
+              Bytes.toBytes(file.getBlockSize()))
+          .addColumn(family, FileField.getBlock(), ts,
+              GiraffaPBHelper.unlocatedBlocksToBytes(file.getBlocks()))
+          .addColumn(family, FileField.getLocations(), ts,
+              GiraffaPBHelper.blockLocationsToBytes(file.getLocations()))
           .addColumn(family, FileField.getFileState(), ts,
-              Bytes.toBytes(node.getFileState().toString()))
+              Bytes.toBytes(file.getFileState().toString()))
           .addColumn(family, FileField.getLease(), ts,
-              node.getLeaseBytes());
+              GiraffaPBHelper.hdfsLeaseToBytes(file.getLease()));
     }
 
     // block action
     if(ba != null) {
       put.addColumn(family, FileField.getAction(), ts, Bytes.toBytes(ba.toString()));
+    }
+
+    if (xAttrs != null) {
+      for (XAttr xAttr : xAttrs) {
+        String xAttrColumnName = XAttrHelper.getPrefixName(xAttr);
+        put.addColumn(FileField.getFileExtendedAttributes(),
+            Bytes.toBytes(xAttrColumnName), ts, xAttr.getValue());
+      }
     }
 
     getNSTable().put(put);
@@ -227,21 +258,28 @@ public class INodeManager implements Closeable {
 
   /**
    * Recursively generates a list containing the given node and all
-   * subdirectories. The nodes are found and stored in breadth-first order.
+   * subdirectories. The nodes are found and stored in breadth-first order. For
+   * each node, {@link INodeDirectory#isEmpty()} is guaranteed to return a
+   * nonnull value.
    */
-  public List<INode> getDirectories(INode root) throws IOException {
-    List<INode> directories = new ArrayList<INode>();
+  public List<INodeDirectory> getDirectories(INodeDirectory root)
+      throws IOException {
+    List<INodeDirectory> directories = new ArrayList<>();
     directories.add(root);
 
     // start loop descending the tree (breadth first, then depth)
     for(int i = 0; i < directories.size(); i++) {
       // get next directory INode in the list and it's Scanner
-      RowKey key = directories.get(i).getRowKey();
+      INodeDirectory dir = directories.get(i);
+      dir.setEmpty(true);
+      RowKey key = dir.getRowKey();
       ResultScanner rs = getListingScanner(key);
       try {
         for (Result result : rs) {
+          dir.setEmpty(false);
           if (FileFieldDeserializer.getDirectory(result)) {
-            directories.add(newINodeByParent(key.getPath(), result));
+            INode child = newINodeByParent(key.getPath(), result);
+            directories.add(INodeDirectory.valueOf(child));
           }
         }
       } finally {
@@ -274,7 +312,7 @@ public class INodeManager implements Closeable {
   /**
    * Batch deletes the given nodes' rows from HBase
    */
-  public void delete(List<INode> nodes) throws IOException {
+  public void delete(List<? extends INode> nodes) throws IOException {
     List<Delete> deletes = new ArrayList<Delete>();
     for(INode node : nodes) {
       deletes.add(new Delete(node.getRowKey().getKey()));
@@ -286,10 +324,35 @@ public class INodeManager implements Closeable {
    * Gets the blocks and locations for the given INode from HBase and updates
    * the INode with the obtained information.
    */
-  public void getBlocksAndLocations(INode node) throws IOException {
-    Result result = getNSTable().get(new Get(node.getRowKey().getKey()));
-    node.setBlocks(FileFieldDeserializer.getBlocks(result));
-    node.setLocations(FileFieldDeserializer.getLocations(result));
+  public void getBlocksAndLocations(INodeFile file) throws IOException {
+    Result result = getNSTable().get(new Get(file.getRowKey().getKey()));
+    file.setBlocks(FileFieldDeserializer.getBlocks(result));
+    file.setLocations(FileFieldDeserializer.getLocations(result));
+  }
+
+  public void setXAttr(String path, XAttr xAttr) throws IOException {
+    long ts = Time.now();
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Put put = new Put(rowKey.getKey(), ts);
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
+    put.addColumn(FileField.getFileExtendedAttributes(),
+            Bytes.toBytes(realColumnName), ts, xAttr.getValue());
+    getNSTable().put(put);
+  }
+
+  public List<XAttr> getXAttrs(String path) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Result result = getNSTable().get(new Get(rowKey.getKey()));
+    return FileFieldDeserializer.getXAttrs(result);
+  }
+
+  public void removeXAttr(String path, XAttr xAttr) throws IOException {
+    RowKey rowKey = RowKeyFactory.newInstance(path);
+    Delete delete = new Delete(rowKey.getKey());
+    String realColumnName = XAttrHelper.getPrefixName(xAttr);
+    delete.addColumns(FileField.getFileExtendedAttributes(),
+                      Bytes.toBytes(realColumnName));
+    getNSTable().delete(delete);
   }
 
   private Table getNSTable() {
@@ -304,26 +367,34 @@ public class INodeManager implements Closeable {
 
   private INode newINode(String src, Result result) throws IOException {
     RowKey key = RowKeyFactory.newInstance(src, result.getRow());
-    boolean directory = FileFieldDeserializer.getDirectory(result);
-    return new INode(
-        FileFieldDeserializer.getLength(result),
-        directory,
-        FileFieldDeserializer.getReplication(result),
-        FileFieldDeserializer.getBlockSize(result),
-        FileFieldDeserializer.getMTime(result),
-        FileFieldDeserializer.getATime(result),
-        FileFieldDeserializer.getPermissions(result),
-        FileFieldDeserializer.getUserName(result),
-        FileFieldDeserializer.getGroupName(result),
-        FileFieldDeserializer.getSymlink(result),
-        key,
-        FileFieldDeserializer.getDsQuota(result),
-        FileFieldDeserializer.getNsQuota(result),
-        directory ? null : FileFieldDeserializer.getFileState(result),
-        FileFieldDeserializer.getRenameState(result),
-        directory ? null : FileFieldDeserializer.getBlocks(result),
-        directory ? null : FileFieldDeserializer.getLocations(result),
-        directory ? null : FileFieldDeserializer.getLease(result));
+    if (FileFieldDeserializer.getDirectory(result)) {
+      return new INodeDirectory(key,
+          FileFieldDeserializer.getMTime(result),
+          FileFieldDeserializer.getATime(result),
+          FileFieldDeserializer.getUserName(result),
+          FileFieldDeserializer.getGroupName(result),
+          FileFieldDeserializer.getPermissions(result),
+          FileFieldDeserializer.getSymlink(result),
+          FileFieldDeserializer.getRenameState(result),
+          FileFieldDeserializer.getDsQuota(result),
+          FileFieldDeserializer.getNsQuota(result));
+    } else {
+      return new INodeFile(key,
+          FileFieldDeserializer.getMTime(result),
+          FileFieldDeserializer.getATime(result),
+          FileFieldDeserializer.getUserName(result),
+          FileFieldDeserializer.getGroupName(result),
+          FileFieldDeserializer.getPermissions(result),
+          FileFieldDeserializer.getSymlink(result),
+          FileFieldDeserializer.getRenameState(result),
+          FileFieldDeserializer.getLength(result),
+          FileFieldDeserializer.getReplication(result),
+          FileFieldDeserializer.getBlockSize(result),
+          FileFieldDeserializer.getFileState(result),
+          FileFieldDeserializer.getLease(result),
+          FileFieldDeserializer.getBlocks(result),
+          FileFieldDeserializer.getLocations(result));
+    }
   }
 
   private ResultScanner getListingScanner(RowKey key)

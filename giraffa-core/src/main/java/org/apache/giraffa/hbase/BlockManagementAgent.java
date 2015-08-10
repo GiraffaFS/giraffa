@@ -17,8 +17,10 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.giraffa.GiraffaConstants.FileState;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.hadoop.hbase.CellUtil.matchingColumn;
+import static org.apache.giraffa.hbase.FileFieldDeserializer.getFileState;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.IOException;
@@ -34,7 +36,7 @@ import org.apache.giraffa.FileLease;
 import org.apache.giraffa.GiraffaPBHelper;
 import org.apache.giraffa.LeaseManager;
 import org.apache.giraffa.UnlocatedBlock;
-import org.apache.giraffa.hbase.NamespaceAgent.BlockAction;
+import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.CreateFlag;
@@ -46,7 +48,9 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -113,7 +117,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     if(!hdfs.mkdirs(new Path(GRFA_BLOCKS_DIR)))
       msg = "Cannot create finalized block directory: " + GRFA_BLOCKS_DIR;
     else if(!hdfs.mkdirs(new Path(GRFA_TMP_BLOCKS_DIR)))
-      msg = "Cannot create remporary block directory: " + GRFA_TMP_BLOCKS_DIR;
+      msg = "Cannot create temporary block directory: " + GRFA_TMP_BLOCKS_DIR;
     if(msg != null) {
       LOG.error(msg);
       throw new IOException(msg);
@@ -179,15 +183,30 @@ public class BlockManagementAgent extends BaseRegionObserver {
   public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put,
                      WALEdit edit, Durability durability) throws IOException {
     List<Cell> kvs = put.getFamilyCellMap().get(FileField.getFileAttributes());
+    // If not File Attributes related then skip processing
+    if (kvs == null) { return; }
+    if (checkFileClosed(put.getRow(), kvs, e)) { return; }
+
     BlockAction blockAction = getBlockAction(kvs);
     if(blockAction == null) {
       return;
-    } else if(blockAction.equals(BlockAction.ALLOCATE)) {
-      allocateBlock(kvs);
-    } else if(blockAction.equals(BlockAction.CLOSE)) {
-      completeBlocks(kvs);
-    } else if(blockAction.equals(BlockAction.DELETE)) {
-      deleteBlocks(kvs);
+    }
+    switch (blockAction) {
+      case ALLOCATE:
+        allocateBlock(kvs);
+        break;
+      case DELETE:
+        deleteBlocks(kvs);
+        break;
+      case CLOSE:
+        completeBlocks(kvs);
+        break;
+      case RECOVER:
+        recoverLastBlock(kvs);
+        break;
+      default:
+        LOG.debug("Unknown BlockAction found: " + blockAction + ", returning.");
+        return;
     }
     put.getFamilyCellMap().put(FileField.getFileAttributes(),
         new ArrayList<Cell>(kvs));
@@ -195,7 +214,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   private void deleteBlocks(List<Cell> kvs) {
     // remove the blockAction
-    removeBlockAction(kvs);
+    removeField(kvs, FileField.ACTION);
 
     List<UnlocatedBlock> al = getFileBlocks(kvs);
     for(UnlocatedBlock block : al) {
@@ -209,9 +228,10 @@ public class BlockManagementAgent extends BaseRegionObserver {
     }
   }
 
-  private void removeBlockAction(List<Cell> kvs) {
-    Cell kv = findField(kvs, FileField.ACTION);
-    kvs.remove(kv);
+  private void removeField(List<Cell> kvs, FileField field) {
+    Cell kv = findField(kvs, field);
+    if(kv != null)
+      kvs.remove(kv);
   }
 
   static Cell findField(List<Cell> kvs, FileField field) {
@@ -221,6 +241,20 @@ public class BlockManagementAgent extends BaseRegionObserver {
       }
     }
     return null;
+  }
+
+  private void updateField(List<Cell> kvs, FileField field, byte[] value) {
+    Cell kv = findField(kvs, field);
+    if(kv == null) return;
+    byte[] row = CellUtil.cloneRow(kv);
+    long timestamp = kv.getTimestamp();
+    Cell nkv = new KeyValue(row,
+        FileField.getFileAttributes(), field.getBytes(),
+        timestamp, value);
+
+    //replace this Cell with new Cell
+    kvs.remove(kv);
+    kvs.add(nkv);
   }
 
   static BlockAction getBlockAction(List<Cell> kvs) {
@@ -243,7 +277,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
 
   private void completeBlocks(List<Cell> kvs) throws IOException {
     // remove the blockAction
-    removeBlockAction(kvs);
+    removeField(kvs, FileField.ACTION);
 
     List<UnlocatedBlock> al = getFileBlocks(kvs);
     // get the last block
@@ -251,21 +285,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
     closeBlockFile(block.getBlock());
     LOG.info("Block file is closed: " + block);
     // return total fileSize to update in the put
-    updateFileSize(kvs, getFileSize(al));
-  }
-
-  private void updateFileSize(List<Cell> kvs, long fileSize) {
-    Cell kv = findField(kvs, FileField.LENGTH);
-    if(kv == null) return;
-    byte[] row = CellUtil.cloneRow(kv);
-    long timestamp = kv.getTimestamp();
-    Cell nkv = new KeyValue(row,
-        FileField.getFileAttributes(), FileField.getLength(),
-        timestamp, Bytes.toBytes(fileSize));
-
-    //replace this Cell with new Cell
-    kvs.remove(kv);
-    kvs.add(nkv);
+    updateField(kvs, FileField.LENGTH, Bytes.toBytes(getFileSize(al)));
   }
 
   /**
@@ -278,7 +298,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
    */
   private void allocateBlock(List<Cell> kvs) throws IOException {
     // remove the blockAction
-    removeBlockAction(kvs);
+    removeField(kvs, FileField.ACTION);
 
     Cell blockKv = findField(kvs, FileField.BLOCK);
     Cell locsKv = findField(kvs, FileField.LOCATIONS);
@@ -289,7 +309,7 @@ public class BlockManagementAgent extends BaseRegionObserver {
       List<DatanodeInfo[]> al_locs =
           byteArrayToLocsList(CellUtil.cloneValue(locsKv));
 
-      // get new empty Block, seperate into blocks/locations, and add to lists
+      // get new empty Block, separate into blocks/locations, and add to lists
       LocatedBlock locatedBlock = allocateBlockFile(al_blks);
       UnlocatedBlock blk = new UnlocatedBlock(locatedBlock);
       DatanodeInfo[] locs = locatedBlock.getLocations();
@@ -336,11 +356,11 @@ public class BlockManagementAgent extends BaseRegionObserver {
     ClientProtocol namenode = HDFSAdapter.getClientProtocol(hdfs);
     // create temporary block file
     HdfsFileStatus tmpOut = namenode.create(
-            tmpFile, FsPermission.getDefault(), clientName,
-            new EnumSetWritable<CreateFlag>(EnumSet.of(CreateFlag.CREATE)),
-            true,
-            hdfs.getDefaultReplication(),
-            hdfs.getDefaultBlockSize());
+        tmpFile, FsPermission.getDefault(), clientName,
+        new EnumSetWritable<CreateFlag>(EnumSet.of(CreateFlag.CREATE)),
+        true,
+        hdfs.getDefaultReplication(),
+        hdfs.getDefaultBlockSize());
     assert tmpOut != null : "File create never returns null";
 
     // if previous block exists, get it
@@ -373,6 +393,93 @@ public class BlockManagementAgent extends BaseRegionObserver {
           getGiraffaBlockPathName(block), clientName, block,
           INodeId.GRANDFATHER_INODE_ID);
     }
+  }
+
+  /**
+   * Calls allocateBlockFile to create a new block for the file if and only if
+   * we are modifying the Block column in HBase via this put.
+   */
+  private void recoverLastBlock(List<Cell> kvs) throws IOException {
+    LOG.info("Starting block recovery.");
+    Cell leaseKv = findField(kvs, FileField.LEASE);
+    Cell blockKv = findField(kvs, FileField.BLOCK);
+    byte[] leaseBytes = CellUtil.cloneValue(leaseKv);
+    byte[] blockBytes = CellUtil.cloneValue(blockKv);
+
+    List<UnlocatedBlock> unlocatedBlocks = byteArrayToBlockList(blockBytes);
+    removeField(kvs, FileField.ACTION);
+
+    if(leaseBytes == null || leaseBytes.length == 0) {
+      LOG.warn("Could not perform recovery due to missing lease field.");
+      return;
+    }
+    if(blockBytes == null || blockBytes.length == 0) {
+      LOG.warn("Could not perform recovery due to missing blocks field.");
+      return;
+    }
+    if(unlocatedBlocks == null || unlocatedBlocks.size() == 0) {
+      LOG.warn("Could not perform recovery due to zero blocks in file.");
+      return;
+    }
+
+    FileLease lease = GiraffaPBHelper.bytesToHdfsLease(leaseBytes);
+    ExtendedBlock lastBlock =
+        unlocatedBlocks.get(unlocatedBlocks.size() - 1).getBlock();
+    String blockFileName = getGiraffaBlockPathName(lastBlock);
+    boolean recovered = recoverBlockFile(lastBlock);
+    removeField(kvs, FileField.ACTION);
+    if(!recovered) {
+      LOG.error("Block could not be recovered. File is still under recovery.");
+      return;
+    } else {
+      LOG.info("Recovered block file: " + blockFileName);
+    }
+
+    HdfsFileStatus fileInfo = hdfs.getClient().getFileInfo(blockFileName);
+    leaseManager.removeLease(lease);
+
+    // update cell values
+    updateField(kvs, FileField.LEASE, null);
+    updateField(kvs, FileField.LENGTH, Bytes.toBytes(fileInfo.getLen()));
+    updateField(kvs, FileField.FILE_STATE,
+        Bytes.toBytes(FileState.CLOSED.toString()));
+  }
+
+  /**
+   * Check if some ones tries to update lease while the file is closed
+   */
+  private boolean checkFileClosed( byte[] key, List<Cell> kvs,
+      ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+    if (findField(kvs, FileField.LEASE) != null) {
+      Result nodeInfo = e.getEnvironment().getRegion().get(new Get(key));
+      if(!nodeInfo.isEmpty() &&
+         getFileState(nodeInfo).equals(FileState.CLOSED)) {
+        if (kvs.size() == 1) { // it's updateINodeLease
+          // If updateINodeLease try to update lease after it's been CLOSED,
+          // discard it
+          LOG.warn("Attempt to update lease for a file that has been already"
+                   + " closed. Ignoring.");
+          kvs.clear();
+          return true;
+        } else {
+          // Not sure how to handle this case so leave a warning here
+          LOG.warn("Could not update INode with lease while the file"
+                   + " is closed.");
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean recoverBlockFile(ExtendedBlock block) throws IOException {
+    String src = getGiraffaBlockPathName(block);
+    boolean isRecovered =
+        HDFSAdapter.getClientProtocol(hdfs).recoverLease(src, clientName);
+    for(int i = 0; i < 100 && !isRecovered; i++) {
+      try { Thread.sleep(100L); } catch (InterruptedException ignored) {}
+      isRecovered = HDFSAdapter.getClientProtocol(hdfs).isFileClosed(src);
+    }
+    return isRecovered;
   }
 
   static long getFileSize(List<UnlocatedBlock> al) {
