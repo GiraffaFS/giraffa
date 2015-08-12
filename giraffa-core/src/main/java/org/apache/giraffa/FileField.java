@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 public enum FileField {
+  ID (RowKeyBytes.toBytes("id")),
   REPLICATION (RowKeyBytes.toBytes("replication")),
   USER_NAME (RowKeyBytes.toBytes("userName")),
   GROUP_NAME (RowKeyBytes.toBytes("groupName")),
@@ -44,6 +45,9 @@ public enum FileField {
   private FileField(byte[] arg) {this.bytes = arg;}
   public byte[] getBytes() {return bytes == null ? null : bytes.clone();}
 
+  public static byte[] getId() {
+    return ID.bytes;
+  }
   public static byte[] getReplication() {
     return REPLICATION.bytes;
   }

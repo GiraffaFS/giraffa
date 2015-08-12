@@ -169,7 +169,7 @@ public class TestGiraffaUpgrade {
       if(line.equals("INODE")) {
         String path = parseLine(br, "INODE_PATH");
         if(path.isEmpty()) continue;
-        parseLine(br, "INODE_ID");
+        long id = Long.parseLong(parseLine(br, "INODE_ID"));
         short replication = Short.parseShort(parseLine(br, "REPLICATION"));
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd kk:mm");
         Date modTime = df.parse(parseLine(br, "MODIFICATION_TIME"));
@@ -204,11 +204,11 @@ public class TestGiraffaUpgrade {
         INode node;
         RowKey key = RowKeyFactory.newInstance(path);
         if (isDirectory) {
-          node = new INodeDirectory(key, modTime.getTime(),
+          node = new INodeDirectory(key, id, modTime.getTime(),
               accessTime.getTime(), userName, groupName, perm, null, null,
               dsQuota, nsQuota);
         } else {
-          node = new INodeFile(key, modTime.getTime(), accessTime.getTime(),
+          node = new INodeFile(key, id, modTime.getTime(), accessTime.getTime(),
               userName, groupName, perm, null, null, length, replication,
               blockSize, FileState.CLOSED, null, blocks, locations);
         }

@@ -59,10 +59,12 @@ public class INodeManager implements Closeable {
 
   /** The Namespace table */
   private Table nsTable;
+  private INodeIdGenerator idGen;
 
-  public INodeManager(Table nsTable) {
+  public INodeManager(Table nsTable) throws IOException {
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
+    idGen = new INodeIdGenerator(nsTable.getConfiguration());
   }
 
   @Override
@@ -72,6 +74,10 @@ public class INodeManager implements Closeable {
       if(nsTable != null) {
         nsTable.close();
         nsTable = null;
+      }
+      if(idGen != null) {
+        idGen.close();
+        idGen = null;
       }
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
@@ -145,8 +151,9 @@ public class INodeManager implements Closeable {
     long ts = Time.now();
     RowKey key = node.getRowKey();
     byte[] family = FileField.getFileAttributes();
-    Put put = new Put(node.getRowKey().getKey(), ts);
-    put.addColumn(family, FileField.getFileName(), ts,
+    Put put = new Put(key.getKey(), ts);
+    put.addColumn(family, FileField.getId(), ts, Bytes.toBytes(node.getId()))
+        .addColumn(family, FileField.getFileName(), ts,
             RowKeyBytes.toBytes(new Path(key.getPath()).getName()))
         .addColumn(family, FileField.getUserName(), ts,
             RowKeyBytes.toBytes(node.getOwner()))
@@ -355,6 +362,10 @@ public class INodeManager implements Closeable {
     getNSTable().delete(delete);
   }
 
+  public long nextINodeId() throws IOException {
+    return idGen.nextId();
+  }
+
   private Table getNSTable() {
     assert nsTable != null : "No Table is set.";
     return nsTable;
@@ -369,6 +380,7 @@ public class INodeManager implements Closeable {
     RowKey key = RowKeyFactory.newInstance(src, result.getRow());
     if (FileFieldDeserializer.getDirectory(result)) {
       return new INodeDirectory(key,
+          FileFieldDeserializer.getId(result),
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),
@@ -380,6 +392,7 @@ public class INodeManager implements Closeable {
           FileFieldDeserializer.getNsQuota(result));
     } else {
       return new INodeFile(key,
+          FileFieldDeserializer.getId(result),
           FileFieldDeserializer.getMTime(result),
           FileFieldDeserializer.getATime(result),
           FileFieldDeserializer.getUserName(result),

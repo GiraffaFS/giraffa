@@ -20,7 +20,6 @@ package org.apache.giraffa;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.hdfs.protocol.HdfsLocatedFileStatus;
-import org.apache.hadoop.hdfs.server.namenode.INodeId;
 
 /**
  * Stores all metadata related to a file or directory in the namespace,
@@ -43,6 +42,7 @@ public abstract class INode {
    * Construct an INode from the RowKey and file attributes.
    */
   INode(RowKey key,
+        long id,
         long mtime,
         long atime,
         String owner,
@@ -51,7 +51,7 @@ public abstract class INode {
         byte[] symlink,
         RenameState renameState) {
     this.key = key;
-    this.id = INodeId.GRANDFATHER_INODE_ID;
+    this.id = id;
     this.mtime = mtime;
     this.atime = atime;
     this.owner = owner;
