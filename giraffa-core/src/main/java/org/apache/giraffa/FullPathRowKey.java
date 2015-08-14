@@ -31,13 +31,18 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   private short depth;
   private String path;
-  private long inodeId = -1;
   private byte[] bytes;
 
-  public FullPathRowKey() {}
-
-  FullPathRowKey(String src) throws IOException {
+  public FullPathRowKey(String src) throws IOException {
     setPath(src);
+  }
+
+  public FullPathRowKey(String src, byte[] bytes) throws IOException {
+    set(src, bytes);
+  }
+
+  private FullPathRowKey(String src, byte[] bytes, short d) {
+    initialize(d, src, bytes);
   }
 
   private void initialize(short d, String src, byte[] bytes) {
@@ -47,8 +52,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
     this.bytes = bytes;  // not generated yet
   }
 
-  @Override // RowKey
-  public void setPath(String src) throws IOException {
+  private void setPath(String src) throws IOException {
     if(!src.startsWith(SEPARATOR))
       throw new IOException("Cannot calculate key for a relative path: " + src);
     int d = depth(src);
@@ -56,19 +60,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
     initialize((short)d, src, null);
   }
 
-  @Override // RowKey
-  public long getINodeId() {
-    return inodeId;
-  }
-
-  @Override // RowKey
-  public void setINodeId(long inodeId) {
-    this.inodeId = inodeId;
-  }
-
-  @Override // RowKey
-  public void set(String src, long inodeId, byte[] bytes) throws IOException {
-    setINodeId(inodeId);
+  private void set(String src, byte[] bytes) throws IOException {
     initialize(RowKeyBytes.toShort(bytes), src, bytes);
     assert RowKeyBytes.compareTo(RowKeyBytes.toBytes(src), 0,
         RowKeyBytes.toBytes(src).length, bytes, 2, bytes.length-2) == 0 : 
@@ -120,11 +112,6 @@ public class FullPathRowKey extends RowKey implements Serializable {
     return RowKeyBytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
   }
 
-  @Override // RowKey
-  public boolean shouldCache() {
-    return true;
-  }
-
   @Override // Object
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -146,8 +133,6 @@ public class FullPathRowKey extends RowKey implements Serializable {
 
   private byte[] directoryStartKey() {
     String startPath = path.endsWith("/") ? path : path + "/";
-    FullPathRowKey startKey = new FullPathRowKey();
-    startKey.initialize((short) (depth + 1), startPath, null);
-    return startKey.getKey();
+    return new FullPathRowKey(startPath, null, (short) (depth + 1)).getKey();
   }
 }

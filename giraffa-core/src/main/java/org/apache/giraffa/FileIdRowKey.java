@@ -20,79 +20,47 @@ package org.apache.giraffa;
 import static org.apache.giraffa.RowKeyBytes.lshift;
 import static org.apache.giraffa.RowKeyBytes.putLong;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
-
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 
 public class FileIdRowKey extends RowKey implements Serializable {
 
   private static final long serialVersionUID = 123456789009L;
-  private static final Log LOG = LogFactory.getLog(FileIdRowKey.class);
-  private static final String DEPTH_KEY = "grfa.fileidrowkey.depth";
-  private static final int DEPTH_DEFAULT = 3;
 
-  private static boolean initialized;
-  private static int length;
-  private static int lastIdOffset;
-  private static byte[] ROOT_KEY;
-  private static byte[] ERROR_KEY;
+  private static final int DEPTH = 3;
+  private static final int LENGTH = 8 * DEPTH;
+  private static final int LAST_ID_OFFSET = LENGTH - 8;
 
-  private String src;
-  private long inodeId = -1;
+  public static final FileIdRowKey ROOT;
+  public static final byte[] EMPTY;
+
+  static {
+    byte[] b = new byte[LENGTH];
+    putLong(b, LAST_ID_OFFSET, 1000L);
+    ROOT = new FileIdRowKey("/", b);
+    EMPTY = new byte[LENGTH];
+  }
+
+  private final String src;
+  private final RowKey parent;
+  private final long inodeId;
+
   private byte[] bytes;
-  private byte[] parentKey;
-  private boolean shouldCache = true;
 
-  public FileIdRowKey() {}
+  public FileIdRowKey(String src, RowKey parent, long inodeId) {
+    this.src = src;
+    this.parent = parent;
+    this.inodeId = inodeId;
+  }
+
+  public FileIdRowKey(String src, byte[] bytes) {
+    this(src, null, 0);
+    this.bytes = bytes;
+  }
 
   @Override // RowKey
   public String getPath() {
     return src;
-  }
-
-  @Override // RowKey
-  public void setPath(String src) throws IOException {
-    this.src = src;
-  }
-
-  @Override // RowKey
-  public long getINodeId() {
-    try {
-      computeINodeId();
-      return inodeId;
-    } catch (IOException e) {
-      LOG.error("Failed to compute INode ID for " + getPath(), e);
-      return -1;
-    }
-  }
-
-  private void computeINodeId() throws IOException {
-    try {
-      if (inodeId == -1) {
-        inodeId = bytes != null ?
-            RowKeyBytes.toLong(bytes, length - 8) :
-            getService().getFileId(getParentKey(), getPath());
-      }
-    } finally {
-      shouldCache = inodeId > 0;
-    }
-  }
-
-  @Override // RowKey
-  public void setINodeId(long inodeId) {
-    this.inodeId = inodeId;
-    shouldCache = inodeId > 0;
-  }
-
-  @Override // RowKey
-  public void set(String src, long inodeId, byte[] bytes) throws IOException {
-    setPath(src);
-    setINodeId(inodeId);
-    this.bytes = bytes;
   }
 
   @Override // RowKey
@@ -103,61 +71,26 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public byte[] generateKey() {
-    initialize();
-
-    if (new Path(getPath()).isRoot()) {
-      return ROOT_KEY;
-    }
-
-    try {
-      byte[] b = getParentKey().clone();
-      lshift(b, 8);
-      computeINodeId();
-      assert inodeId >= 0;
-      putLong(b, lastIdOffset, inodeId);
-      return b;
-    } catch (IOException e) {
-      LOG.error("Failed to generate row key for " + getPath(), e);
-      shouldCache = false;
-      return ERROR_KEY;
-    }
+    byte[] b = parent.getKey();
+    lshift(b, 8);
+    putLong(b, LAST_ID_OFFSET, inodeId);
+    return b;
   }
 
   @Override // RowKey
   public byte[] getStartListingKey(byte[] startAfter) {
-    initialize();
-    byte[] b;
-    if (startAfter.length == 0) {
-      b = getKey();
-      lshift(b, 8);
-      putLong(b, lastIdOffset, 0);
-    } else {
-      try {
-        Path p = new Path(getPath(), new String(startAfter));
-        RowKey startKey = getKeyFactory().newInstance(p.toString());
-        b = startKey.getKey();
-        putLong(b, lastIdOffset, startKey.getINodeId() + 1);
-      } catch (IOException e) {
-        LOG.error("Failed to get start listing key for " + getPath(), e);
-        return ERROR_KEY;
-      }
-    }
+    byte[] b = getKey();
+    lshift(b, 8);
+    putLong(b, LAST_ID_OFFSET, 0);
     return b;
   }
 
   @Override // RowKey
   public byte[] getStopListingKey() {
-    initialize();
     byte[] b = getKey();
     lshift(b, 8);
-    putLong(b, lastIdOffset, Long.MAX_VALUE);
+    putLong(b, LAST_ID_OFFSET, Long.MAX_VALUE);
     return b;
-  }
-
-  @Override // RowKey
-  public boolean shouldCache() {
-    generateKeyIfNull();
-    return shouldCache;
   }
 
   @Override // Object
@@ -179,12 +112,11 @@ public class FileIdRowKey extends RowKey implements Serializable {
 
   @Override // RowKey
   public String getKeyString() {
-    initialize();
-    byte[] b = getKey();
+    generateKeyIfNull();
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < length; i += 8) {
+    for (int i = 0; i < LENGTH; i += 8) {
       if (i > 0) sb.append('/');
-      sb.append(RowKeyBytes.toLong(b, i));
+      sb.append(RowKeyBytes.toLong(bytes, i));
     }
     return sb.toString();
   }
@@ -193,28 +125,5 @@ public class FileIdRowKey extends RowKey implements Serializable {
     if (bytes == null) {
       bytes = generateKey();
     }
-  }
-
-  private void initialize() {
-    if (!initialized) {
-      int depth = getConf().getInt(DEPTH_KEY, DEPTH_DEFAULT);
-      length = 8 * depth;
-      lastIdOffset = length - 8;
-      ROOT_KEY = new byte[length];
-      ERROR_KEY = new byte[length];
-      putLong(ROOT_KEY, length - 8, 1000L);
-      for (int i = 0; i < length; i++) {
-        ERROR_KEY[i] = Byte.MAX_VALUE;
-      }
-      initialized = true;
-    }
-  }
-
-  private byte[] getParentKey() throws IOException {
-    if (parentKey == null) {
-      String parent = new Path(getPath()).getParent().toString();
-      parentKey = getKeyFactory().newInstance(parent).getKey();
-    }
-    return parentKey;
   }
 }
