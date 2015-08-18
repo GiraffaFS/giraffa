@@ -312,8 +312,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-        <!-- test dependencies -->
         <dependency>
             <groupId>org.jmockit</groupId>
             <artifactId>jmockit</artifactId>
@@ -420,6 +418,29 @@
                         <phase>pre-site</phase>
                         <goals>
                             <goal>jxr</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.igor-petruk.protobuf</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <configuration>
+                    <protocCommand>${protoc.path}</protocCommand>
+                    <inputDirectories>
+                        <inputDirectory>${basedir}/src/main/proto/</inputDirectory>
+                    </inputDirectories>
+                    <includeDirectories>
+                        <includeDirectory>${basedir}/src/main/proto/includes/</includeDirectory>
+                    </includeDirectories>
+                    <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
+                    <cleanOutputFolder>false</cleanOutputFolder>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>run</goal>
                         </goals>
                     </execution>
                 </executions>
