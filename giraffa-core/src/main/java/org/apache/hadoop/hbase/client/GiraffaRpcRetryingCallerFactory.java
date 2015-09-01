@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.hadoop.hbase.regionserver.RegionServerStoppedException;
 
 /**
  * Hook for loading our own FileSystemExceptionInterceptor to block filesystem
@@ -47,6 +48,7 @@ public class GiraffaRpcRetryingCallerFactory extends RpcRetryingCallerFactory {
             throws IOException {
       // detect and throw any filesystem-related IOExceptions
       if(t instanceof IOException && !(t instanceof NotServingRegionException
+          // || t instanceof RegionServerStoppedException
           || t instanceof ConnectionClosingException)) {
         LOG.debug("Got exception: ", t);
         throw (IOException) t;

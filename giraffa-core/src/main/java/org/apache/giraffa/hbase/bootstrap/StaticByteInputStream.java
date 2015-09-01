@@ -2,24 +2,21 @@ package org.apache.giraffa.hbase.bootstrap;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
-import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 
-class StaticByteInputStream extends InputStream
+class StaticByteInputStream extends ByteArrayInputStream
 implements Seekable, PositionedReadable {
-  InputStream in;
 
   public StaticByteInputStream(byte[] bytes) {
-    in = new ByteArrayInputStream(bytes);
+    super(bytes);
   }
 
   @Override
   public int read(long position, byte[] buffer, int offset, int length)
       throws IOException {
-    return in.read(buffer, offset, length);
+    return read(buffer, offset, length);
   }
 
   @Override
@@ -35,22 +32,21 @@ implements Seekable, PositionedReadable {
 
   @Override
   public void seek(long pos) throws IOException {
-    throw new UnsupportedOperationException("seek");
+    this.pos = (int) pos;
   }
 
   @Override
   public long getPos() throws IOException {
-    return 0;
+    return this.pos;
   }
 
   @Override
-  @Private
   public boolean seekToNewSource(long targetPos) throws IOException {
     return false;
   }
 
   @Override
-  public int read() throws IOException {
-    return in.read();
+  public int read() {
+    return super.read();
   }
 }

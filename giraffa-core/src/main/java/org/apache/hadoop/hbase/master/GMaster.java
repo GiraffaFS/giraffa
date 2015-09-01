@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.CoordinatedStateManager;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.fs.HFileSystem;
 import org.apache.hadoop.hbase.master.HMaster;
 import org.apache.hadoop.hbase.master.handler.CreateTableHandler;
 import org.apache.hadoop.hbase.monitoring.MonitoredTask;
@@ -84,6 +85,9 @@ public class GMaster extends HMaster {
 
     BSFileSystem bsfs = (BSFileSystem)getMasterFileSystem().getFileSystem();
     bsfs.copyBootstrap2Giraffa(new Path[] {new Path("/")});
+    bsfs.finalizeBootstrap();
+
+    bsfs = (BSFileSystem)((HFileSystem)getFileSystem()).getBackingFs();
     bsfs.finalizeBootstrap();
   }
 }

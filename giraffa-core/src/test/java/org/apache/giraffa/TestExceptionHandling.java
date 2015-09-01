@@ -52,12 +52,14 @@ public class TestExceptionHandling {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
+    LOG.info("SHV !! Starting MiniCluster.");
     System.setProperty(
         HBaseCommonTestingUtility.BASE_TEST_DIRECTORY_KEY,
         GiraffaTestUtils.BASE_TEST_DIRECTORY);
     // UTIL.startMiniCluster(1);
     UTIL.startMiniCluster(1, 1, 1, null,
         GMaster.class, GReqionServer.class, false);
+    LOG.info("SHV !! MiniCluster started.");
   }
 
   @Before
@@ -76,8 +78,9 @@ public class TestExceptionHandling {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    LOG.info("Shutting down mini cluster: SHV !!");
+    LOG.info("SHV !! Shutting down MiniCluster.");
     UTIL.shutdownMiniCluster();
+    LOG.info("SHV !! MiniCluster is down.");
   }
 
   @Test(expected = FileNotFoundException.class)
