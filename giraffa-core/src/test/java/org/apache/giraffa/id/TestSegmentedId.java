@@ -17,11 +17,16 @@
  */
 package org.apache.giraffa.id;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.apache.hadoop.util.SequentialNumber;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class TestSegmentedId {
 
@@ -29,25 +34,86 @@ public class TestSegmentedId {
   public void testIncrement() {
     final long initialValue = 1000L;
     final long maxValue = 10000000L;
-    LocalSegmentedId id = new LocalSegmentedId(initialValue);
-    id.start();
+    SegmentedId id = new SegmentedId(initialValue, new LocalId());
     for (long i = initialValue + 1; i <= maxValue; i++) {
       assertThat(id.nextValue(), is(i));
     }
   }
 
-  private static class LocalSegmentedId extends SegmentedId {
+  @Test
+  public void testConcurrentIncrement() throws InterruptedException {
+    final DistributedId segment = new LocalId();
+    final long initialValue = 1000;
+    final int numTesters = 3;
+    final int increments = 1000000;
 
-    LocalSegmentedId(long initialValue) {
-      super(initialValue, new LocalSequentialId(-1));
+    // creater tester threads
+    IdTester[] testers = new IdTester[numTesters];
+    Thread[] threads = new Thread[numTesters];
+    for (int i = 0; i < numTesters; i++) {
+      SegmentedId id = new SegmentedId(initialValue, segment);
+      testers[i] = new IdTester(id, increments);
+      threads[i] = new Thread(testers[i]);
+    }
+
+    // start threads and wait for them to finish
+    for (Thread t : threads) {
+      t.start();
+    }
+    for (Thread t : threads) {
+      t.join();
+    }
+
+    // check ids generated uniquely and increasingly
+    List<Long> generated = new ArrayList<>();
+    for (IdTester tester : testers) {
+      checkIncreasing(tester.generated);
+      generated.addAll(tester.generated);
+    }
+    Collections.sort(generated);
+    assertThat(generated.get(0), is(initialValue + 1));
+    checkIncreasing(generated);
+  }
+
+  private void checkIncreasing(List<Long> list) {
+    for (int i = 1; i < list.size(); i++) {
+      assertThat(list.get(i), greaterThan(list.get(i - 1)));
     }
   }
 
-  private static class LocalSequentialId extends SequentialNumber
+  /** each instance will repeatedly generate ids */
+  private static class IdTester implements Runnable {
+
+    final SegmentedId id;
+    final int increments;
+    final List<Long> generated;
+
+    IdTester(SegmentedId id, int increments) {
+      this.id = id;
+      this.increments = increments;
+      this.generated = new ArrayList<>();
+    }
+
+    @Override // Runnable
+    public void run() {
+      for (int i = 0; i < increments; i++) {
+        generated.add(id.nextValue());
+      }
+    }
+  }
+
+  private static class LocalId extends SequentialNumber
       implements DistributedId {
 
-    LocalSequentialId(long initialValue) {
-      super(initialValue);
+    static final long INITIAL = -1;
+
+    LocalId() {
+      super(INITIAL);
+    }
+
+    @Override // DistributedId
+    public long initialValue() {
+      return INITIAL;
     }
 
     @Override // DistributedId

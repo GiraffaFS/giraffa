@@ -17,12 +17,7 @@
  */
 package org.apache.giraffa.id;
 
-import com.google.common.annotations.VisibleForTesting;
-
-import org.apache.giraffa.hbase.ZookeeperId;
-import org.apache.hadoop.conf.Configuration;
-
-abstract class SegmentedId implements DistributedId {
+class SegmentedId implements DistributedId {
 
   private static final long SEGMENT_SIZE = 1000;
 
@@ -32,14 +27,6 @@ abstract class SegmentedId implements DistributedId {
   private long offset;
   private long value;
 
-  SegmentedId(String name,
-              Configuration conf,
-              long initialValue) {
-    this(initialValue, new ZookeeperId(name, conf, -1));
-  }
-
-  /** segment must have initial value of -1 */
-  @VisibleForTesting
   SegmentedId(long initialValue,
               DistributedId segment) {
     this.initialValue = initialValue;
@@ -48,18 +35,23 @@ abstract class SegmentedId implements DistributedId {
 
   @Override // IdGenerator
   public synchronized long nextValue() {
-    if (++offset == SEGMENT_SIZE) {
-      offset = 0;
+    if (offset == 0) {
       newSegment();
-      return value;
+    }
+    if (++offset == SEGMENT_SIZE){
+      offset = 0;
     }
     return ++value;
   }
 
   @Override // DistributedId
+  public long initialValue() {
+    return initialValue;
+  }
+
+  @Override // DistributedId
   public synchronized void start() {
     segment.start();
-    newSegment();
   }
 
   @Override // DistributedId
@@ -68,6 +60,7 @@ abstract class SegmentedId implements DistributedId {
   }
 
   private synchronized void newSegment() {
-    value = segment.nextValue() * SEGMENT_SIZE + initialValue;
+    long segmentOffset = segment.nextValue() - segment.initialValue() - 1;
+    value = segmentOffset * SEGMENT_SIZE + initialValue;
   }
 }

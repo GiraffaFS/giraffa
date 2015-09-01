@@ -19,6 +19,7 @@ package org.apache.giraffa.id;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 
+import org.apache.giraffa.hbase.ZookeeperId;
 import org.apache.hadoop.conf.Configuration;
 
 public class DistributedINodeId extends SegmentedId {
@@ -26,6 +27,6 @@ public class DistributedINodeId extends SegmentedId {
   private static final String NAME = "inodeId";
 
   public DistributedINodeId(Configuration conf) {
-    super(NAME, conf, ROOT_INODE_ID);
+    super(ROOT_INODE_ID, new ZookeeperId(NAME, conf));
   }
 }

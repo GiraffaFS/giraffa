@@ -32,15 +32,15 @@ import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 
 public class ZookeeperId implements DistributedId {
 
+  private static final long INITIAL = -1;
   private static final RetryPolicy RETRY = new RetryNTimes(100, 10);
   private static final long TIMEOUT = 100;
 
   private final String name;
   private final CuratorFramework client;
   private final DistributedAtomicLong id;
-  private final long initialValue;
 
-  public ZookeeperId(String name, Configuration conf, long initialValue) {
+  public ZookeeperId(String name, Configuration conf) {
     String idPath = "/ids" + name + "/id";
     String lockPath = "/ids" + name + "/lock";
     PromotedToLock lock = PromotedToLock.builder()
@@ -52,7 +52,6 @@ public class ZookeeperId implements DistributedId {
     this.name = name;
     this.client = CuratorFrameworkFactory.newClient(quorum, RETRY);
     this.id = new DistributedAtomicLong(client, idPath, RETRY, lock);
-    this.initialValue = initialValue;
   }
 
   @Override // IdGenerator
@@ -71,10 +70,15 @@ public class ZookeeperId implements DistributedId {
   }
 
   @Override // DistributedId
+  public long initialValue() {
+    return INITIAL;
+  }
+
+  @Override // DistributedId
   public void start() {
     client.start();
     try {
-      id.initialize(initialValue);
+      id.initialize(INITIAL);
     } catch (Exception e) {
       throw new RuntimeException("Failed to start: " + name, e);
     }

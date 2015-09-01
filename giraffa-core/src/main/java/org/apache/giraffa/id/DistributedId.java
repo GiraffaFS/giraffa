@@ -21,6 +21,8 @@ import org.apache.hadoop.util.IdGenerator;
 
 public interface DistributedId extends IdGenerator {
 
+  long initialValue();
+
   void start();
 
   void close();
