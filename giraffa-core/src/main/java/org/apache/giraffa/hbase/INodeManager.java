@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.id.DistributedINodeId;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConstants.BlockAction;
 import org.apache.giraffa.GiraffaPBHelper;
@@ -59,12 +60,13 @@ public class INodeManager implements Closeable {
 
   /** The Namespace table */
   private Table nsTable;
-  private INodeIdGenerator idGen;
+  private DistributedINodeId inodeId;
 
   public INodeManager(Table nsTable) throws IOException {
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
-    idGen = new INodeIdGenerator(nsTable.getConfiguration());
+    inodeId = new DistributedINodeId(nsTable.getConfiguration());
+    inodeId.start();
   }
 
   @Override
@@ -75,9 +77,9 @@ public class INodeManager implements Closeable {
         nsTable.close();
         nsTable = null;
       }
-      if(idGen != null) {
-        idGen.close();
-        idGen = null;
+      if(inodeId != null) {
+        inodeId.close();
+        inodeId = null;
       }
     } catch (IOException e) {
       LOG.error("Cannot close table: ", e);
@@ -363,7 +365,7 @@ public class INodeManager implements Closeable {
   }
 
   public long nextINodeId() throws IOException {
-    return idGen.nextId();
+    return inodeId.nextValue();
   }
 
   private Table getNSTable() {

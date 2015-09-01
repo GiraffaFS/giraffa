@@ -17,59 +17,71 @@
  */
 package org.apache.giraffa.hbase;
 
-import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.atomic.AtomicValue;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicLong;
 import org.apache.curator.framework.recipes.atomic.PromotedToLock;
 import org.apache.curator.retry.RetryNTimes;
+import org.apache.giraffa.id.DistributedId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+public class ZookeeperId implements DistributedId {
 
-class INodeIdGenerator {
-
-  private static final String ID_PATH = "/inodeId";
-  private static final String LOCK_PATH = "/inodeIdLock";
   private static final RetryPolicy RETRY = new RetryNTimes(100, 10);
-  private static final PromotedToLock LOCK = PromotedToLock.builder()
-      .lockPath(LOCK_PATH)
-      .retryPolicy(RETRY)
-      .timeout(100, TimeUnit.MILLISECONDS)
-      .build();
+  private static final long TIMEOUT = 100;
 
+  private final String name;
   private final CuratorFramework client;
   private final DistributedAtomicLong id;
+  private final long initialValue;
 
-  INodeIdGenerator(Configuration conf) throws IOException {
+  public ZookeeperId(String name, Configuration conf, long initialValue) {
+    String idPath = "/ids" + name + "/id";
+    String lockPath = "/ids" + name + "/lock";
+    PromotedToLock lock = PromotedToLock.builder()
+        .lockPath(lockPath)
+        .retryPolicy(RETRY)
+        .timeout(TIMEOUT, MILLISECONDS)
+        .build();
     String quorum = ZKConfig.getZKQuorumServersString(conf);
-    client = CuratorFrameworkFactory.newClient(quorum, RETRY);
+    this.name = name;
+    this.client = CuratorFrameworkFactory.newClient(quorum, RETRY);
+    this.id = new DistributedAtomicLong(client, idPath, RETRY, lock);
+    this.initialValue = initialValue;
+  }
+
+  @Override // IdGenerator
+  public long nextValue() {
+    AtomicValue<Long> value;
+    try {
+      value = id.increment();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to increment: " + name, e);
+    }
+    if (value.succeeded()) {
+      return value.postValue();
+    } else {
+      throw new RuntimeException("Failed to increment: " + name);
+    }
+  }
+
+  @Override // DistributedId
+  public void start() {
     client.start();
-    id = new DistributedAtomicLong(client, ID_PATH, RETRY, LOCK);
-    initialize();
+    try {
+      id.initialize(initialValue);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to start: " + name, e);
+    }
   }
 
-  void close() {
+  @Override // DistributedId
+  public void close() {
     client.close();
-  }
-
-  long nextId() throws IOException {
-    try {
-      return id.increment().postValue();
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
-  }
-
-  private void initialize() throws IOException {
-    try {
-      id.initialize(ROOT_INODE_ID);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
   }
 }
