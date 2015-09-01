@@ -62,7 +62,7 @@ public class INodeManager implements Closeable {
   private Table nsTable;
   private DistributedINodeId inodeId;
 
-  public INodeManager(Table nsTable) throws IOException {
+  public INodeManager(Table nsTable) {
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
     inodeId = new DistributedINodeId(nsTable.getConfiguration());
