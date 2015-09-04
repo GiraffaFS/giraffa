@@ -42,6 +42,12 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
  * A utility class to deserialize file fields from a table row {@link Result}.
  */
 public class FileFieldDeserializer {
+
+  public static long getId(Result res) throws IOException {
+    return Bytes.toLong(res.getValue(FileField.getFileAttributes(),
+        FileField.getId()));
+  }
+
   public static List<UnlocatedBlock> getBlocks(Result res) throws IOException {
     byte[] value = res.getValue(
         FileField.getFileAttributes(), FileField.getBlock());
