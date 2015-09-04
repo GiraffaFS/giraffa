@@ -28,13 +28,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class TestSegmentedId {
+public class TestSegmentedIdGenerator {
 
   @Test
   public void testIncrement() {
-    final long initialValue = 1000L;
-    final long maxValue = 10000000L;
-    SegmentedId id = new SegmentedId(initialValue, new LocalId());
+    final long initialValue = 1000;
+    final long serviceInitialValue = -1;
+    final long maxValue = 10000000;
+
+    IdGeneratorService service = new LocalIdService(serviceInitialValue);
+    SegmentedIdGenerator id =
+        new SegmentedIdGenerator(initialValue, serviceInitialValue, service);
     for (long i = initialValue + 1; i <= maxValue; i++) {
       assertThat(id.nextValue(), is(i));
     }
@@ -42,16 +46,18 @@ public class TestSegmentedId {
 
   @Test
   public void testConcurrentIncrement() throws InterruptedException {
-    final DistributedId segment = new LocalId();
     final long initialValue = 1000;
+    final long serviceInitialValue = -1;
     final int numTesters = 3;
     final int increments = 1000000;
 
     // creater tester threads
     IdTester[] testers = new IdTester[numTesters];
     Thread[] threads = new Thread[numTesters];
+    IdGeneratorService service = new LocalIdService(serviceInitialValue);
     for (int i = 0; i < numTesters; i++) {
-      SegmentedId id = new SegmentedId(initialValue, segment);
+      SegmentedIdGenerator id =
+          new SegmentedIdGenerator(initialValue, serviceInitialValue, service);
       testers[i] = new IdTester(id, increments);
       threads[i] = new Thread(testers[i]);
     }
@@ -84,11 +90,11 @@ public class TestSegmentedId {
   /** each instance will repeatedly generate ids */
   private static class IdTester implements Runnable {
 
-    final SegmentedId id;
+    final SegmentedIdGenerator id;
     final int increments;
     final List<Long> generated;
 
-    IdTester(SegmentedId id, int increments) {
+    IdTester(SegmentedIdGenerator id, int increments) {
       this.id = id;
       this.increments = increments;
       this.generated = new ArrayList<>();
@@ -102,24 +108,17 @@ public class TestSegmentedId {
     }
   }
 
-  private static class LocalId extends SequentialNumber
-      implements DistributedId {
+  private static class LocalIdService extends SequentialNumber
+      implements IdGeneratorService {
 
-    static final long INITIAL = -1;
-
-    LocalId() {
-      super(INITIAL);
+    LocalIdService(long initialValue) {
+      super(initialValue);
     }
 
-    @Override // DistributedId
-    public long initialValue() {
-      return INITIAL;
-    }
+    @Override // IdGeneratorService
+    public void initialize() {}
 
-    @Override // DistributedId
-    public void start() {}
-
-    @Override // DistributedId
+    @Override // IdGeneratorService
     public void close() {}
   }
 }

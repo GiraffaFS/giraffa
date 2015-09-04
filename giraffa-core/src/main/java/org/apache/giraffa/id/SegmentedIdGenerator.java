@@ -17,20 +17,30 @@
  */
 package org.apache.giraffa.id;
 
-class SegmentedId implements DistributedId {
+import org.apache.hadoop.util.IdGenerator;
+
+/**
+ * ID generator that allocates large segments of sequential ids at a time from a
+ * given {@link IdGeneratorService} to minimize calls to the service. This class
+ * is thread-safe as long as the underlying generator is thread-safe.
+ */
+public class SegmentedIdGenerator implements IdGenerator {
 
   private static final long SEGMENT_SIZE = 1000;
 
   private final long initialValue;
-  private final DistributedId segment;
+  private final long serviceInitialValue;
+  private final IdGeneratorService service;
 
   private long offset;
   private long value;
 
-  SegmentedId(long initialValue,
-              DistributedId segment) {
+  public SegmentedIdGenerator(long initialValue,
+                              long serviceInitialValue,
+                              IdGeneratorService service) {
     this.initialValue = initialValue;
-    this.segment = segment;
+    this.serviceInitialValue = serviceInitialValue;
+    this.service = service;
   }
 
   @Override // IdGenerator
@@ -44,23 +54,8 @@ class SegmentedId implements DistributedId {
     return ++value;
   }
 
-  @Override // DistributedId
-  public long initialValue() {
-    return initialValue;
-  }
-
-  @Override // DistributedId
-  public synchronized void start() {
-    segment.start();
-  }
-
-  @Override // DistributedId
-  public synchronized void close() {
-    segment.close();
-  }
-
   private synchronized void newSegment() {
-    long segmentOffset = segment.nextValue() - segment.initialValue() - 1;
+    long segmentOffset = service.nextValue() - serviceInitialValue - 1;
     value = segmentOffset * SEGMENT_SIZE + initialValue;
   }
 }

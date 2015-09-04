@@ -17,16 +17,21 @@
  */
 package org.apache.giraffa.id;
 
-import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
+import org.apache.hadoop.util.IdGenerator;
 
-import org.apache.giraffa.hbase.ZookeeperId;
-import org.apache.hadoop.conf.Configuration;
+/**
+ * Id generator that connects to a service to store and compute values.
+ * Implementations are expected to be thread-safe.
+ */
+public interface IdGeneratorService extends IdGenerator {
 
-public class DistributedINodeId extends SegmentedId {
+  /**
+   * Initialize the connection to the service.
+   */
+  void initialize();
 
-  private static final String NAME = "inodeId";
-
-  public DistributedINodeId(Configuration conf) {
-    super(ROOT_INODE_ID, new ZookeeperId(NAME, conf));
-  }
+  /**
+   * Close the connection to the service.
+   */
+  void close();
 }
