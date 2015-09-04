@@ -37,8 +37,7 @@ public class TestSegmentedIdGenerator {
     final long maxValue = 10000000;
 
     IdGeneratorService service = new LocalIdService(serviceInitialValue);
-    SegmentedIdGenerator id =
-        new SegmentedIdGenerator(initialValue, serviceInitialValue, service);
+    SegmentedIdGenerator id = new SegmentedIdGenerator(initialValue, service);
     for (long i = initialValue + 1; i <= maxValue; i++) {
       assertThat(id.nextValue(), is(i));
     }
@@ -56,8 +55,7 @@ public class TestSegmentedIdGenerator {
     Thread[] threads = new Thread[numTesters];
     IdGeneratorService service = new LocalIdService(serviceInitialValue);
     for (int i = 0; i < numTesters; i++) {
-      SegmentedIdGenerator id =
-          new SegmentedIdGenerator(initialValue, serviceInitialValue, service);
+      SegmentedIdGenerator id = new SegmentedIdGenerator(initialValue, service);
       testers[i] = new IdTester(id, increments);
       threads[i] = new Thread(testers[i]);
     }
@@ -111,8 +109,16 @@ public class TestSegmentedIdGenerator {
   private static class LocalIdService extends SequentialNumber
       implements IdGeneratorService {
 
+    private final long initialValue;
+
     LocalIdService(long initialValue) {
       super(initialValue);
+      this.initialValue = initialValue;
+    }
+
+    @Override
+    public long getInitialValue() {
+      return initialValue;
     }
 
     @Override // IdGeneratorService

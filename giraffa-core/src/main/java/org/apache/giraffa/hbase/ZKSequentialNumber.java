@@ -81,6 +81,11 @@ public class ZKSequentialNumber implements IdGeneratorService {
   }
 
   @Override // IdGeneratorService
+  public long getInitialValue() {
+    return initialValue;
+  }
+
+  @Override // IdGeneratorService
   public void initialize() {
     client.start();
     try {

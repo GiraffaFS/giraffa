@@ -26,6 +26,11 @@ import org.apache.hadoop.util.IdGenerator;
 public interface IdGeneratorService extends IdGenerator {
 
   /**
+   * Return the id stored by this generator before any increments.
+   */
+  long getInitialValue();
+
+  /**
    * Initialize the connection to the service.
    */
   void initialize();

@@ -29,17 +29,14 @@ public class SegmentedIdGenerator implements IdGenerator {
   private static final long SEGMENT_SIZE = 1000;
 
   private final long initialValue;
-  private final long serviceInitialValue;
   private final IdGeneratorService service;
 
   private long offset;
   private long value;
 
   public SegmentedIdGenerator(long initialValue,
-                              long serviceInitialValue,
                               IdGeneratorService service) {
     this.initialValue = initialValue;
-    this.serviceInitialValue = serviceInitialValue;
     this.service = service;
   }
 
@@ -55,7 +52,7 @@ public class SegmentedIdGenerator implements IdGenerator {
   }
 
   private synchronized void newSegment() {
-    long segmentOffset = service.nextValue() - serviceInitialValue - 1;
+    long segmentOffset = service.nextValue() - service.getInitialValue() - 1;
     value = segmentOffset * SEGMENT_SIZE + initialValue;
   }
 }

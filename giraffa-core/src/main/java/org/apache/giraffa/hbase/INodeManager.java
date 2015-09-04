@@ -75,8 +75,7 @@ public class INodeManager implements Closeable {
     inodeIdService = new ZKSequentialNumber(INODE_ID_SERVICE_NAME,
         INODE_ID_SERVICE_INITIAL, nsTable.getConfiguration());
     inodeIdService.initialize();
-    inodeIdGenerator = new SegmentedIdGenerator(ROOT_INODE_ID,
-        INODE_ID_SERVICE_INITIAL, inodeIdService);
+    inodeIdGenerator = new SegmentedIdGenerator(ROOT_INODE_ID, inodeIdService);
   }
 
   @Override
