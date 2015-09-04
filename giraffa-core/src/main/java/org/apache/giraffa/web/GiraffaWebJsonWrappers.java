@@ -205,7 +205,7 @@ public class GiraffaWebJsonWrappers {
     public FileItem(RowKey rowKey, long mtime, long atime, String owner,
                     String group, FsPermission perms, byte[] symlink,
                     long length, short replication, long blockSize) {
-      super(rowKey, mtime, atime, owner, group, perms, symlink, null, length,
+      super(rowKey, 0, mtime, atime, owner, group, perms, symlink, null, length,
           replication, blockSize, null, null, null, null);
     }
 

@@ -45,6 +45,7 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_D
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 import static org.apache.hadoop.util.Time.now;
 
 import java.io.FileNotFoundException;
@@ -417,8 +418,9 @@ public class NamespaceProcessor implements ClientProtocol,
       long time = now();
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
-      iFile = new INodeFile(key, time, time, pc.getUser(), iParent.getGroup(),
-          masked, null, null, 0, replication, blockSize,
+      long id = nodeManager.nextINodeId();
+      iFile = new INodeFile(key, id, time, time, pc.getUser(),
+          iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
     }
 
@@ -785,7 +787,8 @@ public class NamespaceProcessor implements ClientProtocol,
     } 
 
     long time = now();
-    inode = new INodeDirectory(key, time, time, pc.getUser(),
+    long id = nodeManager.nextINodeId();
+    inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
     // add directory to HBase
@@ -832,19 +835,22 @@ public class NamespaceProcessor implements ClientProtocol,
 
     RowKey key = RowKeyFactory.newInstance(src.toString());
     long time = now();
+    long id;
     String user, group;
     if (parent == null) {
       // root directory settings
+      id = ROOT_INODE_ID;
       user = fsOwnerShortUserName;
       group = supergroup;
       masked = FsPermission.createImmutable((short)0755);
     } else {
+      id = nodeManager.nextINodeId();
       user = pc.getUser();
       group = iParent.getGroup();
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
-    INodeDirectory inode = new INodeDirectory(key, time, time, user, group,
+    INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
     return inode;
