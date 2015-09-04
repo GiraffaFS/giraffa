@@ -21,7 +21,7 @@ import org.apache.hadoop.util.IdGenerator;
 
 /**
  * Id generator that connects to a service to store and compute values.
- * Implementations are expected to be thread-safe.
+ * Implementations are expected to be thread-safe and increment atomically.
  */
 public interface IdGeneratorService extends IdGenerator {
 

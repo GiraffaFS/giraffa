@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 
 /**
  * Sequential ID generator that uses Zookeeper to store and compute ids.
+ * Increments are done atomically, and this class is thread-safe.
  */
 public class ZKSequentialNumber implements IdGeneratorService {
 
