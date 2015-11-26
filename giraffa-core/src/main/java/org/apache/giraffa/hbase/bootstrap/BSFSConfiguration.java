@@ -2,6 +2,7 @@ package org.apache.giraffa.hbase.bootstrap;
 
 import static org.apache.giraffa.GiraffaConfiguration.GRFA_BLOCK_MANAGER_ADDRESS_KEY;
 import static org.apache.giraffa.GiraffaConfiguration.GRFA_BOOTSTRAP_FS_IMPL;
+import static org.apache.hadoop.hbase.HConstants.HBASE_CHECKSUM_VERIFICATION;
 import static org.apache.hadoop.hbase.coprocessor.CoprocessorHost.MASTER_COPROCESSOR_CONF_KEY;
 import static org.apache.hadoop.hbase.coprocessor.CoprocessorHost.REGIONSERVER_COPROCESSOR_CONF_KEY;
 
@@ -35,6 +36,8 @@ public class BSFSConfiguration extends Configuration {
     // Allow meta table on the master (SHV !! check if it works)
     this.set(BaseLoadBalancer.TABLES_ON_MASTER,
              TableName.META_TABLE_NAME.getNameAsString());
+    // Turn off HBase checksums
+    this.setBoolean(HBASE_CHECKSUM_VERIFICATION, false);
     // Add observers to support bootstrap
     this.set(REGIONSERVER_COPROCESSOR_CONF_KEY,
              GRegionServerObserver.class.getCanonicalName());

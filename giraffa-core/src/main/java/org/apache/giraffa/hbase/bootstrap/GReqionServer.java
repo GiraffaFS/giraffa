@@ -54,7 +54,18 @@ public class GReqionServer extends MiniHBaseClusterRegionServer {
     HTableDescriptor htd = mmTable.getTableDescriptor();
     LOG.debug("Namespace table found: " + htd);
 
-    BSFileSystem bsfs = (BSFileSystem)((HFileSystem)getFileSystem()).getBackingFs();
+    // SHV !!! Namespace table is still open in bootstrap map.
+    // Should be reopened after finalizeBootstrap() ???
+    // Also why finalizeBootstrap() is happening after closing cluster
+    finalizeBootstrap();
+  }
+
+  protected void finalizeBootstrap() throws IOException {
+    LOG.debug("GReqionServer.finalizeBootstrap()");
+    HFileSystem hfs = (HFileSystem)getFileSystem();
+    BSFileSystem bsfs = (BSFileSystem)hfs.getBackingFs();
+    bsfs.finalizeBootstrap();
+    bsfs = (BSFileSystem)hfs.getNoChecksumFs();
     bsfs.finalizeBootstrap();
   }
 }

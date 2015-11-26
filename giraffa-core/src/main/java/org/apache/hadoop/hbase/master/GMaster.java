@@ -87,7 +87,19 @@ public class GMaster extends HMaster {
     bsfs.copyBootstrap2Giraffa(new Path[] {new Path("/")});
     bsfs.finalizeBootstrap();
 
-    bsfs = (BSFileSystem)((HFileSystem)getFileSystem()).getBackingFs();
+    finalizeBootstrap();
+  }
+
+  // SHV combine with GReqionServer.finalizeBootstrap()
+  // This finalizes also hfs.noChecksumFs
+  // noChecksumFs is turned on by default
+  // currently BSFSConfiguration turns it off
+  protected void finalizeBootstrap() throws IOException {
+    LOG.debug("GMaster.finalizeBootstrap()");
+    HFileSystem hfs = (HFileSystem)getFileSystem();
+    BSFileSystem bsfs = (BSFileSystem)hfs.getBackingFs();
+    bsfs.finalizeBootstrap();
+    bsfs = (BSFileSystem)hfs.getNoChecksumFs();
     bsfs.finalizeBootstrap();
   }
 }

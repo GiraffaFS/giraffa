@@ -149,6 +149,7 @@ public class BSFileSystem extends GiraffaFileSystem {
           permission, "giraffa", "giraffa", null, f);
     }
     bootstrapMap.put(src, new Pair<SFileStatus, byte[]>(status, null));
+    LOG.debug("Bootstrap create for: " + src);
     return new FSDataOutputStream( new BSFSOutputStream(src), null);
   }
 
@@ -408,8 +409,9 @@ public class BSFileSystem extends GiraffaFileSystem {
           bootstrapMap.put(src, file);
         }
         writeSuperBlock(bmAddress, bootstrapMap);
+        LOG.debug("Bootstrap close for: " + src);
+        LOG.debug("isBootstrapped = " + isBootstrapped);
       }
-      LOG.debug("Bootstrap close for: " + src);
     }
   }
 
