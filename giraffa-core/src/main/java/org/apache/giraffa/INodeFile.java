@@ -185,11 +185,10 @@ public class INodeFile extends INode {
   }
 
   @Override // INode
-  public INodeFile cloneWithNewRowKey(RowKey newKey) {
-    return new INodeFile(newKey, getId(), getModificationTime(),
-        getAccessTime(), getOwner(), getGroup(), getPermission(), getSymlink(),
-        getRenameState(), length, replication, blocksize, fileState, lease,
-        blocks, locations);
+  public INodeFile cloneWithNewRowKey(RowKey newKey, long newId) {
+    return new INodeFile(newKey, newId, getModificationTime(), getAccessTime(),
+        getOwner(), getGroup(), getPermission(), getSymlink(), getRenameState(),
+        length, replication, blocksize, fileState, lease, blocks, locations);
   }
 
   public static INodeFile valueOf(INode node) throws IOException {

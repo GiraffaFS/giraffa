@@ -17,8 +17,6 @@
  */
 package org.apache.giraffa;
 
-import java.io.IOException;
-
 /**
  * Abstract class defining a row key for a file system object in the
  * Namespace Table in HBase.<br>
@@ -32,6 +30,7 @@ import java.io.IOException;
  * Extend this class to define a specific row key implementation.
  */
 public abstract class RowKey {
+
   /**
    * Get full path of the file system object represented by the underlying row.
    * @return full path
@@ -39,21 +38,10 @@ public abstract class RowKey {
   public abstract String getPath();
 
   /**
-   * Set full path to the file system object represented by the row.
-   * setKey() does not guarantee that the key will be generated,
-   * only that the path is set making it ready for the key generation.
-   * @param src
-   * @throws IOException 
-   */
-  public abstract void setPath(String src) throws IOException;
-
-  public abstract void set(String src, byte[] bytes) throws IOException;
-
-  /**
    * Get the row key of the file system object.
    * The method should generate the key if it has not been generated before
    * or return the generated value.
-   * @return row key as byte array
+   * @return row key as a byte array
    */
   public abstract byte[] getKey();
 
@@ -61,7 +49,7 @@ public abstract class RowKey {
    * Generate or regenerate the row key based on the path.
    * Key generation can be a distributed operation for some RowKey
    * implementations.
-   * @return row key as byte array
+   * @return row key as a byte array
    */
   public abstract byte[] generateKey();
 
@@ -70,8 +58,20 @@ public abstract class RowKey {
   public abstract byte[] getStopListingKey();
 
   @Override // Object
+  public abstract boolean equals(Object o);
+
+  @Override // Object
+  public abstract int hashCode();
+
+  @Override // Object
   public String toString() {
-    return getClass().getSimpleName() + ": " + RowKeyBytes.toString(getKey())
+    return getClass().getSimpleName() + ": " + getKeyString()
         +" | " + getPath();
   }
+
+  /**
+   * Return a String representation of the underlying byte array for use in
+   * {@link #toString()}.
+   */
+  public abstract String getKeyString();
 }

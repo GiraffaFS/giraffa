@@ -72,6 +72,7 @@ public class TestGiraffaUpgrade {
   private DFSTestUtil fsUtil;
   private GiraffaFileSystem grfs;
   private Connection connection;
+  private RowKeyFactory<?> keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -95,7 +96,8 @@ public class TestGiraffaUpgrade {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
+    keyFactory = GiraffaTestUtils.createFactory(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
@@ -202,7 +204,7 @@ public class TestGiraffaUpgrade {
 
         // COMMIT IT!
         INode node;
-        RowKey key = RowKeyFactory.newInstance(path);
+        RowKey key = keyFactory.newInstance(path, id);
         if (isDirectory) {
           node = new INodeDirectory(key, id, modTime.getTime(),
               accessTime.getTime(), userName, groupName, perm, null, null,

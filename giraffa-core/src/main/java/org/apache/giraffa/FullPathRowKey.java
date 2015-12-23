@@ -19,6 +19,7 @@ package org.apache.giraffa;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Implementation of a row key based on the file's full path.
@@ -32,10 +33,16 @@ public class FullPathRowKey extends RowKey implements Serializable {
   private String path;
   private byte[] bytes;
 
-  public FullPathRowKey() {}
-
-  FullPathRowKey(String src) throws IOException {
+  public FullPathRowKey(String src) throws IOException {
     setPath(src);
+  }
+
+  public FullPathRowKey(String src, byte[] bytes) throws IOException {
+    set(src, bytes);
+  }
+
+  private FullPathRowKey(String src, byte[] bytes, short d) {
+    initialize(d, src, bytes);
   }
 
   private void initialize(short d, String src, byte[] bytes) {
@@ -45,8 +52,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
     this.bytes = bytes;  // not generated yet
   }
 
-  @Override // RowKey
-  public void setPath(String src) throws IOException {
+  private void setPath(String src) throws IOException {
     if(!src.startsWith(SEPARATOR))
       throw new IOException("Cannot calculate key for a relative path: " + src);
     int d = depth(src);
@@ -54,8 +60,7 @@ public class FullPathRowKey extends RowKey implements Serializable {
     initialize((short)d, src, null);
   }
 
-  @Override // RowKey
-  public void set(String src, byte[] bytes) throws IOException {
+  private void set(String src, byte[] bytes) throws IOException {
     initialize(RowKeyBytes.toShort(bytes), src, bytes);
     assert RowKeyBytes.compareTo(RowKeyBytes.toBytes(src), 0,
         RowKeyBytes.toBytes(src).length, bytes, 2, bytes.length-2) == 0 : 
@@ -107,10 +112,27 @@ public class FullPathRowKey extends RowKey implements Serializable {
     return RowKeyBytes.add(directoryStartKey(), new byte[]{Byte.MAX_VALUE});
   }
 
+  @Override // Object
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof FullPathRowKey)) return false;
+
+    FullPathRowKey that = (FullPathRowKey) o;
+    return Objects.equals(path, that.path);
+  }
+
+  @Override // Object
+  public int hashCode() {
+    return path != null ? path.hashCode() : 0;
+  }
+
+  @Override // RowKey
+  public String getKeyString() {
+    return RowKeyBytes.toString(getKey());
+  }
+
   private byte[] directoryStartKey() {
     String startPath = path.endsWith("/") ? path : path + "/";
-    FullPathRowKey startKey = new FullPathRowKey();
-    startKey.initialize((short) (depth + 1), startPath, null);
-    return startKey.getKey();
+    return new FullPathRowKey(startPath, null, (short) (depth + 1)).getKey();
   }
 }

@@ -37,10 +37,10 @@
   </property>
 
   <property>
-    <name>grfa.rowkey.class</name>
-    <value>org.apache.giraffa.FullPathRowKey</value>
+    <name>grfa.rowkey.factory.class</name>
+    <value>org.apache.giraffa.FullPathRowKeyFactory</value>
     <description>
-      Class that implements RowKey for the namespace table.
+      Class that implements RowKeyFactory for the namespace table.
     </description>
   </property>
 

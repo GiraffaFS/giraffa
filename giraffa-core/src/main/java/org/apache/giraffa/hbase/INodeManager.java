@@ -65,11 +65,15 @@ public class INodeManager implements Closeable {
   private static final byte[] EMPTY = new byte[0];
 
   /** The Namespace table */
+  private final RowKeyFactory<?> keyFactory;
   private Table nsTable;
   private final IdGeneratorService inodeIdService;
   private final IdGenerator inodeIdGenerator;
 
-  public INodeManager(Table nsTable) {
+  public INodeManager(RowKeyFactory<?> keyFactory,
+                      Table nsTable)
+      throws IOException {
+    this.keyFactory = keyFactory;
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
     inodeIdService = new ZKSequentialNumber(INODE_ID_SERVICE_NAME,
@@ -103,7 +107,7 @@ public class INodeManager implements Closeable {
    * @return INode for the specified path
    */
   public INode getINode(String path) throws IOException {
-    return getINode(RowKeyFactory.newInstance(path));
+    return getINode(keyFactory.newInstance(path));
   }
 
   /**
@@ -157,6 +161,7 @@ public class INodeManager implements Closeable {
   public void updateINode(INode node, BlockAction ba, List<XAttr> xAttrs)
       throws IOException {
     long ts = Time.now();
+    assert node.getId() > 0 : "Invalid INode id";
     RowKey key = node.getRowKey();
     byte[] family = FileField.getFileAttributes();
     Put put = new Put(key.getKey(), ts);
@@ -347,7 +352,7 @@ public class INodeManager implements Closeable {
 
   public void setXAttr(String path, XAttr xAttr) throws IOException {
     long ts = Time.now();
-    RowKey rowKey = RowKeyFactory.newInstance(path);
+    RowKey rowKey = keyFactory.newInstance(path);
     Put put = new Put(rowKey.getKey(), ts);
     String realColumnName = XAttrHelper.getPrefixName(xAttr);
     put.addColumn(FileField.getFileExtendedAttributes(),
@@ -356,13 +361,13 @@ public class INodeManager implements Closeable {
   }
 
   public List<XAttr> getXAttrs(String path) throws IOException {
-    RowKey rowKey = RowKeyFactory.newInstance(path);
+    RowKey rowKey = keyFactory.newInstance(path);
     Result result = getNSTable().get(new Get(rowKey.getKey()));
     return FileFieldDeserializer.getXAttrs(result);
   }
 
   public void removeXAttr(String path, XAttr xAttr) throws IOException {
-    RowKey rowKey = RowKeyFactory.newInstance(path);
+    RowKey rowKey = keyFactory.newInstance(path);
     Delete delete = new Delete(rowKey.getKey());
     String realColumnName = XAttrHelper.getPrefixName(xAttr);
     delete.addColumns(FileField.getFileExtendedAttributes(),
@@ -385,7 +390,7 @@ public class INodeManager implements Closeable {
   }
 
   private INode newINode(String src, Result result) throws IOException {
-    RowKey key = RowKeyFactory.newInstance(src, result.getRow());
+    RowKey key = keyFactory.newInstance(src, result.getRow());
     if (FileFieldDeserializer.getDirectory(result)) {
       return new INodeDirectory(key,
           FileFieldDeserializer.getId(result),

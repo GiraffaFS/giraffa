@@ -56,6 +56,32 @@ public class RowKeyBytes {
     return n;
   }
 
+  // Follows the convention used in HBase Bytes for compatibality.
+  public static long toLong(byte[] toConv, int offset) {
+    assert offset + 8 <= toConv.length;
+    long l = 0;
+    for(int i = offset; i < offset + 8; i++) {
+      l <<= 8;
+      l ^= toConv[i] & 0xFF;
+    }
+    return l;
+  }
+
+  // Follows the convention used in HBase Bytes for compatibality.
+  public static void putLong(byte[] b, int offset, long val) {
+    assert offset + 8 <= b.length;
+    for (int i = 7; i > 0; i--) {
+      b[i + offset] = (byte) val;
+      val >>>= 8;
+    }
+    b[offset] = (byte) val;
+  }
+
+  public static void lshift(byte[] b, int numBytes) {
+    assert numBytes >= 0 && numBytes <= b.length;
+    System.arraycopy(b, numBytes, b, 0, b.length - numBytes);
+  }
+
   public static byte[] add(byte[] a, byte[] b) {
     byte [] result = new byte[a.length + b.length];
     System.arraycopy(a, 0, result, 0, a.length);

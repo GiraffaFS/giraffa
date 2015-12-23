@@ -17,67 +17,66 @@
  */
 package org.apache.giraffa;
 
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.ReflectionUtils;
-
 /**
- * Create new {@link RowKey} using this factory.
- * The factory should be first initialized by calling
- * {@link #registerRowKey(Configuration)}.
+ * Abstract {@link RowKey} factory.
+ * <p/>
+ * The factory is configurable and is instantiated via
+ * {@link RowKeyFactoryProvider}.
+ * <br/>
+ * Subclasses should override getRowKey() methods.
+ * To create a new key newInstance() methods should be used.
+ * <br/>
  * If {@link Configuration} specifies caching, the keys will be cached 
  * for faster instantiation.<br>
  * This class is thread safe.
  */
-public class RowKeyFactory {
-  private static Map<String, RowKey> Cache;
-  private static Class<? extends RowKey> RowKeyClass;
+public abstract class RowKeyFactory<S> {
+  private static Map<String, RowKey> cache;
 
   public static synchronized boolean isCaching() {
-    return Cache != null;
+    return cache != null;
   }
 
-  public static synchronized Class<? extends RowKey> getRowKeyClass() {
-    return RowKeyClass;
-  }
-
-  /**
-   * Register RowKey class, specified by {@link Configuration} and 
-   * turn on caching is requested.
-   * @param conf configuration specifying row key class and caching choice.
-   */
-  public static void registerRowKey(Configuration conf) {
-    boolean caching = conf.getBoolean(GiraffaConfiguration.GRFA_CACHING_KEY,
-        GiraffaConfiguration.GRFA_CACHING_DEFAULT);
+  public static void setCache(boolean caching) {
     synchronized(RowKeyFactory.class) {
-      if(caching)
-        Cache = new HashMap<String, RowKey>();
-      RowKeyClass = conf.getClass(GiraffaConfiguration.GRFA_ROW_KEY_KEY,
-          GiraffaConfiguration.GRFA_ROW_KEY_DEFAULT, RowKey.class);
+      if(caching & cache == null)
+        cache = new HashMap<String, RowKey>();
     }
   }
 
   /**
-   * Create new instance of RowKey based on file path.
+   * Create new instance of RowKey based on file path and inodeId.
    * RowKey.bytes field may remain uninitialized depending on the 
    * file path resolution implementation. {@link RowKey#getKey()} will further
    * generate the bytes.
    * 
    * @param src file path
+   * @param inodeId
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src) throws IOException {
-    return newInstance(src, null);
+  public RowKey newInstance(String src, long inodeId) throws IOException {
+    return newInstance(src, inodeId, null);
+  }
+
+  public RowKey newInstance(String src) throws IOException {
+    return newInstance(src, GRANDFATHER_INODE_ID, null);
+  }
+
+  public RowKey newInstance(String src, byte[] bytes) throws IOException {
+    return newInstance(src, GRANDFATHER_INODE_ID, bytes);
   }
 
   /**
-   * Create new instance of RowKey based on file path and key bytes.
-   * RowKey will be fully defined in this case.
-   * No file path resolution to generate bytes is necessary.
+   * Create new instance of RowKey based on file path, inodeId, and key bytes.
+   * If bytes is not null, then RowKey will be fully defined in this case,
+   * and no file path resolution to generate bytes is necessary.
    * This can be used when the key is returned from the namespace service
    * as a byte array.
    * 
@@ -85,32 +84,42 @@ public class RowKeyFactory {
    * @return new RowKey instance
    * @throws IOException
    */
-  public static RowKey newInstance(String src, byte[] bytes)
+  public RowKey newInstance(String src, long inodeId, byte[] bytes)
       throws IOException {
     // try cache
     RowKey key = null;
     synchronized(RowKeyFactory.class) {
-      key = isCaching() ? Cache.get(src) : null;
+      key = isCaching() ? cache.get(src) : null;
     }
     if(key != null)
       return key;
 
     // generate new RowKey
-    return createRowKey(src, bytes);
+    return createRowKey(src, inodeId, bytes);
   }
 
-  public static RowKey createRowKey(String src, byte[] bytes)
+  private RowKey createRowKey(String src, long inodeId, byte[] bytes)
       throws IOException {
-    RowKey key = ReflectionUtils.newInstance(RowKeyClass, null);
-    if(bytes == null)
-      key.setPath(src);
-    else
-      key.set(src, bytes);
+    RowKey key = (bytes == null) ? getRowKey(src, inodeId) :
+                                   getRowKey(src, bytes);
 
     synchronized(RowKeyFactory.class) {
       if(isCaching())
-        Cache.put(src, key);
+        cache.put(src, key);
     }
     return key;
   }
+
+  void setService(S service) {
+  }
+
+  public S getService() {
+    return null;
+  }
+
+  protected abstract RowKey getRowKey(String src, long inodeId)
+      throws IOException;
+
+  protected abstract RowKey getRowKey(String src, byte[] bytes)
+      throws IOException;
 }

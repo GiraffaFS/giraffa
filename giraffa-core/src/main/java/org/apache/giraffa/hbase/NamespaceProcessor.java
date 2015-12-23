@@ -17,7 +17,6 @@
  */
 package org.apache.giraffa.hbase;
 
-import java.util.Collection;
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
 import static org.apache.giraffa.GiraffaConstants.BlockAction;
 import static org.apache.giraffa.GiraffaConstants.FileState.UNDER_CONSTRUCTION;
@@ -45,6 +44,7 @@ import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_D
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_NAMENODE_XATTRS_ENABLED_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_DEFAULT;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.DFS_REPLICATION_KEY;
+import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 import static org.apache.hadoop.util.Time.now;
 
@@ -52,6 +52,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -68,6 +69,7 @@ import org.apache.giraffa.INode;
 import org.apache.giraffa.RenameState;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
+import org.apache.giraffa.RowKeyFactoryProvider;
 import org.apache.giraffa.UnlocatedBlock;
 import org.apache.giraffa.GiraffaConstants.FileState;
 import org.apache.giraffa.XAttrOp;
@@ -146,6 +148,7 @@ public class NamespaceProcessor implements ClientProtocol,
       new ClientNamenodeProtocolServerSideCallbackTranslatorPB(this);
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
+  private RowKeyFactory<?> keyFactory;
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
   private LeaseManager leaseManager;
@@ -199,16 +202,16 @@ public class NamespaceProcessor implements ClientProtocol,
     String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
-    RowKeyFactory.registerRowKey(conf);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
     this.lsLimit = configuredLimit > 0 ?
         configuredLimit : GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT;
     LOG.info("Caching is set to: " + RowKeyFactory.isCaching());
-    LOG.info("RowKey is set to: " +
-        RowKeyFactory.getRowKeyClass().getCanonicalName());
-    
+    LOG.info("RowKeyFactory is set to: " +
+        keyFactory.getClass().getCanonicalName());
+
     // Get the checksum type from config
     String checksumTypeStr = conf.get(DFS_CHECKSUM_TYPE_KEY,
                                       DFS_CHECKSUM_TYPE_DEFAULT);
@@ -237,7 +240,7 @@ public class NamespaceProcessor implements ClientProtocol,
     this.leaseManager =
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
-    this.nodeManager = new INodeManager(e.getTable(tableName));
+    this.nodeManager = new INodeManager(keyFactory, e.getTable(tableName));
     this.xAttrOp = new XAttrOp(nodeManager, conf);
     leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();
@@ -319,7 +322,17 @@ public class NamespaceProcessor implements ClientProtocol,
                           ExtendedBlock last, long fileId)
       throws AccessControlException, FileNotFoundException, SafeModeException,
       UnresolvedLinkException, IOException {
-    INodeFile iNode = getINodeAsFile(src);
+    INodeFile iNode;
+    if (fileId != GRANDFATHER_INODE_ID) {
+      INode node = nodeManager.getINode(keyFactory.newInstance(src, fileId));
+      if (node == null) {
+        throw new FileNotFoundException("Path does not exist: " + src);
+      }
+      iNode = INodeFile.valueOf(node);
+    } else {
+      iNode = getINodeAsFile(src);
+    }
+
     checkLease(src, iNode, clientName);
 
     // set the state and replace the block, then put the iNode
@@ -414,11 +427,11 @@ public class NamespaceProcessor implements ClientProtocol,
 
     // if file did not exist, create its INode now
     if(iFile == null) {
-      RowKey key = RowKeyFactory.newInstance(src);
       long time = now();
       FileLease fileLease =
           leaseManager.addLease(new FileLease(clientName, src, time));
       long id = nodeManager.nextINodeId();
+      RowKey key = keyFactory.newInstance(src, id);
       iFile = new INodeFile(key, id, time, time, pc.getUser(),
           iParent.getGroup(), masked, null, null, 0, replication, blockSize,
           FileState.UNDER_CONSTRUCTION, fileLease, null, null);
@@ -764,9 +777,7 @@ public class NamespaceProcessor implements ClientProtocol,
       pc.check(iParent, FsAction.WRITE_EXECUTE);
     }
 
-    RowKey key = RowKeyFactory.newInstance(src);
-    INode inode = nodeManager.getINode(key);
-
+    INode inode = nodeManager.getINode(src);
     if(inode != null) {  // already exists
       return true;
     }
@@ -788,6 +799,7 @@ public class NamespaceProcessor implements ClientProtocol,
 
     long time = now();
     long id = nodeManager.nextINodeId();
+    RowKey key = keyFactory.newInstance(src, id);
     inode = new INodeDirectory(key, id, time, time, pc.getUser(),
         iParent.getGroup(), masked, null, null, 0, 0);
 
@@ -833,7 +845,6 @@ public class NamespaceProcessor implements ClientProtocol,
       iParent = mkdirsRecursive(parent, masked, inheritPermissions, pc);
     }
 
-    RowKey key = RowKeyFactory.newInstance(src.toString());
     long time = now();
     long id;
     String user, group;
@@ -850,6 +861,7 @@ public class NamespaceProcessor implements ClientProtocol,
       masked = setUWX(inheritPermissions ? iParent.getPermission() : masked);
     }
 
+    RowKey key = keyFactory.newInstance(src.toString(), id);
     INodeDirectory inode = new INodeDirectory(key, id, time, time, user, group,
         masked, null, null, 0, 0);
     nodeManager.updateINode(inode);
@@ -996,12 +1008,17 @@ public class NamespaceProcessor implements ClientProtocol,
    */
   private INode copyWithRenameFlag(INode srcNode, String dst)
       throws IOException {
-    RowKey srcKey = srcNode.getRowKey();
-    String src = srcKey.getPath();
-    LOG.debug("Copying " + src + " to " + dst + " with rename flag");
-    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
-    dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
-    nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
+    INode dstNode = nodeManager.getINode(dst);
+    if (dstNode == null) {
+      RowKey srcKey = srcNode.getRowKey();
+      String src = srcKey.getPath();
+      LOG.debug("Copying " + src + " to " + dst + " with rename flag");
+      long id = nodeManager.nextINodeId();
+      RowKey dstKey = keyFactory.newInstance(dst, id);
+      dstNode = srcNode.cloneWithNewRowKey(dstKey, id);
+      dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
+      nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
+    }
     return dstNode;
   }
 

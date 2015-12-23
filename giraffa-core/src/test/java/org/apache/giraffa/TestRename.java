@@ -58,6 +58,7 @@ public class TestRename {
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
   private Connection connection;
+  private RowKeyFactory<?> keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -76,7 +77,8 @@ public class TestRename {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection);
+    keyFactory = GiraffaTestUtils.createFactory(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
@@ -109,27 +111,33 @@ public class TestRename {
   }
 
   /**
-   * Completes the renameFile process up to and including the given stage.
+   * Completes the given stage of the rename process.
    */
   private void doRenameStage(String src, String dst, RenameRecoveryState stage)
       throws IOException {
     src = new Path(grfs.getWorkingDirectory(), src).toUri().getPath();
     dst = new Path(grfs.getWorkingDirectory(), dst).toUri().getPath();
 
-    INode srcNode = nodeManager.getINode(src);
-    INode dstNode = srcNode.cloneWithNewRowKey(RowKeyFactory.newInstance(dst));
-
-    // renameFile state should be set if PUT_NOFLAG has not been completed
-    if(stage == PUT_SETFLAG || stage == DELETE) {
+    if (stage == PUT_SETFLAG) {
+      LOG.debug("Copying " + src + " to " + dst + " with rename flag");
+      INode srcNode = nodeManager.getINode(src);
+      long id = nodeManager.nextINodeId();
+      RowKey dstKey = keyFactory.newInstance(dst, id);
+      INode dstNode = srcNode.cloneWithNewRowKey(dstKey, id);
       dstNode.setRenameState(RenameState.TRUE(srcNode.getRowKey().getKey()));
+      nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
     }
 
-    // src node should be deleted if DELETE has been completed
-    if(stage == DELETE || stage == PUT_NOFLAG) {
+    if (stage == DELETE) {
+      INode srcNode = nodeManager.getINode(src);
       nodeManager.delete(srcNode);
     }
 
-    nodeManager.updateINode(dstNode);
+    if (stage == PUT_NOFLAG) {
+      INode dstNode = nodeManager.getINode(dst);
+      dstNode.setRenameState(RenameState.FALSE());
+      nodeManager.updateINode(dstNode);
+    }
   }
 
   private void renameFile(String src, String dst, boolean overwrite)
@@ -214,16 +222,19 @@ public class TestRename {
 
   @Test
   public void testFileRenameRecoveryStage1Complete() throws IOException {
+    grfs.mkdirs(new Path("dir"));
     createTestFile("test", 'A');
-    doRenameStage("test", "test2", PUT_SETFLAG);
-    renameFile("test", "test2", false);
+    doRenameStage("test", "dir/test", PUT_SETFLAG);
+    renameFile("test", "dir/test", false);
   }
 
   @Test
   public void testFileRenameRecoveryStage2Complete() throws IOException {
+    grfs.mkdirs(new Path("dir"));
     createTestFile("test", 'A');
-    doRenameStage("test", "test2", DELETE);
-    renameFile("test", "test2", false);
+    doRenameStage("test", "dir/test", PUT_SETFLAG);
+    doRenameStage("test", "dir/test", DELETE);
+    renameFile("test", "dir/test", false);
   }
 
   @Test
@@ -330,6 +341,7 @@ public class TestRename {
   @Test
   public void testDirRenameRecoveryStage1PartlyComplete() throws IOException {
     grfs.mkdirs(new Path("/a/b/c"));
+    grfs.mkdirs(new Path("/dir"));
     createTestFile("/a/1", 't');
     createTestFile("/a/2", 'u');
     createTestFile("/a/b/1", 'v');
@@ -346,6 +358,7 @@ public class TestRename {
   @Test
   public void testDirRenameRecoveryStage2PartlyComplete() throws IOException {
     grfs.mkdirs(new Path("/a/b/c"));
+    grfs.mkdirs(new Path("/dir"));
     createTestFile("/a/1", 't');
     createTestFile("/a/2", 'u');
     createTestFile("/a/b/1", 'v');
@@ -358,22 +371,28 @@ public class TestRename {
     Map<Path,Character> firstChar = new HashMap<Path,Character>();
     collectDirectoryChildrenInfo(new Path("/a"), isFile, firstChar);
 
+    doRenameStage("/a", "/dir/a", PUT_SETFLAG);
+    doRenameStage("/a/1", "/dir/a/1", PUT_SETFLAG);
+    doRenameStage("/a/2", "/dir/a/2", PUT_SETFLAG);
+    doRenameStage("/a/b", "/dir/a/b", PUT_SETFLAG);
+    doRenameStage("/a/b/1", "/dir/a/b/1", PUT_SETFLAG);
+    doRenameStage("/a/b/2", "/dir/a/b/2", PUT_SETFLAG);
+    doRenameStage("/a/b/c", "/dir/a/b/c", PUT_SETFLAG);
+    doRenameStage("/a/b/c/1", "/dir/a/b/c/1", PUT_SETFLAG);
+    doRenameStage("/a/b/c/2", "/dir/a/b/c/2", PUT_SETFLAG);
+
     // deletes occur recursively from bottom to top
-    doRenameStage("/a", "/newA", PUT_SETFLAG);
-    doRenameStage("/a/1", "/newA/1", PUT_SETFLAG);
-    doRenameStage("/a/2", "/newA/2", PUT_SETFLAG);
-    doRenameStage("/a/b", "/newA/b", PUT_SETFLAG);
-    doRenameStage("/a/b/1", "/newA/b/1", PUT_SETFLAG);
-    doRenameStage("/a/b/2", "/newA/b/2", DELETE);
-    doRenameStage("/a/b/c", "/newA/b/c", DELETE);
-    doRenameStage("/a/b/c/1", "/newA/b/c/1", DELETE);
-    doRenameStage("/a/b/c/2", "/newA/b/c/2", DELETE);
-    renameDir("/a", "/newA", false, isFile, firstChar);
+    doRenameStage("/a/b/c/2", "/dir/a/b/c/2", DELETE);
+    doRenameStage("/a/b/c/1", "/dir/a/b/c/1", DELETE);
+    doRenameStage("/a/b/c", "/dir/a/b/c", DELETE);
+    doRenameStage("/a/b/2", "/dir/a/b/2", DELETE);
+    renameDir("/a", "/dir/a", false, isFile, firstChar);
   }
 
   @Test
   public void testDirRenameRecoveryStage3PartlyComplete() throws IOException {
     grfs.mkdirs(new Path("/a/b/c"));
+    grfs.mkdirs(new Path("/dir"));
     createTestFile("/a/1", 't');
     createTestFile("/a/2", 'u');
     createTestFile("/a/b/1", 'v');
@@ -386,16 +405,31 @@ public class TestRename {
     Map<Path,Character> firstChar = new HashMap<Path,Character>();
     collectDirectoryChildrenInfo(new Path("/a"), isFile, firstChar);
 
-    doRenameStage("/a", "/newA", DELETE);
-    doRenameStage("/a/1", "/newA/1", PUT_NOFLAG);
-    doRenameStage("/a/2", "/newA/2", PUT_NOFLAG);
-    doRenameStage("/a/b", "/newA/b", PUT_NOFLAG);
-    doRenameStage("/a/b/1", "/newA/b/1", DELETE);
-    doRenameStage("/a/b/2", "/newA/b/2", DELETE);
-    doRenameStage("/a/b/c", "/newA/b/c", DELETE);
-    doRenameStage("/a/b/c/1", "/newA/b/c/1", DELETE);
-    doRenameStage("/a/b/c/2", "/newA/b/c/2", DELETE);
-    renameDir("/a", "/newA", false, isFile, firstChar);
+    doRenameStage("/a", "/dir/a", PUT_SETFLAG);
+    doRenameStage("/a/1", "/dir/a/1", PUT_SETFLAG);
+    doRenameStage("/a/2", "/dir/a/2", PUT_SETFLAG);
+    doRenameStage("/a/b", "/dir/a/b", PUT_SETFLAG);
+    doRenameStage("/a/b/1", "/dir/a/b/1", PUT_SETFLAG);
+    doRenameStage("/a/b/2", "/dir/a/b/2", PUT_SETFLAG);
+    doRenameStage("/a/b/c", "/dir/a/b/c", PUT_SETFLAG);
+    doRenameStage("/a/b/c/1", "/dir/a/b/c/1", PUT_SETFLAG);
+    doRenameStage("/a/b/c/2", "/dir/a/b/c/2", PUT_SETFLAG);
+
+    // deletes occur recursively from bottom to top
+    doRenameStage("/a/b/c/2", "/dir/a/b/c/2", DELETE);
+    doRenameStage("/a/b/c/1", "/dir/a/b/c/1", DELETE);
+    doRenameStage("/a/b/c", "/dir/a/b/c", DELETE);
+    doRenameStage("/a/b/2", "/dir/a/b/2", DELETE);
+    doRenameStage("/a/b/1", "/dir/a/b/1", DELETE);
+    doRenameStage("/a/b", "/dir/a/b", DELETE);
+    doRenameStage("/a/2", "/dir/a/2", DELETE);
+    doRenameStage("/a/1", "/dir/a/1", DELETE);
+    doRenameStage("/a", "/dir/a", DELETE);
+
+    doRenameStage("/a/1", "/dir/a/1", PUT_NOFLAG);
+    doRenameStage("/a/2", "/dir/a/2", PUT_NOFLAG);
+    doRenameStage("/a/b", "/dir/a/b", PUT_NOFLAG);
+    renameDir("/a", "/dir/a", false, isFile, firstChar);
   }
 
   @Test

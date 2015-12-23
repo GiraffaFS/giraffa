@@ -100,8 +100,8 @@ public class INodeDirectory extends INode {
   }
 
   @Override // INode
-  public INodeDirectory cloneWithNewRowKey(RowKey newKey) {
-    return new INodeDirectory(newKey, getId(), getModificationTime(),
+  public INodeDirectory cloneWithNewRowKey(RowKey newKey, long newId) {
+    return new INodeDirectory(newKey, newId, getModificationTime(),
         getAccessTime(), getOwner(), getGroup(), getPermission(), getSymlink(),
         getRenameState(), dsQuota, nsQuota);
   }

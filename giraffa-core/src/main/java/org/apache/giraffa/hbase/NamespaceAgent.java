@@ -50,8 +50,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.FileField;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.NamespaceService;
-import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
+import org.apache.giraffa.RowKeyFactoryProvider;
 import org.apache.hadoop.fs.BatchedRemoteIterator.BatchedEntries;
 import org.apache.hadoop.fs.CacheFlag;
 import org.apache.hadoop.fs.ContentSummary;
@@ -139,6 +139,7 @@ public class NamespaceAgent implements NamespaceService {
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
 
+  private RowKeyFactory<?> keyFactory;
   private Admin hbAdmin;
   private Table nsTable;
   private Connection connection;
@@ -151,7 +152,7 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
-    RowKeyFactory.registerRowKey(conf);
+    this.keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
     String tableName = getGiraffaTableName(conf);
@@ -187,12 +188,12 @@ public class NamespaceAgent implements NamespaceService {
   }
 
   private ClientProtocol getRegionProxy(String src) throws IOException {
-    return getRegionProxy(RowKeyFactory.newInstance(src));
+    return getRegionProxy(keyFactory.newInstance(src).getKey());
   }
 
-  private ClientProtocol getRegionProxy(RowKey key) {
+  private ClientProtocol getRegionProxy(byte[] key) throws IOException {
     // load blocking stub for protocol based on row key
-    CoprocessorRpcChannel channel = nsTable.coprocessorService(key.getKey());
+    CoprocessorRpcChannel channel = nsTable.coprocessorService(key);
     final ClientNamenodeProtocol.BlockingInterface stub =
         ClientNamenodeProtocol.newBlockingStub(channel);
     
