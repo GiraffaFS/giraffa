@@ -50,7 +50,7 @@ public class GiraffaFileServlet extends HttpServlet {
 
   private transient ObjectMapper mapper = new ObjectMapper();
   private transient GiraffaFileSystem grfs;
-  private transient RowKeyFactory<?> keyFactory;
+  private transient RowKeyFactory keyFactory;
 
   @Override
   public void init() throws ServletException {
@@ -58,7 +58,7 @@ public class GiraffaFileServlet extends HttpServlet {
     mapper.configure(SerializationConfig.Feature.WRAP_ROOT_VALUE, true);
     try {
       grfs = GiraffaWebUtils.getGiraffaFileSystem(getServletContext());
-      RowKeyFactoryProvider.createFactory(grfs.getConf(), null);
+      keyFactory = RowKeyFactoryProvider.createFactory(grfs.getConf(), null);
     } catch (IOException e) {
       throw new ServletException(e);
     }

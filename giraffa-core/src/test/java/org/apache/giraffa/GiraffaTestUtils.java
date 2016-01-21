@@ -18,6 +18,7 @@
 package org.apache.giraffa;
 
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,7 +29,6 @@ import mockit.MockUp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -105,21 +106,6 @@ public class GiraffaTestUtils {
     }
   }
 
-  /**
-   * Returns an INodeManager that is incapable of opening and closing multiple
-   * times because it has no coprocessor environment bound to it.
-   * @throws IOException
-   */
-  public static INodeManager getNodeManager(GiraffaConfiguration conf,
-                                            Connection connection,
-                                            RowKeyFactory<?> keyFactory)
-      throws IOException {
-    TableName tableName =
-        TableName.valueOf(getGiraffaTableName(conf));
-    Table table = connection.getTable(tableName);
-    return new INodeManager(keyFactory, table);
-  }
-
   static void listStatusRecursive(
       ArrayList<FileStatus> results, FileSystem fs, Path f
       ) throws IOException {
@@ -166,9 +152,10 @@ public class GiraffaTestUtils {
     }
   }
 
-  public static RowKeyFactory<?> createFactory(
-      GiraffaFileSystem grfs) throws IOException {
-    return RowKeyFactoryProvider.createFactory(
-        grfs.getConf(), null);
+  public static Table getNsTable(Configuration conf)
+      throws IOException {
+    Connection connection = ConnectionFactory.createConnection(conf);
+    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
+    return connection.getTable(tableName);
   }
 }

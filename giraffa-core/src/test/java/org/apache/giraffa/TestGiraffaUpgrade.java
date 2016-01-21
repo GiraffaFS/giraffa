@@ -42,8 +42,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
@@ -71,8 +70,7 @@ public class TestGiraffaUpgrade {
       GiraffaTestUtils.getHBaseTestingUtility();
   private DFSTestUtil fsUtil;
   private GiraffaFileSystem grfs;
-  private Connection connection;
-  private RowKeyFactory<?> keyFactory;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -95,14 +93,14 @@ public class TestGiraffaUpgrade {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    connection = ConnectionFactory.createConnection(conf);
-    keyFactory = GiraffaTestUtils.createFactory(grfs);
-    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
+    Table nsTable = GiraffaTestUtils.getNsTable(conf);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+    nodeManager = new INodeManager(keyFactory, nsTable);
   }
 
   @After
   public void after() throws IOException {
-    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
+    IOUtils.cleanup(LOG, grfs, nodeManager);
   }
 
   @AfterClass

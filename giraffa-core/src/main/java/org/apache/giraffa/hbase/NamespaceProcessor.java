@@ -96,6 +96,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -148,7 +149,7 @@ public class NamespaceProcessor implements ClientProtocol,
       new ClientNamenodeProtocolServerSideCallbackTranslatorPB(this);
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
-  private RowKeyFactory<?> keyFactory;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
   private LeaseManager leaseManager;
@@ -202,7 +203,15 @@ public class NamespaceProcessor implements ClientProtocol,
     String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
+    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
+    Table nsTable = e.getTable(tableName);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+
+    // register keyfactory's service if it has one
+    if (keyFactory.hasService()) {
+      e.getRegion().registerService(keyFactory.getService());
+    }
+
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
@@ -222,8 +231,6 @@ public class NamespaceProcessor implements ClientProtocol,
        throw new IOException("Invalid checksum type in "
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
-
-    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
 
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),

@@ -19,6 +19,10 @@ package org.apache.giraffa;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
+import com.google.protobuf.Service;
+
+import org.apache.hadoop.hbase.client.Table;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,8 +40,28 @@ import java.util.Map;
  * for faster instantiation.<br>
  * This class is thread safe.
  */
-public abstract class RowKeyFactory<S> {
+public abstract class RowKeyFactory {
   private static Map<String, RowKey> cache;
+
+  private final Service service;
+
+  private Table nsTable;
+
+  public RowKeyFactory() {
+    this(null);
+  }
+
+  public RowKeyFactory(Service service) {
+    this.service = service;
+  }
+
+  public Service getService() {
+    return service;
+  }
+
+  public boolean hasService() {
+    return service != null;
+  }
 
   public static synchronized boolean isCaching() {
     return cache != null;
@@ -48,6 +72,14 @@ public abstract class RowKeyFactory<S> {
       if(caching & cache == null)
         cache = new HashMap<String, RowKey>();
     }
+  }
+
+  protected Table getNsTable() {
+    return nsTable;
+  }
+
+  void setNsTable(Table nsTable) {
+    this.nsTable = nsTable;
   }
 
   /**
@@ -108,13 +140,6 @@ public abstract class RowKeyFactory<S> {
         cache.put(src, key);
     }
     return key;
-  }
-
-  void setService(S service) {
-  }
-
-  public S getService() {
-    return null;
   }
 
   protected abstract RowKey getRowKey(String src, long inodeId)

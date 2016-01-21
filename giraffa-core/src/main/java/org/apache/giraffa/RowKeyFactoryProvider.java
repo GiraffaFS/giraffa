@@ -25,32 +25,34 @@ import static org.apache.giraffa.GiraffaConfiguration.GRFA_ROWKEY_FACTORY_KEY;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.util.ReflectionUtils;
 
 public class RowKeyFactoryProvider {
 
-  private static Class<? extends RowKeyFactory<?>> rowKeyFactoryClass;
+  private static Class<? extends RowKeyFactory> rowKeyFactoryClass;
 
-  public static <S> RowKeyFactory<S> createFactory(
-      Configuration conf, S service) throws IOException {
+  public static RowKeyFactory createFactory(Configuration conf,
+                                            Table nsTable)
+      throws IOException {
     boolean caching = conf.getBoolean(GRFA_CACHING_KEY, GRFA_CACHING_DEFAULT);
     RowKeyFactory.setCache(caching);
-    Class<? extends RowKeyFactory<S>> rkfClass =  registerFactory(conf);
-    RowKeyFactory<S> rkf = ReflectionUtils.newInstance(rkfClass, conf);
-    rkf.setService(service);
+    Class<? extends RowKeyFactory> rkfClass =  registerFactory(conf);
+    RowKeyFactory rkf = ReflectionUtils.newInstance(rkfClass, conf);
+    rkf.setNsTable(nsTable);
     rowKeyFactoryClass = rkfClass;
     return rkf;
   }
 
   @SuppressWarnings("unchecked")
-  private static synchronized <S>
-  Class<? extends RowKeyFactory<S>> registerFactory(Configuration conf)
+  private static synchronized
+  Class<? extends RowKeyFactory> registerFactory(Configuration conf)
       throws IOException {
-    Class<? extends RowKeyFactory<S>> factory;
+    Class<? extends RowKeyFactory> factory;
     try {
       if(rowKeyFactoryClass != null)
-        return (Class<? extends RowKeyFactory<S>>) rowKeyFactoryClass;
-      factory = (Class<? extends RowKeyFactory<S>>) conf.getClass(
+        return rowKeyFactoryClass;
+      factory = (Class<? extends RowKeyFactory>) conf.getClass(
           GRFA_ROWKEY_FACTORY_KEY, GRFA_ROWKEY_FACTORY_DEFAULT);
     } catch(Exception e) {
       throw new IOException("Error retrieving RowKeyFactory class", e);

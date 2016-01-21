@@ -44,7 +44,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
   private static final Log LOG = LogFactory.getLog(GiraffaFileServlet.class);
   private static final long serialVersionUID = 1L;
 
-  private transient RowKeyFactory<?> keyFactory;
+  private transient RowKeyFactory keyFactory;
   private transient Table table;
   private transient ObjectMapper mapper = new ObjectMapper();
 
@@ -57,7 +57,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
     super.init();
     GiraffaConfiguration conf = new GiraffaConfiguration();
     try {
-      RowKeyFactoryProvider.createFactory(conf, null);
+      keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
     } catch (IOException e) {
       throw new ServletException(e);
     }

@@ -139,7 +139,7 @@ public class NamespaceAgent implements NamespaceService {
   public static final String  GRFA_NAMESPACE_PROCESSOR_DEFAULT =
                                   NamespaceProcessor.class.getName();
 
-  private RowKeyFactory<?> keyFactory;
+  private RowKeyFactory keyFactory;
   private Admin hbAdmin;
   private Table nsTable;
   private Connection connection;
@@ -152,7 +152,6 @@ public class NamespaceAgent implements NamespaceService {
 
   @Override // NamespaceService
   public void initialize(GiraffaConfiguration conf) throws IOException {
-    this.keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
     this.connection = ConnectionFactory.createConnection(conf);
     this.hbAdmin = connection.getAdmin();
     String tableName = getGiraffaTableName(conf);
@@ -185,6 +184,8 @@ public class NamespaceAgent implements NamespaceService {
     } catch(TableNotFoundException tnfe) {
       throw new IOException("Giraffa is not formatted.", tnfe);
     }
+
+    this.keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
   }
 
   private ClientProtocol getRegionProxy(String src) throws IOException {
