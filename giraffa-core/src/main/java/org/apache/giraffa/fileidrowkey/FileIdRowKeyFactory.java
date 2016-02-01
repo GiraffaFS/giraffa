@@ -17,9 +17,6 @@
  */
 package org.apache.giraffa.fileidrowkey;
 
-import static org.apache.giraffa.GiraffaProtos.FileIdService.newReflectiveService;
-
-import org.apache.giraffa.GiraffaProtos.FileIdService.Interface;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.hadoop.hbase.client.Table;
@@ -33,9 +30,6 @@ public class FileIdRowKeyFactory extends RowKeyFactory {
   @Override // RowKeyFactory
   public void initialize(Table nsTable) {
     agent = new FileIdAgent(nsTable);
-    FileIdProcessor processor = new FileIdProcessor(this, nsTable);
-    Interface impl = new FileIdProtocolServerSideTranslatorPB(processor);
-    setService(newReflectiveService(impl));
   }
 
   @Override // RowKeyFactory

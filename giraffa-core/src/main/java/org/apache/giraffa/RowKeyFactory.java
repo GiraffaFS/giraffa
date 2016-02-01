@@ -19,8 +19,6 @@ package org.apache.giraffa;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
-import com.google.protobuf.Service;
-
 import org.apache.hadoop.hbase.client.Table;
 
 import java.io.IOException;
@@ -43,8 +41,6 @@ import java.util.Map;
 public abstract class RowKeyFactory {
   private static Map<String, RowKey> cache;
 
-  private Service service;
-
   public static synchronized boolean isCaching() {
     return cache != null;
   }
@@ -58,18 +54,6 @@ public abstract class RowKeyFactory {
 
   protected void initialize(Table nsTable) {
     // do nothing
-  }
-
-  public Service getService() {
-    return service;
-  }
-
-  public boolean hasService() {
-    return service != null;
-  }
-
-  protected void setService(Service service) {
-    this.service = service;
   }
 
   /**

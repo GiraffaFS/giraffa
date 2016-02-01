@@ -17,19 +17,53 @@
  */
 package org.apache.giraffa.fileidrowkey;
 
+import static org.apache.giraffa.GiraffaProtos.FileIdService.newReflectiveService;
+import static org.apache.giraffa.RowKeyFactoryProvider.createFactory;
+
+import com.google.protobuf.Service;
+
+import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKeyFactory;
 import org.apache.giraffa.hbase.INodeManager;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Coprocessor;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 import java.io.IOException;
 
-public class FileIdProcessor implements FileIdProtocol {
+public class FileIdProcessor implements
+    Coprocessor, CoprocessorService, FileIdProtocol {
 
-  private final INodeManager manager;
+  private final Service service;
 
-  public FileIdProcessor(RowKeyFactory keyFactory,
-                         Table nsTable) {
-    manager = new INodeManager(keyFactory, nsTable);
+  private INodeManager nodeManager;
+
+  public FileIdProcessor() {
+    service = newReflectiveService(
+        new FileIdProtocolServerSideTranslatorPB(this));
+  }
+
+  @Override // Coprocessor
+  public void start(CoprocessorEnvironment env)
+      throws IOException {
+    Configuration conf = env.getConfiguration();
+    String tableName = GiraffaConfiguration.getGiraffaTableName(conf);
+    Table nsTable = env.getTable(TableName.valueOf(tableName));
+    RowKeyFactory keyFactory = createFactory(conf, nsTable);
+    nodeManager = new INodeManager(keyFactory, nsTable);
+  }
+
+  @Override // Coprocessor
+  public void stop(CoprocessorEnvironment env) {
+    nodeManager.close();
+  }
+
+  @Override // CoprocessorService
+  public Service getService() {
+    return service;
   }
 
   @Override // FileIdProtocol
