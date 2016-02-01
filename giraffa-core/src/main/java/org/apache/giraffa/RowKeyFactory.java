@@ -43,25 +43,7 @@ import java.util.Map;
 public abstract class RowKeyFactory {
   private static Map<String, RowKey> cache;
 
-  private final Service service;
-
-  private Table nsTable;
-
-  public RowKeyFactory() {
-    this(null);
-  }
-
-  public RowKeyFactory(Service service) {
-    this.service = service;
-  }
-
-  public Service getService() {
-    return service;
-  }
-
-  public boolean hasService() {
-    return service != null;
-  }
+  private Service service;
 
   public static synchronized boolean isCaching() {
     return cache != null;
@@ -74,12 +56,20 @@ public abstract class RowKeyFactory {
     }
   }
 
-  protected Table getNsTable() {
-    return nsTable;
+  protected void initialize(Table nsTable) {
+    // do nothing
   }
 
-  void setNsTable(Table nsTable) {
-    this.nsTable = nsTable;
+  public Service getService() {
+    return service;
+  }
+
+  public boolean hasService() {
+    return service != null;
+  }
+
+  protected void setService(Service service) {
+    this.service = service;
   }
 
   /**

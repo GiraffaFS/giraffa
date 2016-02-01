@@ -39,7 +39,7 @@ public class RowKeyFactoryProvider {
     RowKeyFactory.setCache(caching);
     Class<? extends RowKeyFactory> rkfClass =  registerFactory(conf);
     RowKeyFactory rkf = ReflectionUtils.newInstance(rkfClass, conf);
-    rkf.setNsTable(nsTable);
+    rkf.initialize(nsTable);
     rowKeyFactoryClass = rkfClass;
     return rkf;
   }

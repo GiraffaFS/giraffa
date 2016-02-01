@@ -71,8 +71,7 @@ public class INodeManager implements Closeable {
   private final IdGenerator inodeIdGenerator;
 
   public INodeManager(RowKeyFactory keyFactory,
-                      Table nsTable)
-      throws IOException {
+                      Table nsTable) {
     this.keyFactory = keyFactory;
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;
