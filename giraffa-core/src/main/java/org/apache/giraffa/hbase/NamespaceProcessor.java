@@ -207,11 +207,6 @@ public class NamespaceProcessor implements ClientProtocol,
     Table nsTable = e.getTable(tableName);
     keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
 
-    // register keyfactory's service if it has one
-    if (keyFactory.hasService()) {
-      e.getRegion().registerService(keyFactory.getService());
-    }
-
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
