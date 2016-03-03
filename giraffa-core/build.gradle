@@ -1,0 +1,92 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'com.andrewkroh.gradle:gradle-protobuf-plugin:0.5.0'
+  }
+}
+
+project(':giraffa-core') {
+  apply plugin: 'findbugs'
+  apply plugin: 'checkstyle'
+  apply plugin: 'pmd'
+  apply plugin: 'protobuf'
+
+  findbugs {
+    toolVersion = findbugs_version
+    excludeFilter = file("src/main/resources/findbugs-exclude.xml")
+  }
+  tasks.withType(FindBugs) {
+    ignoreFailures = true
+    reports {
+      html { enabled = false }
+      xml  { enabled = !html.enabled }
+    }
+  }
+  check {
+    checkstyle {
+      toolVersion = checkstyle_version
+      configFile = 'src/site/check_style.xml' as File
+      ignoreFailures = true
+      configProperties = ['cacheFile':"$buildDir/checkstyle-cachefile"]
+      showViolations = false
+    }
+    pmd {
+      toolVersion = pmd_version
+      ignoreFailures = true
+      targetJdk = targetCompatibility
+      ruleSets = ["java-basic", "java-unusedcode", "java-naming", "java-imports",
+                  "java-design", "java-strings/StringToString",
+                  "java-strings/StringInstantiation",
+                  "java-controversial/UnnecessaryConstructorRule",
+                  "java-controversial/NullAssignment",
+                  "java-controversial/UnusedModifier", "java-typeresolution"
+      ]
+    }
+  }
+
+  test {
+    filter {
+      // Only test classes starting with Test.
+      includeTestsMatching "*.Test*"
+    }
+    testLogging {
+      exceptionFormat = 'full'
+    }
+    afterTest { desc, result ->
+      println "Executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
+    }
+  }
+
+  configurations.testRuntime {
+    resolutionStrategy {
+      // fail eagerly on version conflict (includes transitive dependencies)
+      // e.g. multiple different versions of the same dependency (group and name are equal)
+      //failOnVersionConflict()
+
+      // force certain versions of dependencies (including transitive)
+      //  *append new forced modules:
+      force "com.google.guava:guava:${guava_version}"
+    }
+  }
+
+  protobuf {
+    // Explicitly setting protocol buffers version
+    // so that the build will fail if this specific
+    // version of the compiler is not present.
+    version = protobuf_version
+  }
+
+  description = """Core module"""
+
+  dependencies {
+    compile libraries.hadoop
+    compile libraries.hbase
+    compile libraries.curator
+    compile libraries.webui
+    compile libraries.guava
+    testCompile libraries.hbase_tests
+    testCompile libraries.test
+  }
+}

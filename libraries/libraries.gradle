@@ -1,0 +1,57 @@
+ext {
+  libraries = [:]
+}
+
+libraries.hadoop = [
+    "org.apache.hadoop:hadoop-common:${hadoop_version}",
+    "org.apache.hadoop:hadoop-hdfs:${hadoop_version}",
+    "org.apache.hadoop:hadoop-minicluster:${hadoop_version}",
+    "org.apache.hadoop:hadoop-client:${hadoop_version}",
+    "org.apache.hadoop:hadoop-auth:${hadoop_version}",
+    "org.apache.hadoop:hadoop-mapreduce-client-core:${hadoop_version}",
+    "org.apache.hadoop:hadoop-annotations:${hadoop_version}"
+]
+
+libraries.hbase = [
+    "org.apache.hbase:hbase-common:${hbase_version}",
+    "org.apache.hbase:hbase-client:${hbase_version}",
+    "org.apache.hbase:hbase-server:${hbase_version}",
+    "org.apache.hbase:hbase-protocol:${hbase_version}",
+    "org.apache.hbase:hbase-hadoop-compat:${hbase_version}",
+    "org.apache.hbase:hbase-hadoop2-compat:${hbase_version}",
+    "org.apache.hbase:hbase-it:${hbase_version}",
+]
+
+libraries.hbase_tests = [
+    "org.apache.hbase:hbase-common:${hbase_version}:tests",
+    "org.apache.hbase:hbase-client:${hbase_version}:tests",
+    "org.apache.hbase:hbase-server:${hbase_version}:tests",
+    "org.apache.hbase:hbase-protocol:${hbase_version}:tests",
+    "org.apache.hbase:hbase-hadoop-compat:${hbase_version}:tests",
+    "org.apache.hbase:hbase-hadoop2-compat:${hbase_version}:tests",
+    "org.apache.hbase:hbase-it:${hbase_version}:tests",
+]
+
+libraries.curator = [
+    "org.apache.curator:curator-framework:${curator_version}",
+    "org.apache.curator:curator-recipes:${curator_version}"
+]
+
+libraries.guava = [
+    "com.google.guava:guava:${guava_version}"
+]
+
+libraries.webui = [
+    "commons-fileupload:commons-fileupload:${commons_fileupload_version}",
+    "org.webjars:bootstrap:${twitter_bootstrap_version}",
+    "org.webjars:jasny-bootstrap:${bootstrap_jasny_ext_version}",
+    "org.webjars:jquery:${jquery_version}",
+    "org.webjars:jquery-form:${jquery_form_version}",
+    "org.webjars:datatables:${datatables_version}",
+]
+
+libraries.test = [
+    "junit:junit:${junit_version}",
+    "org.jmockit:jmockit:${jmockit_version}",
+    "org.hamcrest:hamcrest-all:${hamcrest_version}"
+]
