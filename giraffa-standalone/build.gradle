@@ -26,4 +26,6 @@ project(':giraffa-standalone') {
       from(configurations.compile)
     }
   }
+
+  task('build').dependsOn tar
 }
