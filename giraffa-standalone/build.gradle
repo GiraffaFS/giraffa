@@ -1,0 +1,31 @@
+project(':giraffa-standalone') {
+  description = """Standalone module"""
+
+  dependencies {
+    compile project(':giraffa-core')
+  }
+
+  task tar(type: Tar) {
+    compression = Compression.GZIP
+
+    into("giraffa/conf") {
+      from("${rootDir}/giraffa-core/src/main/resources/")
+      include("*")
+      includeEmptyDirs = false
+    }
+    into("giraffa/libs") {
+      from("${rootDir}/giraffa-core/build/libs/")
+      include("*.jar")
+    }
+    into("giraffa/bin") {
+      from("${rootDir}/giraffa-standalone/src/main/resources/bin/")
+      include("*")
+      fileMode = 0755
+    }
+    into("giraffa/libs") {
+      from(configurations.compile)
+    }
+  }
+
+  task('build').dependsOn tar
+}

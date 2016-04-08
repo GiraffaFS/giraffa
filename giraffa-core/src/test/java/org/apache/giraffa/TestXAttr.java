@@ -181,8 +181,8 @@ public class TestXAttr extends FSXAttrBaseTest {
   @AfterClass
   public static void afterClass() throws Exception {
     IOUtils.cleanup(LOG, user1fs);
-    File uselessDirCreatedByBaseClass = new File("build");
-    FileUtil.fullyDelete(uselessDirCreatedByBaseClass);
+//    File uselessDirCreatedByBaseClass = new File("build");
+//    FileUtil.fullyDelete(uselessDirCreatedByBaseClass);
     UTIL.shutdownMiniCluster();
   }
 
