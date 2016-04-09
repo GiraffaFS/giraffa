@@ -16,27 +16,27 @@ Giraffa is
 ### Build it
 Build Giraffa jar:
 
-    mvn clean install
+    ./gradlew clean assemble
 
-Build Giraffa + Project site:
+Build Giraffa + Tests:
 
-    mvn clean site
+    ./gradlew clean build
 
-When build is complete, open ${basedir}/target/site/index.html
+Build Giraffa + Javadoc:
 
-Build Project Site With Clover Report:
+    ./gradlew clean assemble javadoc
 
-    mvn -Pclover site
+Build Giraffa + Code Coverage:
 
-When build is complete, open ${basedir}/target/site/index.html
+    ./gradlew clean build jacocoTestReport
 
-Please note that clover plugin instruments source files and it should not be used for production.
+Build Giraffa + Standalone Distribution:
+
+    ./gradlew clean build tar
 
 Run Giraffa Web UI in demo mode:
 
-    mvn -Pwebdemo
-
-to stop demo server, type "stop" in console
+    {Not working currently. Issue #88}
 
 [Apache Hadoop]:https://hadoop.apache.org
 [Apache HBase]:http://hbase.apache.org
