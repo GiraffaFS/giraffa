@@ -12,6 +12,7 @@ project(':giraffa-core') {
   apply plugin: 'checkstyle'
   apply plugin: 'pmd'
   apply plugin: 'protobuf'
+  apply plugin: 'jacoco'
 
   findbugs {
     toolVersion = findbugs_version
