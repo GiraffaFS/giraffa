@@ -47,7 +47,13 @@ libraries.webui = [
     "org.webjars:jasny-bootstrap:${bootstrap_jasny_ext_version}",
     "org.webjars:jquery:${jquery_version}",
     "org.webjars:jquery-form:${jquery_form_version}",
-    "org.webjars:datatables:${datatables_version}",
+    "org.webjars:datatables:${datatables_version}"
+]
+
+libraries.jasper = [
+    "org.apache.tomcat:jasper:6.0.45",
+    "javax.servlet:jstl:1.1.2",
+    "taglibs:standard:1.1.2"
 ]
 
 libraries.test = [

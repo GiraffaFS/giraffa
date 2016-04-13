@@ -60,6 +60,11 @@ project(':giraffa-core') {
     }
   }
 
+  configurations.all {
+    exclude group: 'tomcat', module: 'jasper-runtime'
+    exclude group: 'tomcat', module: 'jasper-compiler'
+  }
+
   configurations.testRuntime {
     resolutionStrategy {
       // fail eagerly on version conflict (includes transitive dependencies)
@@ -90,8 +95,22 @@ project(':giraffa-core') {
     compile libraries.hbase
     compile libraries.curator
     compile libraries.webui
+    compile libraries.jasper
     compile libraries.guava
     testCompile libraries.hbase_tests
     testCompile libraries.test
+
   }
+
+  task compileJsps {
+    group = 'build'
+    def uriroot = file("src/main/resources/hbase-webapps/giraffa/")
+    def outputDir = file("build/generated/java/")
+    def webPackage = "org.apache.giraffa.web"
+    doLast {
+      ant.taskdef(classname: 'org.apache.jasper.JspC', name: 'jasper', classpath: configurations.compile.asPath)
+      ant.jasper(validateXml: false, uriRoot: uriroot, outputDir: outputDir, package: webPackage)
+    }
+  }
+  assemble.dependsOn compileJsps
 }
