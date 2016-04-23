@@ -112,5 +112,13 @@ project(':giraffa-core') {
       ant.jasper(validateXml: false, uriRoot: uriroot, outputDir: outputDir, package: webPackage)
     }
   }
+
+  task execute(type:JavaExec) {
+    main = mainClass
+    classpath = sourceSets.test.runtimeClasspath
+    standardInput = System.in
+  }
+
+  execute.dependsOn assemble
   assemble.dependsOn compileJsps
 }
