@@ -1,6 +1,18 @@
 if (typeof console == "undefined") { var console = {}; console.log = function () { }; }
 
-if (($.browser.msie && $.browser.version < 9) || location.href.indexOf("fakeie") >= 0) {
+var ie = (function(){
+    var undef,
+        v = 3,
+        div = document.createElement('div'),
+        all = div.getElementsByTagName('i');
+    while (
+        div.innerHTML = '<!--[if gt IE ' + (++v) + ']><i></i><![endif]-->',
+        all[0]
+    );
+    return v > 4 ? v : undef;
+}());
+
+if ((ie && ie < 9) || location.href.indexOf("fakeie") >= 0) {
     document.body.className = "lamebrowser";
 }
 $.ajaxSetup({ cache: false, dataType: 'json' });
@@ -189,7 +201,14 @@ var clickHandlers = {
     },
     deletefile: function (el) {
         var fileHref = $(el.parentNode).attr('href').substr(2);
-        $.del(fileHref, refresh);
+        $.del(fileHref, refresh).error(
+        function(e) {
+          if(e.status == 200) {
+            refresh();
+          } else {
+            alert('Internal Server Error: ' + e.responseText);
+          }
+        });
         href = dirPath(fileHref), location.hash = "#!" + href;
     },
     root: function () {
@@ -223,6 +242,11 @@ var mkdir = function () {
         dir.focus();
         return;
     }
+    if (dir.val().substring(0,1) == "/") {
+        alert("Please remove any preceding /'s");
+        dir.focus();
+        return;
+    }
     $.post(href + "/" + dir.val(), null, function () {
         dir.val("");
         $submit.attr("disabled", true);
@@ -230,7 +254,11 @@ var mkdir = function () {
     }).error(function(e) {
         dir.val("");
         $submit.attr("disabled", true);
-        alert('Internal Server Error: ' + e.responseText);
+        if(e.status == 200) {
+            refresh();
+        } else {
+            alert('Internal Server Error: ' + e.responseText);
+        }
     });
 };
 

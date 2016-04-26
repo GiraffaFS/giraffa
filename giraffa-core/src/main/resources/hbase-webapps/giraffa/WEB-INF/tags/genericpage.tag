@@ -36,9 +36,9 @@
     <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <script type="text/javascript" src='/static/webjars/jquery/1.8.3/jquery.min.js'></script>
+    <script type="text/javascript" src='/static/webjars/jquery/1.9.0/jquery.min.js'></script>
     <script type="text/javascript" src='/static/webjars/bootstrap/2.3.1/js/bootstrap.js'></script>
-    <script type="text/javascript" src='/static/webjars/jasny-bootstrap/2.3.0-j5/js/bootstrap.min.js'></script>
+    <script type="text/javascript" src='/static/webjars/jasny-bootstrap/2.3.0-j5/js/jasny-bootstrap.min.js'></script>
 
 </head>
 <body>

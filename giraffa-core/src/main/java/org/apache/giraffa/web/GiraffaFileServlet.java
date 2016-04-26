@@ -58,7 +58,7 @@ public class GiraffaFileServlet extends HttpServlet {
     mapper.configure(SerializationConfig.Feature.WRAP_ROOT_VALUE, true);
     try {
       grfs = GiraffaWebUtils.getGiraffaFileSystem(getServletContext());
-      RowKeyFactoryProvider.createFactory(grfs.getConf(), null);
+      keyFactory = RowKeyFactoryProvider.createFactory(grfs.getConf(), null);
     } catch (IOException e) {
       throw new ServletException(e);
     }
@@ -135,7 +135,7 @@ public class GiraffaFileServlet extends HttpServlet {
 
       FileItem fItem = convertToFileItem(stat);
 
-      if (fItem.isDir()) {
+      if (stat.isDirectory()) {
         filesResponse.getFolders().add(fItem);
       } else {
         filesResponse.getFiles().add(fItem);

@@ -60,6 +60,11 @@ project(':giraffa-core') {
     }
   }
 
+  configurations.all {
+    exclude group: 'tomcat', module: 'jasper-runtime'
+    exclude group: 'tomcat', module: 'jasper-compiler'
+  }
+
   configurations.testRuntime {
     resolutionStrategy {
       // fail eagerly on version conflict (includes transitive dependencies)
@@ -77,10 +82,8 @@ project(':giraffa-core') {
     // so that the build will fail if this specific
     // version of the compiler is not present.
     version = protobuf_version
-    if(protobuf_compiler != null) {
-      println "Using custom protobuf compiler: $protobuf_compiler"
-      compiler = protobuf_compiler
-    }
+    println "Using protobuf compiler: $protobuf_compiler"
+    compiler = protobuf_compiler
   }
 
   description = """Core module"""
@@ -90,8 +93,30 @@ project(':giraffa-core') {
     compile libraries.hbase
     compile libraries.curator
     compile libraries.webui
+    compile libraries.jasper
     compile libraries.guava
     testCompile libraries.hbase_tests
     testCompile libraries.test
+
   }
+
+  task compileJsps {
+    group = 'build'
+    def uriroot = file("src/main/resources/hbase-webapps/giraffa/")
+    def outputDir = file("build/generated/java/")
+    def webPackage = "org.apache.giraffa.web"
+    doLast {
+      ant.taskdef(classname: 'org.apache.jasper.JspC', name: 'jasper', classpath: configurations.compile.asPath)
+      ant.jasper(validateXml: false, uriRoot: uriroot, outputDir: outputDir, package: webPackage)
+    }
+  }
+
+  task execute(type:JavaExec) {
+    main = mainClass
+    classpath = sourceSets.test.runtimeClasspath
+    standardInput = System.in
+  }
+
+  execute.dependsOn assemble
+  assemble.dependsOn compileJsps
 }

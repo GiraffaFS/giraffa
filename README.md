@@ -8,7 +8,7 @@ Giraffa is
 ### Requirements
 
 * JDK 1.7+
-* Apache Maven 3.0+
+* Gradle 2.0+
 * ProtocolBuffer 2.5.0
 * Apache HBase 1.0.0+
 * Apache Hadoop 2.5.0+
@@ -36,7 +36,9 @@ Build Giraffa + Standalone Distribution:
 
 Run Giraffa Web UI in demo mode:
 
-    {Not working currently. Issue #88}
+    ./gradlew -PmainClass=org.apache.giraffa.web.GiraffaWebDemoRunner execute
+
+Type `stop` in the console and hit `Enter` to end the Giraffa Web UI demo.
 
 [Apache Hadoop]:https://hadoop.apache.org
 [Apache HBase]:http://hbase.apache.org
