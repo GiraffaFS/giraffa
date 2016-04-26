@@ -82,10 +82,8 @@ project(':giraffa-core') {
     // so that the build will fail if this specific
     // version of the compiler is not present.
     version = protobuf_version
-    if(protobuf_compiler != null) {
-      println "Using custom protobuf compiler: $protobuf_compiler"
-      compiler = protobuf_compiler
-    }
+    println "Using protobuf compiler: $protobuf_compiler"
+    compiler = protobuf_compiler
   }
 
   description = """Core module"""

@@ -44,6 +44,7 @@ ext {
 
   protobuf_compiler = properties['protobuf.compiler'] ?:
                       '/usr/local/bin/protoc'
+  mainClass = properties['mainClass'] ?: ''
 }
 
 subprojects {

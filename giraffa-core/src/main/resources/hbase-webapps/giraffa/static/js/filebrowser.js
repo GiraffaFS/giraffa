@@ -201,7 +201,14 @@ var clickHandlers = {
     },
     deletefile: function (el) {
         var fileHref = $(el.parentNode).attr('href').substr(2);
-        $.del(fileHref, refresh);
+        $.del(fileHref, refresh).error(
+        function(e) {
+          if(e.status == 200) {
+            refresh();
+          } else {
+            alert('Internal Server Error: ' + e.responseText);
+          }
+        });
         href = dirPath(fileHref), location.hash = "#!" + href;
     },
     root: function () {
