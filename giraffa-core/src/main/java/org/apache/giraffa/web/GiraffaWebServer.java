@@ -1,52 +1,65 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.giraffa.web;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.http.HttpServer;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.resource.*;
+import org.apache.hadoop.http.HttpServer2;
+import org.apache.hadoop.net.NetUtils;
 
-import java.io.FileNotFoundException;
+import javax.servlet.http.HttpServlet;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URL;
+import java.net.URI;
 
-public class GiraffaWebServer extends HttpServer {
+class GiraffaWebServer {
 
-  public GiraffaWebServer(String giraffa, InetSocketAddress infoSocAddr,
-                          Configuration conf) throws IOException {
-    super(giraffa, infoSocAddr.getHostName(), infoSocAddr.getPort(), false,
-        conf);
+  private final HttpServer2 httpServer;
+
+  GiraffaWebServer(String giraffa,
+                   InetSocketAddress infoSocAddr,
+                    Configuration conf)
+          throws IOException {
+    URI uri = URI.create("http://" + NetUtils.getHostPortString(infoSocAddr));
+    httpServer = new HttpServer2.Builder().setName(giraffa)
+      .hostName(infoSocAddr.getHostName()).setConf(conf)
+      .addEndpoint(uri).build();
   }
 
-  /**
-   * Get the pathname to the webapps files.
-   *
-   * @param appName eg "secondary" or "datanode"
-   * @return the pathname as a URL
-   * @throws java.io.FileNotFoundException if 'webapps' directory cannot be
-   * found on CLASSPATH.
-   */
-  protected String getWebAppsPath(String appName) throws FileNotFoundException {
-    // Copied from the super-class.
-    // Copied from the super-class.
-    String resourceName = "hbase-webapps/" + appName;
-    URL url = getClass().getClassLoader().getResource(resourceName);
-    if (url == null)
-      throw new FileNotFoundException(appName + " not found in CLASSPATH");
-    String urlString = url.toString();
-    return urlString.substring(0, urlString.lastIndexOf('/'));
+  void addServlet(String name,
+                  String pathSpec,
+                  Class<? extends HttpServlet> clazz) {
+    httpServer.addServlet(name, pathSpec, clazz);
   }
 
-  @Override
-  protected void addDefaultApps(ContextHandlerCollection parent, String appDir,
-                                Configuration conf) throws IOException {
-    // set up the context for "/static/*"
-    Context staticContext = new Context(parent, "/static");
-    staticContext
-        .setBaseResource(Resource.newResource(appDir + "/giraffa/static"));
-    staticContext.addServlet(ContentServlet.class, "/*");
-    staticContext.setDisplayName("static");
-    defaultContexts.put(staticContext, true);
+  void setAttribute(String name,
+                    Object value) {
+    httpServer.setAttribute(name, value);
+  }
+
+  void start() throws IOException {
+    httpServer.start();
+  }
+
+  boolean isAlive() {
+    return httpServer.isAlive();
+  }
+
+  void stop() throws Exception {
+    httpServer.stop();
   }
 }

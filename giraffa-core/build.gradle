@@ -97,12 +97,11 @@ project(':giraffa-core') {
     compile libraries.guava
     testCompile libraries.hbase_tests
     testCompile libraries.test
-
   }
 
   task compileJsps {
     group = 'build'
-    def uriroot = file("src/main/resources/hbase-webapps/giraffa/")
+    def uriroot = file("src/main/resources/webapps/giraffa/")
     def outputDir = file("build/generated/java/")
     def webPackage = "org.apache.giraffa.web"
     doLast {

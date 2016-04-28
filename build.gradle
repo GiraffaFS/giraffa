@@ -35,6 +35,7 @@ ext {
   jquery_version = '1.9.0'
   jquery_form_version = '3.28.0-2013.02.06'
   datatables_version = '1.9.4'
+  webjars_servlet_version = '1.1'
   findbugs_version = '3.0.1'
   checkstyle_version = '6.6'
   junit_version = '4.11'

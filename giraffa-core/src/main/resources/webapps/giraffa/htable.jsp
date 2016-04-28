@@ -176,7 +176,7 @@
                 $("#namespace_filter input").popover({ title: "<strong class=\"text-error\">Warning!</strong>", content: "<p>Search can be slow on large datasets. HBase will perform full scan!</p>", trigger: 'hover', placement: "bottom", html: true });
             } );
         </script>
-        <script type="text/javascript" src='/static/webjars/datatables/1.9.4/media/js/jquery.dataTables.min.js'></script>
-        <script type="text/javascript" src='/static/js/DT_bootstrap.js'></script>
+        <script type="text/javascript" src='/webjars/datatables/1.9.4/media/js/jquery.dataTables.min.js'></script>
+        <script type="text/javascript" src='/js/DT_bootstrap.js'></script>
     </jsp:body>
 </t:genericpage>

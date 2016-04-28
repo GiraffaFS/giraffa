@@ -8,7 +8,7 @@
     <jsp:attribute name="isGiraffaPage">true</jsp:attribute>
 
     <jsp:body>
-        <link href="/static/webjars/jasny-bootstrap/2.3.0-j5/css/jasny-bootstrap.min.css"
+        <link href="/webjars/jasny-bootstrap/2.3.0-j5/css/jasny-bootstrap.min.css"
               rel="stylesheet">
 
         <div class="container">
@@ -132,9 +132,9 @@
             })();
         </script>
         <script type="text/javascript"
-                src='/static/webjars/jasny-bootstrap/2.3.0-j5/js/jasny-bootstrap.min.js'></script>
+                src='/webjars/jasny-bootstrap/2.3.0-j5/js/jasny-bootstrap.min.js'></script>
         <script type="text/javascript"
-                src='/static/webjars/jquery-form/3.28.0-2013.02.06/jquery.form.js'></script>
-        <script type="text/javascript" src='/static/js/filebrowser.js'></script>
+                src='/webjars/jquery-form/3.28.0-2013.02.06/jquery.form.js'></script>
+        <script type="text/javascript" src='/js/filebrowser.js'></script>
     </jsp:body>
 </t:genericpage>
