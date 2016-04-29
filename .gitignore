@@ -17,7 +17,9 @@
 .project
 .settings
 .externalToolBuilders/
-target/
 *.iml
 .idea/clover/*
 .idea
+build/
+.gradle
+.DS_STORE

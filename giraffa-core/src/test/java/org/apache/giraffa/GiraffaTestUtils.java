@@ -46,7 +46,7 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 public class GiraffaTestUtils {
   static final Log LOG = LogFactory.getLog(GiraffaTestUtils.class);
 
-  public static final String BASE_TEST_DIRECTORY = "target/build/test-data";
+  public static final String BASE_TEST_DIRECTORY = "build/test-data";
 
   private static MockUp<HBaseTestingUtility> utilMock;
 

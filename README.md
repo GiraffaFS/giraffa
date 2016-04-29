@@ -8,7 +8,7 @@ Giraffa is
 ### Requirements
 
 * JDK 1.7+
-* Apache Maven 3.0+
+* Gradle 2.0+
 * ProtocolBuffer 2.5.0
 * Apache HBase 1.0.0+
 * Apache Hadoop 2.5.0+
@@ -16,27 +16,29 @@ Giraffa is
 ### Build it
 Build Giraffa jar:
 
-    mvn clean install
+    ./gradlew clean assemble
 
-Build Giraffa + Project site:
+Build Giraffa + Tests:
 
-    mvn clean site
+    ./gradlew clean build
 
-When build is complete, open ${basedir}/target/site/index.html
+Build Giraffa + Javadoc:
 
-Build Project Site With Clover Report:
+    ./gradlew clean assemble javadoc
 
-    mvn -Pclover site
+Build Giraffa + Code Coverage:
 
-When build is complete, open ${basedir}/target/site/index.html
+    ./gradlew clean build jacocoTestReport
 
-Please note that clover plugin instruments source files and it should not be used for production.
+Build Giraffa + Standalone Distribution:
+
+    ./gradlew clean build tar
 
 Run Giraffa Web UI in demo mode:
 
-    mvn -Pwebdemo
+    ./gradlew -PmainClass=org.apache.giraffa.web.GiraffaWebDemoRunner execute
 
-to stop demo server, type "stop" in console
+Type `stop` in the console and hit `Enter` to end the Giraffa Web UI demo.
 
 [Apache Hadoop]:https://hadoop.apache.org
 [Apache HBase]:http://hbase.apache.org
