@@ -163,7 +163,7 @@ public abstract class INode {
 
   public abstract HdfsLocatedFileStatus getLocatedFileStatus();
 
-  public abstract INode cloneWithNewRowKey(RowKey newKey, long newId);
+  public abstract INode cloneWithNewRowKey(RowKey newKey);
 
   @Override
   public String toString() {
