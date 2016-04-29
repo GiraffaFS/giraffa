@@ -27,18 +27,18 @@
     </c:choose>
 
     <link rel="stylesheet" type="text/css"
-          href="/static/webjars/bootstrap/2.3.1/css/bootstrap.min.css">
+          href="/webjars/bootstrap/2.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css"
-          href="/static/webjars/bootstrap/2.3.1/css/bootstrap-responsive.min.css">
-    <link rel="stylesheet" type="text/css" href="/static/css/giraffa.css">
+          href="/webjars/bootstrap/2.3.1/css/bootstrap-responsive.min.css">
+    <link rel="stylesheet" type="text/css" href="/css/giraffa.css">
     <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
     <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
-    <script type="text/javascript" src='/static/webjars/jquery/1.9.0/jquery.min.js'></script>
-    <script type="text/javascript" src='/static/webjars/bootstrap/2.3.1/js/bootstrap.js'></script>
-    <script type="text/javascript" src='/static/webjars/jasny-bootstrap/2.3.0-j5/js/jasny-bootstrap.min.js'></script>
+    <script type="text/javascript" src='/webjars/jquery/1.9.0/jquery.min.js'></script>
+    <script type="text/javascript" src='/webjars/bootstrap/2.3.1/js/bootstrap.js'></script>
+    <script type="text/javascript" src='/webjars/jasny-bootstrap/2.3.0-j5/js/jasny-bootstrap.min.js'></script>
 
 </head>
 <body>
