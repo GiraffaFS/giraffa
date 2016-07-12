@@ -101,7 +101,8 @@ public class GiraffaFileSystem extends FileSystem {
                             boolean isConfirmationNeeded) throws IOException {
     if (isConfirmationNeeded) {
       System.err.print("Re-format Giraffa file system ? (Y or N) ");
-      if (!(System.in.read() == 'Y')) {
+      int flag = System.in.read();
+      if (!(flag == 'Y') && !(flag == 'y')) {
         System.err.println("Format aborted.");
         return;
       }
