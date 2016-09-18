@@ -152,3 +152,5 @@ if $cygwin; then
   GIRAFFA_HOME=`cygpath -p "$GIRAFFA_HOME"`
   GIRAFFA_LOG_DIR=`cygpath -p "$GIRAFFA_LOG_DIR"`
 fi
+
+HADOOP_CLASSPATH=${GIRAFFA_HOME}:${GIRAFFA_HOME}/lib/giraffa-core-0.3-SNAPSHOT.jar
