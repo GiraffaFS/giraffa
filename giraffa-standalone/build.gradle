@@ -36,7 +36,7 @@ project(':giraffa-standalone') {
     into("giraffa/webapps") {
       from("${rootDir}/giraffa-core/build/resources/main/webapps")
     }
-    into("giraffa/webapps/giraffa/WEB-INF/lib/") {
+    into("giraffa/lib/weblib") {
       from(configurations.giraffaWeb)
       from("${rootDir}/giraffa-core/build/libs/")
       exclude("*sources*")
