@@ -943,7 +943,11 @@ public class NamespaceProcessor implements ClientProtocol,
       rootDstNode = null;
     }
 
-    // in-place rename if src and dst keys are equal
+    /*
+     * If src and dst key bytes are equal, we can simply update the path since
+     * no new row needs to be created. This will occur during in-place renames
+     * using id-based row keys.
+     */
     if (rootSrcNode != null) {
       RowKey rootSrcKey = rootSrcNode.getRowKey();
       RowKey rootDstKey = keyFactory.newInstance(dst, rootSrcNode.getId());
