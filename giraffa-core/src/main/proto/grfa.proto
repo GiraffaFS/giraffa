@@ -1,7 +1,6 @@
 option java_package = "org.apache.giraffa";
 option java_outer_classname = "GiraffaProtos";
 option java_generate_equals_and_hash = true;
-option java_generic_services = true;
 package giraffa;
 
 import "hdfs.proto";
