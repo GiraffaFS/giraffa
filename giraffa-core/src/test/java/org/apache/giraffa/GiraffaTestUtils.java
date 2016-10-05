@@ -29,6 +29,7 @@ import mockit.MockUp;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.hbase.INodeManager;
+import org.apache.giraffa.web.GiraffaWebObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -39,6 +40,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 
@@ -69,6 +71,8 @@ public class GiraffaTestUtils {
         HConstants.DEFAULT_HBASE_RPC_TIMEOUT);
     conf.set(DFSConfigKeys.FS_DEFAULT_NAME_KEY,
         DFSConfigKeys.FS_DEFAULT_NAME_DEFAULT);
+    conf.set(CoprocessorHost.MASTER_COPROCESSOR_CONF_KEY,
+        GiraffaWebObserver.class.getName());
     return new HBaseTestingUtility(conf);
   }
 

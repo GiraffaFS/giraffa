@@ -5,6 +5,14 @@ project(':giraffa-standalone') {
     compile project(':giraffa-core')
   }
 
+  configurations {
+    giraffaWeb
+  }
+  dependencies {
+    giraffaWeb libraries.webui
+    giraffaWeb libraries.jasper
+  }
+
   task tar(type: Tar) {
     compression = Compression.GZIP
 
@@ -13,7 +21,7 @@ project(':giraffa-standalone') {
       include("*")
       includeEmptyDirs = false
     }
-    into("giraffa/libs") {
+    into("giraffa/lib") {
       from("${rootDir}/giraffa-core/build/libs/")
       include("*.jar")
     }
@@ -22,8 +30,16 @@ project(':giraffa-standalone') {
       include("*")
       fileMode = 0755
     }
-    into("giraffa/libs") {
+    into("giraffa/lib") {
       from(configurations.compile)
+    }
+    into("giraffa/webapps") {
+      from("${rootDir}/giraffa-core/build/resources/main/webapps")
+    }
+    into("giraffa/lib/weblib") {
+      from(configurations.giraffaWeb)
+      from("${rootDir}/giraffa-core/build/libs/")
+      exclude("*sources*")
     }
   }
 
