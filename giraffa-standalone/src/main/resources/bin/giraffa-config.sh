@@ -26,7 +26,7 @@ script="$(basename -- "$this")"
 this="$giraffa_bin/$script"
 
 # the root of the Giraffa installation
-export GIRAFFA_HOME=`dirname "$this"`/..
+export GIRAFFA_HOME=$(dirname $(dirname "$this"))
 
 #check to see if the conf dir is given as an optional argument
 if [ $# -gt 1 ]
@@ -152,3 +152,26 @@ if $cygwin; then
   GIRAFFA_HOME=`cygpath -p "$GIRAFFA_HOME"`
   GIRAFFA_LOG_DIR=`cygpath -p "$GIRAFFA_LOG_DIR"`
 fi
+
+# Classpath for Giraffa web UI
+GIRAFFA_WEB_CLASSPATH=${GIRAFFA_HOME}:${GIRAFFA_HOME}/conf
+GIRAFFA_WEB_CLASSPATH_PREFIX=
+if [ -d "${GIRAFFA_HOME}/lib" ]; then
+  for f in $GIRAFFA_HOME/lib/*.jar; do
+    if [[ "$f" == *"giraffa"* ]] || [[ "$f" == *"curator"* ]]; then
+      GIRAFFA_WEB_CLASSPATH=${GIRAFFA_WEB_CLASSPATH}:$f;
+    fi
+  done
+  if [ -d "${GIRAFFA_HOME}/lib/weblib" ]; then
+    for f in ${GIRAFFA_HOME}/lib/weblib/*.jar; do
+      if [[ "$f" == *"jasper"* ]]; then
+        GIRAFFA_WEB_CLASSPATH_PREFIX=${GIRAFFA_WEB_CLASSPATH_PREFIX}:$f;
+      else
+        GIRAFFA_WEB_CLASSPATH=${GIRAFFA_WEB_CLASSPATH}:$f;
+      fi
+    done
+  fi
+fi
+export HBASE_CLASSPATH=$GIRAFFA_WEB_CLASSPATH
+export HBASE_CLASSPATH_PREFIX=$GIRAFFA_WEB_CLASSPATH_PREFIX
+export HBASE_DISABLE_HADOOP_CLASSPATH_LOOKUP=true

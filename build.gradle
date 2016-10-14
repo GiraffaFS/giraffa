@@ -18,7 +18,7 @@
 
 def final langLevel = '1.7'
 def final pGroup = 'org.apache.giraffa'
-def final pVersion = '0.3-SNAPSHOT'
+def final pVersion = '0.4-SNAPSHOT'
 def final pArtifactId = 'giraffa'
 
 description = """A distributed highly available file system using HDFS and HBase."""
