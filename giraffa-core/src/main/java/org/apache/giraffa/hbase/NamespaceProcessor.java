@@ -52,6 +52,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -942,6 +943,22 @@ public class NamespaceProcessor implements ClientProtocol,
       rootDstNode = null;
     }
 
+    /*
+     * If src and dst key bytes are equal, we can simply update the path since
+     * no new row needs to be created. This will occur during in-place renames
+     * using id-based row keys.
+     */
+    if (rootSrcNode != null) {
+      RowKey rootSrcKey = rootSrcNode.getRowKey();
+      RowKey rootDstKey = keyFactory.newInstance(dst, rootSrcNode.getId());
+      if (Arrays.equals(rootSrcKey.getKey(), rootDstKey.getKey())) {
+        LOG.debug("In-place rename of " + src + " to " + dst);
+        rootDstNode = rootSrcNode.cloneWithNewRowKey(rootDstKey);
+        nodeManager.updateINode(rootDstNode);
+        return;
+      }
+    }
+
     // Stage 1: copy into new row with RenameState flag
     if(rootDstNode == null) {
       if(directoryRename) { // first do Stage 1 for all children
@@ -1013,9 +1030,8 @@ public class NamespaceProcessor implements ClientProtocol,
       RowKey srcKey = srcNode.getRowKey();
       String src = srcKey.getPath();
       LOG.debug("Copying " + src + " to " + dst + " with rename flag");
-      long id = nodeManager.nextINodeId();
-      RowKey dstKey = keyFactory.newInstance(dst, id);
-      dstNode = srcNode.cloneWithNewRowKey(dstKey, id);
+      RowKey dstKey = keyFactory.newInstance(dst, srcNode.getId());
+      dstNode = srcNode.cloneWithNewRowKey(dstKey);
       dstNode.setRenameState(RenameState.TRUE(srcKey.getKey()));
       nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
     }

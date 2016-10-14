@@ -121,9 +121,8 @@ public class TestRename {
     if (stage == PUT_SETFLAG) {
       LOG.debug("Copying " + src + " to " + dst + " with rename flag");
       INode srcNode = nodeManager.getINode(src);
-      long id = nodeManager.nextINodeId();
-      RowKey dstKey = keyFactory.newInstance(dst, id);
-      INode dstNode = srcNode.cloneWithNewRowKey(dstKey, id);
+      RowKey dstKey = keyFactory.newInstance(dst, srcNode.getId());
+      INode dstNode = srcNode.cloneWithNewRowKey(dstKey);
       dstNode.setRenameState(RenameState.TRUE(srcNode.getRowKey().getKey()));
       nodeManager.updateINode(dstNode, null, nodeManager.getXAttrs(src));
     }
