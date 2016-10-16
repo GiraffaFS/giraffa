@@ -8,11 +8,14 @@ buildscript {
 }
 
 project(':giraffa-core') {
+  description = """Core module"""
+
   apply plugin: 'findbugs'
   apply plugin: 'checkstyle'
   apply plugin: 'pmd'
   apply plugin: 'protobuf'
   apply plugin: 'jacoco'
+  apply plugin: 'eclipse'
 
   findbugs {
     toolVersion = findbugs_version
@@ -44,6 +47,12 @@ project(':giraffa-core') {
                   "java-controversial/NullAssignment",
                   "java-controversial/UnusedModifier", "java-typeresolution"
       ]
+    }
+  }
+
+  sourceSets {
+    generated{
+      java.srcDir "${buildDir}/generated/java/"
     }
   }
 
@@ -85,8 +94,6 @@ project(':giraffa-core') {
     println "Using protobuf compiler: $protobuf_compiler"
     compiler = protobuf_compiler
   }
-
-  description = """Core module"""
 
   dependencies {
     compile libraries.hadoop

@@ -1,6 +1,8 @@
 project(':giraffa-standalone') {
   description = """Standalone module"""
 
+  apply plugin: 'eclipse'
+
   dependencies {
     compile project(':giraffa-core')
   }
