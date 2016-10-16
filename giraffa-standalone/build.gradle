@@ -1,6 +1,8 @@
 project(':giraffa-standalone') {
   description = """Standalone module"""
 
+  apply plugin: 'eclipse'
+
   dependencies {
     compile project(':giraffa-core')
   }
@@ -43,5 +45,5 @@ project(':giraffa-standalone') {
     }
   }
 
-  task('build').dependsOn tar
+  build.dependsOn tar
 }
