@@ -45,5 +45,5 @@ project(':giraffa-standalone') {
     }
   }
 
-  task('build').dependsOn tar
+  build.dependsOn tar
 }
