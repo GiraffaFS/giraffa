@@ -19,8 +19,6 @@ package org.apache.giraffa;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
-import org.apache.hadoop.hbase.client.Table;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +50,7 @@ public abstract class RowKeyFactory {
     }
   }
 
-  protected void initialize(Table nsTable) {
+  protected void initialize(RpcService service) {
     // do nothing
   }
 

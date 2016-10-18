@@ -25,7 +25,6 @@ import static org.apache.giraffa.GiraffaConfiguration.GRFA_ROWKEY_FACTORY_KEY;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.util.ReflectionUtils;
 
 public class RowKeyFactoryProvider {
@@ -33,13 +32,13 @@ public class RowKeyFactoryProvider {
   private static Class<? extends RowKeyFactory> rowKeyFactoryClass;
 
   public static RowKeyFactory createFactory(Configuration conf,
-                                            Table nsTable)
+                                            RpcService service)
       throws IOException {
     boolean caching = conf.getBoolean(GRFA_CACHING_KEY, GRFA_CACHING_DEFAULT);
     RowKeyFactory.setCache(caching);
     Class<? extends RowKeyFactory> rkfClass =  registerFactory(conf);
     RowKeyFactory rkf = ReflectionUtils.newInstance(rkfClass, conf);
-    rkf.initialize(nsTable);
+    rkf.initialize(service);
     rowKeyFactoryClass = rkfClass;
     return rkf;
   }

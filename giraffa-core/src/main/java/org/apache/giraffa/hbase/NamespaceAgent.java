@@ -185,7 +185,8 @@ public class NamespaceAgent implements NamespaceService {
       throw new IOException("Giraffa is not formatted.", tnfe);
     }
 
-    this.keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+    HBaseRpcService service = new HBaseRpcService(nsTable);
+    this.keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
   }
 
   private ClientProtocol getRegionProxy(String src) throws IOException {

@@ -33,6 +33,7 @@ import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.giraffa.hbase.HBaseRpcService;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -88,7 +89,8 @@ public class TestLeaseManagement {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     Table nsTable = GiraffaTestUtils.getNsTable(conf);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+    HBaseRpcService service = new HBaseRpcService(nsTable);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
     nodeManager = new INodeManager(keyFactory, nsTable);
   }
 

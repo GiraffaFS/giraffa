@@ -36,6 +36,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.giraffa.GiraffaConstants.FileState;
+import org.apache.giraffa.hbase.HBaseRpcService;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -94,7 +95,8 @@ public class TestGiraffaUpgrade {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     Table nsTable = GiraffaTestUtils.getNsTable(conf);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+    HBaseRpcService service = new HBaseRpcService(nsTable);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
     nodeManager = new INodeManager(keyFactory, nsTable);
   }
 

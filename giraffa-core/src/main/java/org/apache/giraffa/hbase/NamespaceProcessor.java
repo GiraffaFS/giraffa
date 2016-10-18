@@ -206,7 +206,8 @@ public class NamespaceProcessor implements ClientProtocol,
 
     TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
     Table nsTable = e.getTable(tableName);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, nsTable);
+    HBaseRpcService service = new HBaseRpcService(nsTable);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
 
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
@@ -243,7 +244,7 @@ public class NamespaceProcessor implements ClientProtocol,
     this.leaseManager =
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
-    this.nodeManager = new INodeManager(keyFactory, e.getTable(tableName));
+    this.nodeManager = new INodeManager(keyFactory, nsTable);
     this.xAttrOp = new XAttrOp(nodeManager, conf);
     leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();
