@@ -31,7 +31,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.hbase.HBaseRpcService;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -44,7 +43,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.io.IOUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -57,6 +57,7 @@ public class TestRename {
   private static final HBaseTestingUtility UTIL =
                                   GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
+  private Connection connection;
   private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
@@ -75,15 +76,14 @@ public class TestRename {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    Table nsTable = GiraffaTestUtils.getNsTable(conf);
-    HBaseRpcService service = new HBaseRpcService(nsTable);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
-    nodeManager = new INodeManager(keyFactory, nsTable);
+    connection = ConnectionFactory.createConnection(conf);
+    keyFactory = GiraffaTestUtils.createFactory(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
   public void after() throws IOException {
-    IOUtils.cleanup(LOG, grfs, nodeManager);
+    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
   }
 
   @AfterClass

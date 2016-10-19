@@ -97,7 +97,6 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -204,11 +203,7 @@ public class NamespaceProcessor implements ClientProtocol,
     String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
-    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
-    Table nsTable = e.getTable(tableName);
-    HBaseRpcService service = new HBaseRpcService(nsTable);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
-
+    keyFactory = RowKeyFactoryProvider.createFactory(conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);
@@ -229,6 +224,8 @@ public class NamespaceProcessor implements ClientProtocol,
           + DFS_CHECKSUM_TYPE_KEY + ": " + checksumTypeStr);
     }
 
+    TableName tableName = TableName.valueOf(getGiraffaTableName(conf));
+
     this.serverDefaults = new FsServerDefaults(
         conf.getLongBytes(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT),
         conf.getInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT),
@@ -244,7 +241,7 @@ public class NamespaceProcessor implements ClientProtocol,
     this.leaseManager =
         LeaseManager.originateSharedLeaseManager(e.getRegionServerServices()
             .getRpcServer().getListenerAddress().toString());
-    this.nodeManager = new INodeManager(keyFactory, nsTable);
+    this.nodeManager = new INodeManager(keyFactory, e.getTable(tableName));
     this.xAttrOp = new XAttrOp(nodeManager, conf);
     leaseManager.initializeMonitor(this);
     leaseManager.startMonitor();

@@ -33,7 +33,6 @@ import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.giraffa.hbase.HBaseRpcService;
 import org.apache.giraffa.hbase.INodeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -42,7 +41,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseCommonTestingUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hdfs.protocol.AlreadyBeingCreatedException;
 import org.apache.hadoop.hdfs.protocol.HdfsConstants;
@@ -61,6 +61,7 @@ public class TestLeaseManagement {
       GiraffaTestUtils.getHBaseTestingUtility();
   private GiraffaFileSystem grfs;
   private GiraffaConfiguration conf;
+  private Connection connection;
   private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
@@ -88,15 +89,14 @@ public class TestLeaseManagement {
     GiraffaTestUtils.setGiraffaURI(conf);
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
-    Table nsTable = GiraffaTestUtils.getNsTable(conf);
-    HBaseRpcService service = new HBaseRpcService(nsTable);
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, service);
-    nodeManager = new INodeManager(keyFactory, nsTable);
+    connection = ConnectionFactory.createConnection(conf);
+    keyFactory = GiraffaTestUtils.createFactory(grfs);
+    nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
   @After
   public void after() throws IOException {
-    IOUtils.cleanup(LOG, grfs, nodeManager);
+    IOUtils.cleanup(LOG, grfs, nodeManager, connection);
   }
 
   @AfterClass
@@ -236,9 +236,11 @@ public class TestLeaseManagement {
       INodeFile iNode = null;
       do {
         try {
+          IOUtils.cleanup(LOG, connection);
+          connection = ConnectionFactory.createConnection(conf);
           IOUtils.cleanup(LOG, nodeManager);
-          Table nsTable = GiraffaTestUtils.getNsTable(conf);
-          nodeManager = new INodeManager(keyFactory, nsTable);
+          nodeManager =
+              GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
           iNode = INodeFile.valueOf(nodeManager.getINode(src));
         } catch (ConnectException ignored) {}
       } while(iNode == null);

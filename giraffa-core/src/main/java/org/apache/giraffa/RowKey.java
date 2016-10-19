@@ -17,6 +17,8 @@
  */
 package org.apache.giraffa;
 
+import java.io.IOException;
+
 /**
  * Abstract class defining a row key for a file system object in the
  * Namespace Table in HBase.<br>
@@ -43,7 +45,7 @@ public abstract class RowKey {
    * or return the generated value.
    * @return row key as a byte array
    */
-  public abstract byte[] getKey();
+  public abstract byte[] getKey() throws IOException;
 
   /**
    * Generate or regenerate the row key based on the path.
@@ -51,11 +53,11 @@ public abstract class RowKey {
    * implementations.
    * @return row key as a byte array
    */
-  public abstract byte[] generateKey();
+  public abstract byte[] generateKey() throws IOException;
 
-  public abstract byte[] getStartListingKey(byte[] startAfter);
+  public abstract byte[] getStartListingKey(byte[] startAfter) throws IOException;
 
-  public abstract byte[] getStopListingKey();
+  public abstract byte[] getStopListingKey() throws IOException;
 
   @Override // Object
   public abstract boolean equals(Object o);

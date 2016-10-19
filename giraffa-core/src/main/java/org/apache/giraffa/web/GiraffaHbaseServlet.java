@@ -74,7 +74,7 @@ public class GiraffaHbaseServlet extends HttpServlet {
     super.init();
     GiraffaConfiguration conf = new GiraffaConfiguration();
     try {
-      keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
+      keyFactory = RowKeyFactoryProvider.createFactory(conf);
     } catch (IOException e) {
       throw new ServletException(e);
     }

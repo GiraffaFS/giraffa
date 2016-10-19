@@ -75,7 +75,7 @@ public class GiraffaFileServlet extends HttpServlet {
     mapper.configure(SerializationConfig.Feature.WRAP_ROOT_VALUE, true);
     try {
       grfs = GiraffaWebUtils.getGiraffaFileSystem(getServletContext());
-      keyFactory = RowKeyFactoryProvider.createFactory(grfs.getConf(), null);
+      keyFactory = RowKeyFactoryProvider.createFactory(grfs.getConf());
     } catch (IOException e) {
       throw new ServletException(e);
     }
