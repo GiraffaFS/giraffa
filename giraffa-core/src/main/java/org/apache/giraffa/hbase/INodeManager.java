@@ -17,9 +17,11 @@
  */
 package org.apache.giraffa.hbase;
 
+import static org.apache.hadoop.hdfs.protocol.HdfsFileStatus.EMPTY_NAME;
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +50,6 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hdfs.XAttrHelper;
-import org.apache.hadoop.hdfs.protocol.HdfsFileStatus;
 import org.apache.hadoop.util.IdGenerator;
 import org.apache.hadoop.util.Time;
 
@@ -121,6 +122,21 @@ public class INodeManager implements Closeable {
       return null;
     }
     return newINode(key.getPath(), nodeInfo);
+  }
+
+  public INode getINode(RowKey parentKey,
+                        String src)
+      throws IOException {
+    try (ResultScanner rs = getListingScanner(parentKey, EMPTY_NAME)) {
+      for (Result result : rs) {
+        INode node = newINodeByParent(parentKey.getPath(), result);
+        if (node.getPath().equals(src)) {
+          return node;
+        }
+      }
+    }
+    throw new FileNotFoundException(
+        "Failed to find " + src + " under RowKey for " + parentKey.getPath());
   }
 
   /**
@@ -233,7 +249,7 @@ public class INodeManager implements Closeable {
    * @param f the function to apply to each child INode
    */
   public void map(INode root, Function f) throws IOException {
-    map(root, HdfsFileStatus.EMPTY_NAME, Integer.MAX_VALUE, f);
+    map(root, EMPTY_NAME, Integer.MAX_VALUE, f);
   }
 
   /**
@@ -424,7 +440,7 @@ public class INodeManager implements Closeable {
 
   private ResultScanner getListingScanner(RowKey key)
       throws IOException {
-    return getListingScanner(key, HdfsFileStatus.EMPTY_NAME);
+    return getListingScanner(key, EMPTY_NAME);
   }
 
   private ResultScanner getListingScanner(RowKey key, byte[] startAfter)

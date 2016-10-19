@@ -32,6 +32,8 @@ public class GiraffaConfiguration extends Configuration {
                 GRFA_ROWKEY_FACTORY_DEFAULT = FullPathRowKeyFactory.class;
   public static final String  GRFA_CACHING_KEY = "grfa.rowkey.caching";
   public static final Boolean GRFA_CACHING_DEFAULT = true;
+  public static final String  GRFA_FILEIDROWKEY_DEPTH = "grfa.fileidrowkey.depth";
+  public static final int     GRFA_FILEIDROWKEY_DEPTH_DEFAULT = 3;
   public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
                                   "grfa.namespace.service.class"; 
   public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =
