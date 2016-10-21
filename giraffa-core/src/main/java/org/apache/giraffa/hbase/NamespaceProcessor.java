@@ -556,11 +556,13 @@ public class NamespaceProcessor implements ClientProtocol,
         final List<INodeDirectory> dirsToDelete = new ArrayList<>();
         nodeManager.map(it.previous(), new Function() {
           @Override
-          public void apply(INode input) throws IOException {
-            if (!input.isDir())
-              deleteFile(INodeFile.valueOf(input), deleteBlocks);
-            else
-              dirsToDelete.add(INodeDirectory.valueOf(input));
+          public void apply(INode child) throws IOException {
+            if (!child.getRenameState().getFlag()) {
+              if (!child.isDir())
+                deleteFile(INodeFile.valueOf(child), deleteBlocks);
+              else
+                dirsToDelete.add(INodeDirectory.valueOf(child));
+            }
           }
         });
 
