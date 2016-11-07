@@ -20,6 +20,7 @@ package org.apache.giraffa.hbase.fileid;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ServiceException;
 
+import org.apache.giraffa.FileIdProtocol;
 import org.apache.giraffa.GiraffaProtos.FileIdService.BlockingInterface;
 import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
 import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;

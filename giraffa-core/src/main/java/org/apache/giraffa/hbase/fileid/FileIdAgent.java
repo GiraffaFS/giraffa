@@ -22,6 +22,7 @@ import static org.apache.giraffa.GiraffaProtos.FileIdService.newBlockingStub;
 
 import com.google.protobuf.BlockingRpcChannel;
 
+import org.apache.giraffa.FileIdProtocol;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
