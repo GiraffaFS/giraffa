@@ -116,7 +116,7 @@ public class GiraffaTestUtils {
    */
   public static INodeManager getNodeManager(GiraffaConfiguration conf,
                                             Connection connection,
-                                            RowKeyFactory<?> keyFactory)
+                                            RowKeyFactory keyFactory)
       throws IOException {
     TableName tableName =
         TableName.valueOf(getGiraffaTableName(conf));
@@ -168,11 +168,5 @@ public class GiraffaTestUtils {
     for (int i = 0; i < fileStat.length; i++) {
       printFileStatus(fileStat[i], i);
     }
-  }
-
-  public static RowKeyFactory<?> createFactory(
-      GiraffaFileSystem grfs) throws IOException {
-    return RowKeyFactoryProvider.createFactory(
-        grfs.getConf(), null);
   }
 }
