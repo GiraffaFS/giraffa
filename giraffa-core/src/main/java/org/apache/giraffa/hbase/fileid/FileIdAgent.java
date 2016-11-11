@@ -35,6 +35,11 @@ public class FileIdAgent implements FileIdProtocol {
 
   private final Table table;
 
+  public FileIdAgent(Configuration conf)
+      throws IOException {
+    this(getTable(conf));
+  }
+
   private FileIdAgent(Table table) {
     this.table = table;
   }
@@ -51,11 +56,10 @@ public class FileIdAgent implements FileIdProtocol {
     return new FileIdProtocolTranslatorPB(newBlockingStub(channel));
   }
 
-  public static FileIdAgent create(Configuration conf)
+  private static Table getTable(Configuration conf)
       throws IOException {
     Connection connection = ConnectionFactory.createConnection(conf);
     String tableName = getGiraffaTableName(conf);
-    Table table = connection.getTable(TableName.valueOf(tableName));
-    return new FileIdAgent(table);
+    return connection.getTable(TableName.valueOf(tableName));
   }
 }
