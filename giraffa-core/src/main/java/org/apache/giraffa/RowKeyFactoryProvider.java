@@ -43,8 +43,7 @@ public class RowKeyFactoryProvider {
   }
 
   @SuppressWarnings("unchecked")
-  private static synchronized
-  Class<? extends RowKeyFactory> registerFactory(Configuration conf)
+  private static synchronized Class<? extends RowKeyFactory> registerFactory(Configuration conf)
       throws IOException {
     Class<? extends RowKeyFactory> factory;
     try {
