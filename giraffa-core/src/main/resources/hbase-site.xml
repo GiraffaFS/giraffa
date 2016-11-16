@@ -22,7 +22,8 @@
 <configuration>
   <property>
     <name>hbase.coprocessor.region.classes</name>
-    <value>org.apache.giraffa.hbase.NamespaceProcessor</value>
+    <value>org.apache.giraffa.hbase.NamespaceProcessor,
+        org.apache.giraffa.hbase.fileid.FileIdProcessor</value>
   </property>
 
   <property>
