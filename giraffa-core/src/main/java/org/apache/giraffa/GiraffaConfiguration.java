@@ -18,7 +18,6 @@
 package org.apache.giraffa;
 
 import org.apache.giraffa.hbase.NamespaceAgent;
-import org.apache.giraffa.hbase.fileid.FileIdAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -35,8 +34,6 @@ public class GiraffaConfiguration extends Configuration {
   public static final Boolean GRFA_CACHING_DEFAULT = true;
   public static final String  GRFA_FILEIDROWKEY_DEPTH = "grfa.fileidrowkey.depth";
   public static final int     GRFA_FILEIDROWKEY_DEPTH_DEFAULT = 3;
-  public static final String  GRFA_FILEID_SERVICE_KEY = "grfa.fileid.service.class";
-  public static final Class<FileIdAgent> GRFA_FILEID_SERVICE_DEFAULT = FileIdAgent.class;
   public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
                                   "grfa.namespace.service.class"; 
   public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =
@@ -75,12 +72,6 @@ public class GiraffaConfiguration extends Configuration {
         getClass(GRFA_NAMESPACE_SERVICE_KEY, GRFA_NAMESPACE_SERVICE_DEFAULT,
             NamespaceService.class);
     return ReflectionUtils.newInstance(serviceClass, null);
-  }
-
-  FileIdProtocol newFileIdService() {
-    Class<? extends FileIdProtocol> serviceClass =
-        getClass(GRFA_FILEID_SERVICE_KEY, GRFA_FILEID_SERVICE_DEFAULT, FileIdProtocol.class);
-    return ReflectionUtils.newInstance(serviceClass, this);
   }
 
   public static String getGiraffaTableName(Configuration conf) {

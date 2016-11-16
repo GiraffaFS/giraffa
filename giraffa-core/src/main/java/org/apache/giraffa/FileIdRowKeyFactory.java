@@ -17,6 +17,7 @@
  */
 package org.apache.giraffa;
 
+import org.apache.giraffa.hbase.fileid.FileIdAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
@@ -28,15 +29,14 @@ import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_I
 
 public class FileIdRowKeyFactory extends RowKeyFactory {
 
-  private FileIdProtocol idService;
+  private FileIdAgent agent;
   private int depth;
 
   @Override // RowKeyFactory
   public void initialize(Configuration conf)
       throws IOException {
-    GiraffaConfiguration grfaConf = new GiraffaConfiguration(conf);
-    idService = grfaConf.newFileIdService();
-    depth = grfaConf.getInt(GRFA_FILEIDROWKEY_DEPTH, GRFA_FILEIDROWKEY_DEPTH_DEFAULT);
+    agent = FileIdAgent.create(conf);
+    depth = conf.getInt(GRFA_FILEIDROWKEY_DEPTH, GRFA_FILEIDROWKEY_DEPTH_DEFAULT);
   }
 
   @Override // RowKeyFactory
@@ -50,6 +50,6 @@ public class FileIdRowKeyFactory extends RowKeyFactory {
   }
 
   private RowKey getRowKey(String src, long inodeId, byte[] bytes) {
-    return new FileIdRowKey(new Path(src), inodeId, bytes, depth, this, idService);
+    return new FileIdRowKey(new Path(src), inodeId, bytes, depth, this, agent);
   }
 }
