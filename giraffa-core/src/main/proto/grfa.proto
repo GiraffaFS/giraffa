@@ -1,7 +1,6 @@
 option java_package = "org.apache.giraffa";
 option java_outer_classname = "GiraffaProtos";
 option java_generate_equals_and_hash = true;
-option java_generic_services = true;
 package giraffa;
 
 import "hdfs.proto";
@@ -23,17 +22,4 @@ message FileLeaseProto {
   required string holder = 1;
   required string path = 2;
   required uint64 lastUpdate = 3;
-}
-
-message GetFileIdRequestProto {
-  required bytes parentKey = 1;
-  required string src = 2;
-}
-
-message GetFileIdResponseProto {
-  optional uint64 fileId = 1;
-}
-
-service FileIdService {
-  rpc getFileId(GetFileIdRequestProto) returns(GetFileIdResponseProto);
 }

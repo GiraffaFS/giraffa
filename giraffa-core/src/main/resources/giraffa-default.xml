@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <!--
 
     Licensed to the Apache Software Foundation (ASF) under one
@@ -19,6 +18,7 @@
     limitations under the License.
 
 -->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 
 <!-- Do not modify this file directly.  Instead, copy entries that you   -->
 <!-- wish to modify from this file into giraffa-site.xml and change them -->
@@ -38,7 +38,7 @@
 
   <property>
     <name>grfa.rowkey.factory.class</name>
-    <value>org.apache.giraffa.FileIdRowKeyFactory</value>
+    <value>org.apache.giraffa.FullPathRowKeyFactory</value>
     <description>
       Class that implements RowKeyFactory for the namespace table.
     </description>
@@ -49,14 +49,6 @@
     <value>true</value>
     <description>
       True if row key caching is enabled.
-    </description>
-  </property>
-
-  <property>
-    <name>grfa.fileidrowkey.depth</name>
-    <value>3</value>
-    <description>
-      Total number of INode IDs to store in each RowKey
     </description>
   </property>
 
