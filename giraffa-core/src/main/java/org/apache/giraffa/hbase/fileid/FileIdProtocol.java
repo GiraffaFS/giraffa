@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa;
+package org.apache.giraffa.hbase.fileid;
 
 import java.io.IOException;
 
@@ -23,7 +23,7 @@ import java.io.IOException;
  * A protocol for retrieving the unique id used to represent each file or
  * directory.
  */
-public interface FileIdProtocol {
+interface FileIdProtocol {
 
   /**
    * Retrieve the id of the file/directory at the given path.

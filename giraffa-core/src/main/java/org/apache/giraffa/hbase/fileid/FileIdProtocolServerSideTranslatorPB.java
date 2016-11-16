@@ -20,7 +20,6 @@ package org.apache.giraffa.hbase.fileid;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 
-import org.apache.giraffa.FileIdProtocol;
 import org.apache.giraffa.GiraffaProtos.FileIdService.Interface;
 import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
 import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;

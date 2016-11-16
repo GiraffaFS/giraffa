@@ -22,7 +22,6 @@ import static org.apache.giraffa.RowKeyFactoryProvider.createFactory;
 
 import com.google.protobuf.Service;
 
-import org.apache.giraffa.FileIdProtocol;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;

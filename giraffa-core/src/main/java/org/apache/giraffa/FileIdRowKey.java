@@ -1,5 +1,6 @@
 package org.apache.giraffa;
 
+import org.apache.giraffa.hbase.fileid.FileIdAgent;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
@@ -18,7 +19,7 @@ class FileIdRowKey extends RowKey {
   private final Path path;
   private final int depth;
   private final RowKeyFactory keyFactory;
-  private final FileIdProtocol idService;
+  private final FileIdAgent agent;
 
   private long inodeId;
   private byte[] parentKey;
@@ -29,13 +30,13 @@ class FileIdRowKey extends RowKey {
                byte[] bytes,
                int depth,
                RowKeyFactory keyFactory,
-               FileIdProtocol idService) {
+               FileIdAgent agent) {
     this.path = path;
     this.inodeId = inodeId;
     this.bytes = bytes;
     this.depth = depth;
     this.keyFactory = keyFactory;
-    this.idService = idService;
+    this.agent = agent;
   }
 
   @Override
@@ -64,7 +65,7 @@ class FileIdRowKey extends RowKey {
     if (path.isRoot()) {
       return ROOT_INODE_ID;
     } else {
-      return idService.getFileId(getParentKey(), path.toString());
+      return agent.getFileId(getParentKey(), path.toString());
     }
   }
 
