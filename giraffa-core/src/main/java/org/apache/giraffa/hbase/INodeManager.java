@@ -65,14 +65,13 @@ public class INodeManager implements Closeable {
   private static final byte[] EMPTY = new byte[0];
 
   /** The Namespace table */
-  private final RowKeyFactory<?> keyFactory;
+  private final RowKeyFactory keyFactory;
   private Table nsTable;
   private final IdGeneratorService inodeIdService;
   private final IdGenerator inodeIdGenerator;
 
-  public INodeManager(RowKeyFactory<?> keyFactory,
-                      Table nsTable)
-      throws IOException {
+  public INodeManager(RowKeyFactory keyFactory,
+                      Table nsTable) {
     this.keyFactory = keyFactory;
     assert nsTable != null : "nsTable is null";
     this.nsTable = nsTable;

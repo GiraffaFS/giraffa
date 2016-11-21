@@ -19,7 +19,7 @@ package org.apache.giraffa;
 
 import java.io.IOException;
 
-public class FullPathRowKeyFactory extends RowKeyFactory<Void> {
+public class FullPathRowKeyFactory extends RowKeyFactory {
 
   @Override // RowKeyFactory
   public RowKey getRowKey(String src, long inodeId) throws IOException {

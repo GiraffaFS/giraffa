@@ -19,6 +19,8 @@ package org.apache.giraffa;
 
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
+import org.apache.hadoop.conf.Configuration;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,11 +34,11 @@ import java.util.Map;
  * Subclasses should override getRowKey() methods.
  * To create a new key newInstance() methods should be used.
  * <br/>
- * If {@link Configuration} specifies caching, the keys will be cached 
+ * If {@link Configuration} specifies caching, the keys will be cached
  * for faster instantiation.<br>
  * This class is thread safe.
  */
-public abstract class RowKeyFactory<S> {
+public abstract class RowKeyFactory {
   private static Map<String, RowKey> cache;
 
   public static synchronized boolean isCaching() {
@@ -52,23 +54,42 @@ public abstract class RowKeyFactory<S> {
 
   /**
    * Create new instance of RowKey based on file path and inodeId.
-   * RowKey.bytes field may remain uninitialized depending on the 
+   * RowKey.bytes field may remain uninitialized depending on the
    * file path resolution implementation. {@link RowKey#getKey()} will further
    * generate the bytes.
-   * 
+   *
    * @param src file path
-   * @param inodeId
+   * @param inodeId id of the file's INode
    * @return new RowKey instance
-   * @throws IOException
+   * @throws IOException a problem occurred initializing the RowKey
    */
   public RowKey newInstance(String src, long inodeId) throws IOException {
     return newInstance(src, inodeId, null);
   }
 
+  /**
+   * Create new instance of RowKey based on file path only.
+   * RowKey.bytes field may remain uninitialized depending on the
+   * file path resolution implementation. {@link RowKey#getKey()} will further
+   * generate the bytes.
+   *
+   * @param src file path
+   * @return new RowKey instance
+   * @throws IOException a problem occurred initializing the RowKey
+   */
   public RowKey newInstance(String src) throws IOException {
     return newInstance(src, GRANDFATHER_INODE_ID, null);
   }
 
+  /**
+   * Create new instance of RowKey based on file path and key bytes.
+   * RowKey.bytes field will be set immediately to the given value.
+   *
+   * @param src file path
+   * @param bytes row key bytes
+   * @return new RowKey instance
+   * @throws IOException a problem occurred initializing the RowKey
+   */
   public RowKey newInstance(String src, byte[] bytes) throws IOException {
     return newInstance(src, GRANDFATHER_INODE_ID, bytes);
   }
@@ -79,10 +100,10 @@ public abstract class RowKeyFactory<S> {
    * and no file path resolution to generate bytes is necessary.
    * This can be used when the key is returned from the namespace service
    * as a byte array.
-   * 
+   *
    * @param src file path
    * @return new RowKey instance
-   * @throws IOException
+   * @throws IOException a problem occurred initializing the RowKey
    */
   public RowKey newInstance(String src, long inodeId, byte[] bytes)
       throws IOException {
@@ -110,11 +131,9 @@ public abstract class RowKeyFactory<S> {
     return key;
   }
 
-  void setService(S service) {
-  }
-
-  public S getService() {
-    return null;
+  protected void initialize(Configuration conf)
+      throws IOException {
+    // do nothing
   }
 
   protected abstract RowKey getRowKey(String src, long inodeId)

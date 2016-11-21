@@ -149,7 +149,7 @@ public class NamespaceProcessor implements ClientProtocol,
       new ClientNamenodeProtocolServerSideCallbackTranslatorPB(this);
   Service service = ClientNamenodeProtocol.newReflectiveService(translator);
 
-  private RowKeyFactory<?> keyFactory;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
   private XAttrOp xAttrOp;
   private LeaseManager leaseManager;
@@ -203,7 +203,7 @@ public class NamespaceProcessor implements ClientProtocol,
     String unlimited = (xAttrMaxSize == 0) ? " (unlimited)" : "";
     LOG.info("Maximum size of an xAttr:" + xAttrMaxSize + unlimited);
 
-    keyFactory = RowKeyFactoryProvider.createFactory(conf, null);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf);
     int configuredLimit = conf.getInt(
         GiraffaConfiguration.GRFA_LIST_LIMIT_KEY,
         GiraffaConfiguration.GRFA_LIST_LIMIT_DEFAULT);

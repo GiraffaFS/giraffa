@@ -72,7 +72,7 @@ public class TestGiraffaUpgrade {
   private DFSTestUtil fsUtil;
   private GiraffaFileSystem grfs;
   private Connection connection;
-  private RowKeyFactory<?> keyFactory;
+  private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
   @BeforeClass
@@ -96,7 +96,7 @@ public class TestGiraffaUpgrade {
     GiraffaFileSystem.format(conf, false);
     grfs = (GiraffaFileSystem) FileSystem.get(conf);
     connection = ConnectionFactory.createConnection(conf);
-    keyFactory = GiraffaTestUtils.createFactory(grfs);
+    keyFactory = RowKeyFactoryProvider.createFactory(conf);
     nodeManager = GiraffaTestUtils.getNodeManager(conf, connection, keyFactory);
   }
 
