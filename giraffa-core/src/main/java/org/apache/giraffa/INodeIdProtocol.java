@@ -23,7 +23,7 @@ import java.io.IOException;
  * A protocol for retrieving the unique id used to represent each file or
  * directory.
  */
-public interface FileIdProtocol {
+public interface INodeIdProtocol {
 
   /**
    * Retrieve the id of the file/directory at the given path.
@@ -31,7 +31,7 @@ public interface FileIdProtocol {
    * @param src the path to the file/directory whose id is needed
    * @return the fixed, unique long representing this file/directory
    */
-  long getFileId(byte[] parentKey,
-                 String src)
+  long getINodeId(byte[] parentKey,
+                  String src)
       throws IOException;
 }

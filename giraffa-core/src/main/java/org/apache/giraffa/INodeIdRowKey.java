@@ -10,7 +10,7 @@ import static org.apache.giraffa.RowKeyBytes.putLong;
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.ROOT_INODE_ID;
 
-class FileIdRowKey extends RowKey {
+class INodeIdRowKey extends RowKey {
 
   private static final int LONG_BYTES = Long.SIZE / Byte.SIZE;
   private static final byte[] EMPTY = new byte[0];
@@ -18,18 +18,18 @@ class FileIdRowKey extends RowKey {
   private final Path path;
   private final int depth;
   private final RowKeyFactory keyFactory;
-  private final FileIdProtocol idService;
+  private final INodeIdProtocol idService;
 
   private long inodeId;
   private byte[] parentKey;
   private byte[] bytes;
 
-  FileIdRowKey(Path path,
-               long inodeId,
-               byte[] bytes,
-               int depth,
-               RowKeyFactory keyFactory,
-               FileIdProtocol idService) {
+  INodeIdRowKey(Path path,
+                long inodeId,
+                byte[] bytes,
+                int depth,
+                RowKeyFactory keyFactory,
+                INodeIdProtocol idService) {
     this.path = path;
     this.inodeId = inodeId;
     this.bytes = bytes;
@@ -64,7 +64,7 @@ class FileIdRowKey extends RowKey {
     if (path.isRoot()) {
       return ROOT_INODE_ID;
     } else {
-      return idService.getFileId(getParentKey(), path.toString());
+      return idService.getINodeId(getParentKey(), path.toString());
     }
   }
 
@@ -116,9 +116,9 @@ class FileIdRowKey extends RowKey {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof FileIdRowKey)) return false;
+    if (!(o instanceof INodeIdRowKey)) return false;
 
-    FileIdRowKey that = (FileIdRowKey) o;
+    INodeIdRowKey that = (INodeIdRowKey) o;
     byte[] key = getKeyOrEmptyBytes();
     return key.length > 0 && Arrays.equals(key, that.getKeyOrEmptyBytes());
   }

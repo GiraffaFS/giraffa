@@ -15,41 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase.fileid;
+package org.apache.giraffa.hbase.inodeid;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 
-import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.GiraffaProtos.FileIdService.Interface;
-import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
-import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;
+import org.apache.giraffa.GiraffaProtos.GetINodeIdRequestProto;
+import org.apache.giraffa.GiraffaProtos.GetINodeIdResponseProto;
+import org.apache.giraffa.GiraffaProtos.INodeIdService.Interface;
+import org.apache.giraffa.INodeIdProtocol;
 import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 
 import java.io.IOException;
 
-class FileIdProtocolServerSideTranslatorPB implements Interface {
+class INodeIdProtocolServerSideTranslatorPB implements Interface {
 
-  private final FileIdProtocol server;
+  private final INodeIdProtocol server;
 
-  FileIdProtocolServerSideTranslatorPB(FileIdProtocol server) {
+  INodeIdProtocolServerSideTranslatorPB(INodeIdProtocol server) {
     this.server = server;
   }
 
   @Override // Interface
-  public void getFileId(RpcController controller,
-                        GetFileIdRequestProto req,
-                        RpcCallback<GetFileIdResponseProto> done) {
-    long fileId = 0;
+  public void getINodeId(RpcController controller,
+                         GetINodeIdRequestProto req,
+                         RpcCallback<GetINodeIdResponseProto> done) {
+    long inodeId = 0;
     try {
       byte[] parentKey = req.getParentKey().toByteArray();
       String src = req.getSrc();
-      fileId = server.getFileId(parentKey, src);
+      inodeId = server.getINodeId(parentKey, src);
     } catch (IOException e) {
       ResponseConverter.setControllerException(controller, e);
     }
-    GetFileIdResponseProto resp = GetFileIdResponseProto.newBuilder()
-        .setFileId(fileId)
+    GetINodeIdResponseProto resp = GetINodeIdResponseProto.newBuilder()
+        .setINodeId(inodeId)
         .build();
     done.run(resp);
   }

@@ -22,21 +22,21 @@ import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
 
-import static org.apache.giraffa.GiraffaConfiguration.GRFA_FILEIDROWKEY_DEPTH;
-import static org.apache.giraffa.GiraffaConfiguration.GRFA_FILEIDROWKEY_DEPTH_DEFAULT;
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_INODEIDROWKEY_DEPTH;
+import static org.apache.giraffa.GiraffaConfiguration.GRFA_INODEIDROWKEY_DEPTH_DEFAULT;
 import static org.apache.hadoop.hdfs.server.namenode.INodeId.GRANDFATHER_INODE_ID;
 
-public class FileIdRowKeyFactory extends RowKeyFactory {
+public class INodeIdRowKeyFactory extends RowKeyFactory {
 
-  private FileIdProtocol idService;
+  private INodeIdProtocol idService;
   private int depth;
 
   @Override // RowKeyFactory
   public void initialize(Configuration conf)
       throws IOException {
     GiraffaConfiguration grfaConf = new GiraffaConfiguration(conf);
-    idService = grfaConf.newFileIdService();
-    depth = grfaConf.getInt(GRFA_FILEIDROWKEY_DEPTH, GRFA_FILEIDROWKEY_DEPTH_DEFAULT);
+    idService = grfaConf.newINodeIdService();
+    depth = grfaConf.getInt(GRFA_INODEIDROWKEY_DEPTH, GRFA_INODEIDROWKEY_DEPTH_DEFAULT);
   }
 
   @Override // RowKeyFactory
@@ -50,6 +50,6 @@ public class FileIdRowKeyFactory extends RowKeyFactory {
   }
 
   private RowKey getRowKey(String src, long inodeId, byte[] bytes) {
-    return new FileIdRowKey(new Path(src), inodeId, bytes, depth, this, idService);
+    return new INodeIdRowKey(new Path(src), inodeId, bytes, depth, this, idService);
   }
 }

@@ -15,38 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase.fileid;
+package org.apache.giraffa.hbase.inodeid;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ServiceException;
 
-import org.apache.giraffa.FileIdProtocol;
-import org.apache.giraffa.GiraffaProtos.FileIdService.BlockingInterface;
-import org.apache.giraffa.GiraffaProtos.GetFileIdRequestProto;
-import org.apache.giraffa.GiraffaProtos.GetFileIdResponseProto;
+import org.apache.giraffa.GiraffaProtos.GetINodeIdRequestProto;
+import org.apache.giraffa.GiraffaProtos.GetINodeIdResponseProto;
+import org.apache.giraffa.GiraffaProtos.INodeIdService.BlockingInterface;
+import org.apache.giraffa.INodeIdProtocol;
 import org.apache.hadoop.ipc.ProtobufHelper;
 
 import java.io.IOException;
 
-class FileIdProtocolTranslatorPB implements FileIdProtocol {
+class INodeIdProtocolTranslatorPB implements INodeIdProtocol {
 
   private final BlockingInterface rpcProxy;
 
-  FileIdProtocolTranslatorPB(BlockingInterface rpcProxy) {
+  INodeIdProtocolTranslatorPB(BlockingInterface rpcProxy) {
     this.rpcProxy = rpcProxy;
   }
 
-  @Override // FileIdProtocol
-  public long getFileId(byte[] parentKey,
-                        String src)
+  @Override // INodeIdProtocol
+  public long getINodeId(byte[] parentKey,
+                         String src)
       throws IOException {
-    GetFileIdRequestProto req = GetFileIdRequestProto.newBuilder()
+    GetINodeIdRequestProto req = GetINodeIdRequestProto.newBuilder()
         .setParentKey(ByteString.copyFrom(parentKey))
         .setSrc(src)
         .build();
     try {
-      GetFileIdResponseProto resp = rpcProxy.getFileId(null, req);
-      return resp.getFileId();
+      GetINodeIdResponseProto resp = rpcProxy.getINodeId(null, req);
+      return resp.getINodeId();
     } catch (ServiceException e) {
       throw ProtobufHelper.getRemoteException(e);
     }

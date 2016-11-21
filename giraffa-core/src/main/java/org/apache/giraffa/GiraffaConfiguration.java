@@ -18,7 +18,7 @@
 package org.apache.giraffa;
 
 import org.apache.giraffa.hbase.NamespaceAgent;
-import org.apache.giraffa.hbase.fileid.FileIdAgent;
+import org.apache.giraffa.hbase.inodeid.INodeIdAgent;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -33,12 +33,12 @@ public class GiraffaConfiguration extends Configuration {
                 GRFA_ROWKEY_FACTORY_DEFAULT = FullPathRowKeyFactory.class;
   public static final String  GRFA_CACHING_KEY = "grfa.rowkey.caching";
   public static final Boolean GRFA_CACHING_DEFAULT = true;
-  public static final String  GRFA_FILEIDROWKEY_DEPTH = "grfa.fileidrowkey.depth";
-  public static final int     GRFA_FILEIDROWKEY_DEPTH_DEFAULT = 3;
-  public static final String  GRFA_FILEID_SERVICE_KEY = "grfa.fileid.service.class";
-  public static final Class<FileIdAgent> GRFA_FILEID_SERVICE_DEFAULT = FileIdAgent.class;
-  public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
-                                  "grfa.namespace.service.class"; 
+  public static final String GRFA_INODEIDROWKEY_DEPTH = "grfa.inodeidrowkey.depth";
+  public static final int GRFA_INODEIDROWKEY_DEPTH_DEFAULT = 3;
+  public static final String GRFA_INODEID_SERVICE_KEY = "grfa.inodeid.service.class";
+  public static final Class<INodeIdAgent> GRFA_INODEID_SERVICE_DEFAULT = INodeIdAgent.class;
+  public static final String  GRFA_NAMESPACE_SERVICE_KEY =
+                                  "grfa.namespace.service.class";
   public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =
                                   NamespaceAgent.class;
   public static final String  GRFA_HDFS_ADDRESS_KEY = "grfa.hdfs.address";
@@ -77,9 +77,9 @@ public class GiraffaConfiguration extends Configuration {
     return ReflectionUtils.newInstance(serviceClass, null);
   }
 
-  FileIdProtocol newFileIdService() {
-    Class<? extends FileIdProtocol> serviceClass =
-        getClass(GRFA_FILEID_SERVICE_KEY, GRFA_FILEID_SERVICE_DEFAULT, FileIdProtocol.class);
+  INodeIdProtocol newINodeIdService() {
+    Class<? extends INodeIdProtocol> serviceClass =
+        getClass(GRFA_INODEID_SERVICE_KEY, GRFA_INODEID_SERVICE_DEFAULT, INodeIdProtocol.class);
     return ReflectionUtils.newInstance(serviceClass, this);
   }
 

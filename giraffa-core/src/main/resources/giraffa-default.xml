@@ -38,7 +38,7 @@
 
   <property>
     <name>grfa.rowkey.factory.class</name>
-    <value>org.apache.giraffa.FileIdRowKeyFactory</value>
+    <value>org.apache.giraffa.INodeIdRowKeyFactory</value>
     <description>
       Class that implements RowKeyFactory for the namespace table.
     </description>

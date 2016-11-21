@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase.fileid;
+package org.apache.giraffa.hbase.inodeid;
 
 import static org.apache.giraffa.GiraffaConfiguration.getGiraffaTableName;
-import static org.apache.giraffa.GiraffaProtos.FileIdService.newBlockingStub;
+import static org.apache.giraffa.GiraffaProtos.INodeIdService.newBlockingStub;
 
 import com.google.protobuf.BlockingRpcChannel;
 
-import org.apache.giraffa.FileIdProtocol;
+import org.apache.giraffa.INodeIdProtocol;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -31,29 +31,30 @@ import org.apache.hadoop.hbase.client.Table;
 
 import java.io.IOException;
 
-public class FileIdAgent implements FileIdProtocol {
+public class INodeIdAgent implements INodeIdProtocol {
 
   private final Table table;
 
-  public FileIdAgent(Configuration conf)
+  @SuppressWarnings("unused")
+  public INodeIdAgent(Configuration conf)
       throws IOException {
     this(getTable(conf));
   }
 
-  private FileIdAgent(Table table) {
+  private INodeIdAgent(Table table) {
     this.table = table;
   }
 
-  @Override // FileIdProtocol
-  public long getFileId(byte[] parentKey,
-                        String src)
+  @Override // INodeIdProtocol
+  public long getINodeId(byte[] parentKey,
+                         String src)
       throws IOException {
-    return getRegionProxy(parentKey).getFileId(parentKey, src);
+    return getRegionProxy(parentKey).getINodeId(parentKey, src);
   }
 
-  private FileIdProtocol getRegionProxy(byte[] key) {
+  private INodeIdProtocol getRegionProxy(byte[] key) {
     BlockingRpcChannel channel = table.coprocessorService(key);
-    return new FileIdProtocolTranslatorPB(newBlockingStub(channel));
+    return new INodeIdProtocolTranslatorPB(newBlockingStub(channel));
   }
 
   private static Table getTable(Configuration conf)

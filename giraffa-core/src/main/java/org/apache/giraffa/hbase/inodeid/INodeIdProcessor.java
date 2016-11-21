@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.giraffa.hbase.fileid;
+package org.apache.giraffa.hbase.inodeid;
 
-import static org.apache.giraffa.GiraffaProtos.FileIdService.newReflectiveService;
+import static org.apache.giraffa.GiraffaProtos.INodeIdService.newReflectiveService;
 import static org.apache.giraffa.RowKeyFactoryProvider.createFactory;
 
 import com.google.protobuf.Service;
 
-import org.apache.giraffa.FileIdProtocol;
+import org.apache.giraffa.INodeIdProtocol;
 import org.apache.giraffa.GiraffaConfiguration;
 import org.apache.giraffa.RowKey;
 import org.apache.giraffa.RowKeyFactory;
@@ -37,17 +37,17 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 
 import java.io.IOException;
 
-public class FileIdProcessor implements
-    Coprocessor, CoprocessorService, FileIdProtocol {
+public class INodeIdProcessor implements
+    Coprocessor, CoprocessorService, INodeIdProtocol {
 
   private final Service service;
 
   private RowKeyFactory keyFactory;
   private INodeManager nodeManager;
 
-  public FileIdProcessor() {
+  public INodeIdProcessor() {
     service = newReflectiveService(
-        new FileIdProtocolServerSideTranslatorPB(this));
+        new INodeIdProtocolServerSideTranslatorPB(this));
   }
 
   @Override // Coprocessor
@@ -70,9 +70,9 @@ public class FileIdProcessor implements
     return service;
   }
 
-  @Override // FileIdProtocol
-  public long getFileId(byte[] parentKey,
-                        String src)
+  @Override // INodeIdProtocol
+  public long getINodeId(byte[] parentKey,
+                         String src)
       throws IOException {
     String parent = new Path(src).getParent().toString();
     RowKey parentRowKey = keyFactory.newInstance(parent, parentKey);
