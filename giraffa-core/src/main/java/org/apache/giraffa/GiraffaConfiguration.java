@@ -34,8 +34,8 @@ public class GiraffaConfiguration extends Configuration {
   public static final Boolean GRFA_CACHING_DEFAULT = true;
   public static final String  GRFA_NAMESPACE_SERVICE_KEY = 
                                   "grfa.namespace.service.class"; 
-  public static final Class<NamespaceAgent> GRFA_NAMESPACE_SERVICE_DEFAULT =
-                                  NamespaceAgent.class;
+  public static final Class<? extends NamespaceService>
+                GRFA_NAMESPACE_SERVICE_DEFAULT = NamespaceAgent.class;
   public static final String  GRFA_HDFS_ADDRESS_KEY = "grfa.hdfs.address";
   public static final String  GRFA_HDFS_ADDRESS_DEFAULT = "file:///";
   public static final String  GRFA_HBASE_ADDRESS_KEY = "grfa.hbase.address";
@@ -44,7 +44,6 @@ public class GiraffaConfiguration extends Configuration {
                                   DFSConfigKeys.DFS_LIST_LIMIT;
   public static final int     GRFA_LIST_LIMIT_DEFAULT =
                                   DFSConfigKeys.DFS_LIST_LIMIT_DEFAULT;
-
 
   public static final String  GRFA_WEB_ADDRESS_KEY = "grfa.http-address";
   public static final String  GRFA_WEB_ADDRESS_DEFAULT = "0.0.0.0:40010";
