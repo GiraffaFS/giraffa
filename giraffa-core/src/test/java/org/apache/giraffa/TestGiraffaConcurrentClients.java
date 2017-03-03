@@ -36,8 +36,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestGiraffaConcurrentClients {
   static final Log LOG = LogFactory.getLog(TestGiraffaConcurrentClients.class);

@@ -269,8 +269,8 @@ public class GiraffaFileSystem extends FileSystem {
         grfaClient.open(getPathName(f), bufferSize, true));
   }
 
-  @SuppressWarnings("deprecation")
   @Override
+  @SuppressWarnings("deprecation")
   public boolean rename(Path src, Path dst) throws IOException {
     return grfaClient.rename(getPathName(src), getPathName(dst));
   }
