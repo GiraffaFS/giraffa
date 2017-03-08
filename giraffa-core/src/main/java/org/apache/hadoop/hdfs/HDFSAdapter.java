@@ -23,7 +23,6 @@ import org.apache.hadoop.hdfs.protocol.ClientProtocol;
  * Adapter to HDFS client side APIs.
  */
 public class HDFSAdapter {
-  @SuppressWarnings("deprecation")
   private static DFSClient getClient(DistributedFileSystem hdfs) {
     return hdfs.getClient();
   }
